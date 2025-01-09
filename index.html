@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>シンプルTRPG</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+  <!-- メインのCSS -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- DOMPurify (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <!-- 履歴をクリア -->
+  <button id="clear-history-button" style="margin-top:20px;">履歴をクリア</button>
+
+  <div class="container">
+    <div class="main-content">
+      <div class="left-pane">
+        <h1>シンプルTRPG</h1>
+
+        <!-- APIキー入力セクション -->
+        <div class="api-key-section">
+          <label for="api-key-input">ChatGPT APIキーを入力：</label>
+          <input type="text" id="api-key-input" placeholder="APIキーを入力" />
+          <button id="set-api-key-button">APIキー設定</button>
+        </div>
+
+        <!-- シナリオ入力セクション -->
+        <div class="input-section" style="display:none;">
+          <label for="scenario-input">シナリオを入力してください：</label>
+          <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
+          <button id="start-button">ゲーム開始</button>
+        </div>
+
+        <!-- ゲーム画面セクション -->
+        <div class="game-section" style="display:none;">
+          <div id="story"></div>
+
+          <!-- 左ペインで現シーン画像をまとめて表示する領域 -->
+          <div id="scene-image-list" style="margin-top:10px;"></div>
+
+          <!-- 自動生成 + カスタム生成ボタン -->
+          <div style="margin-top:20px;">
+            <button id="image-auto-generate-button">自動生成(現シーンから)</button>
+            <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
+          </div>
+          <div id="player-action"></div>
+          <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
+          <button id="next-scene" style="display:none;">次のシーン</button>
+
+        </div>
+      </div>
+
+      <!-- 右ペイン: 履歴表示 -->
+      <div class="right-pane">
+        <h2>シーン履歴</h2>
+        <div id="scene-history" class="scene-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 応答待ちモーダル -->
+  <div id="loading-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>応答を待っています...</p>
+      <button id="cancel-request-button">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- カスタム画像生成モーダル -->
+  <div id="image-prompt-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <p>画像生成のプロンプトを編集してください</p>
+      <textarea id="image-custom-prompt" rows="5" style="width:100%;"></textarea>
+      <div style="margin-top:10px;">
+        <button id="image-custom-generate-button">生成</button>
+        <button id="image-custom-cancel-button">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
