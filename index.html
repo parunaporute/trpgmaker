@@ -14,47 +14,44 @@
   <button id="clear-history-button" style="margin-top:20px;">履歴をクリア</button>
 
   <div class="container">
-    <div class="main-content">
-      <div class="left-pane">
-        <h1>シンプルTRPG</h1>
+    <!-- シーン履歴を上部に配置し、最新は非表示 -->
+    <h2>シーン履歴（最新シーンは除外）</h2>
+    <div id="scene-history" class="scene-history"></div>
 
-        <!-- APIキー入力セクション -->
-        <div class="api-key-section">
-          <label for="api-key-input">ChatGPT APIキーを入力：</label>
-          <input type="text" id="api-key-input" placeholder="APIキーを入力" />
-          <button id="set-api-key-button">APIキー設定</button>
-        </div>
+    <h1>シンプルTRPG</h1>
 
-        <!-- シナリオ入力セクション -->
-        <div class="input-section" style="display:none;">
-          <label for="scenario-input">シナリオを入力してください：</label>
-          <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
-          <button id="start-button">ゲーム開始</button>
-        </div>
+    <!-- APIキー入力セクション -->
+    <div class="api-key-section">
+      <label for="api-key-input">ChatGPT APIキーを入力：</label>
+      <input type="text" id="api-key-input" placeholder="APIキーを入力" />
+      <button id="set-api-key-button">APIキー設定</button>
+    </div>
 
-        <!-- ゲーム画面セクション -->
-        <div class="game-section" style="display:none;">
-          <div id="story"></div>
+    <!-- シナリオ入力セクション -->
+    <div class="input-section" style="display:none;">
+      <label for="scenario-input">シナリオを入力してください：</label>
+      <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
+      <button id="start-button">ゲーム開始</button>
+    </div>
 
-          <!-- 左ペインで現シーン画像をまとめて表示する領域 -->
-          <div id="scene-image-list" style="margin-top:10px;"></div>
+    <!-- ゲーム画面セクション -->
+    <div class="game-section" style="display:none;">
+      <!-- 最新シーンを表示 -->
+      <div id="story" style="margin-bottom:20px;"></div>
 
-          <!-- 自動生成 + カスタム生成ボタン -->
-          <div style="margin-top:20px;">
-            <button id="image-auto-generate-button">自動生成(現シーンから)</button>
-            <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
-          </div>
-          <div id="player-action"></div>
-          <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
-          <button id="next-scene" style="display:none;">次のシーン</button>
-        </div>
+      <!-- 最新シーンの画像たち。削除/再生成ボタン付き -->
+      <div id="last-scene-images" style="margin-bottom:20px;"></div>
+
+      <!-- 画像生成ボタン -->
+      <div>
+        <button id="image-auto-generate-button">自動生成(現シーンから)</button>
+        <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
 
-      <!-- 右ペイン: 履歴表示 -->
-      <div class="right-pane">
-        <h2>シーン履歴</h2>
-        <div id="scene-history" class="scene-history"></div>
-      </div>
+      <!-- プレイヤー行動入力欄 -->
+      <div id="player-action" style="margin-top:20px;"></div>
+      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
+      <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
     </div>
   </div>
 
@@ -78,7 +75,7 @@
     </div>
   </div>
 
-  <!-- 分割したスクリプトを読み込む。順番が重要：scene.js, image.js, main.jsの順で。 -->
+  <!-- スクリプトをこの順番で読み込む -->
   <script src="scene.js"></script>
   <script src="image.js"></script>
   <script src="main.js"></script>

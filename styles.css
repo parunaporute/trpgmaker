@@ -16,32 +16,18 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-.main-content {
-  display: flex;
-  justify-content: space-between;
-}
-
-.left-pane {
-  width: 60%;
-}
-.right-pane {
-  width: 35%;
-  padding-left: 20px;
-  border-left: 2px solid #ccc;
-}
-
-/* 見出し */
 h1 {
   text-align: center;
 }
 h2 {
   font-size: 1.5em;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .api-key-section {
   margin-bottom:20px;
 }
+
 input, textarea {
   width:100%;
   padding:10px;
@@ -63,8 +49,9 @@ button:hover {
   background-color:#45a049;
 }
 
+/* シーン履歴 */
 .scene-history {
-  max-height:100vh;
+  max-height:300px;
   overflow-y:auto;
   border:1px solid #ddd;
   padding:10px;
@@ -72,6 +59,7 @@ button:hover {
   display:flex;
   flex-direction:column;
   gap:10px;
+  margin-bottom:20px;
 }
 
 .history-tile {
@@ -82,7 +70,10 @@ button:hover {
   box-shadow:0 2px 4px rgba(0,0,0,0.1);
 }
 
-.scene-text, .action-text, .scenario-text {
+/* テキスト編集領域 */
+.scene-text,
+.action-text,
+.scenario-text {
   margin:0;
   padding:5px;
   font-size:14px;
@@ -96,9 +87,12 @@ button:hover {
   outline:none;
 }
 
+/* メイン表示するシーン部分 */
 #story {
-  font-size:1.6rem;
-  padding-bottom:20px;
+  font-size:1.4rem;
+  padding-bottom:10px;
+  border-bottom:1px solid #ccc;
+  min-height:60px;
 }
 
 /* モーダル */
