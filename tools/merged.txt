@@ -1,0 +1,874 @@
+index.html 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>シンプルTRPG</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <!-- メインのCSS -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- DOMPurify (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <!-- 履歴をクリア -->
+  <button id="clear-history-button" style="margin-top:20px;">履歴をクリア</button>
+
+  <div class="container">
+    <div class="main-content">
+      <div class="left-pane">
+        <h1>シンプルTRPG</h1>
+
+        <!-- APIキー入力セクション -->
+        <div class="api-key-section">
+          <label for="api-key-input">ChatGPT APIキーを入力：</label>
+          <input type="text" id="api-key-input" placeholder="APIキーを入力" />
+          <button id="set-api-key-button">APIキー設定</button>
+        </div>
+
+        <!-- シナリオ入力セクション -->
+        <div class="input-section" style="display:none;">
+          <label for="scenario-input">シナリオを入力してください：</label>
+          <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
+          <button id="start-button">ゲーム開始</button>
+        </div>
+
+        <!-- ゲーム画面セクション -->
+        <div class="game-section" style="display:none;">
+          <div id="story"></div>
+
+          <!-- 左ペインで現シーン画像をまとめて表示する領域 -->
+          <div id="scene-image-list" style="margin-top:10px;"></div>
+
+          <!-- 自動生成 + カスタム生成ボタン -->
+          <div style="margin-top:20px;">
+            <button id="image-auto-generate-button">自動生成(現シーンから)</button>
+            <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
+          </div>
+          <div id="player-action"></div>
+          <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
+          <button id="next-scene" style="display:none;">次のシーン</button>
+        </div>
+      </div>
+
+      <!-- 右ペイン: 履歴表示 -->
+      <div class="right-pane">
+        <h2>シーン履歴</h2>
+        <div id="scene-history" class="scene-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 応答待ちモーダル -->
+  <div id="loading-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>応答を待っています...</p>
+      <button id="cancel-request-button">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- カスタム画像生成モーダル -->
+  <div id="image-prompt-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <p>画像生成のプロンプトを編集してください</p>
+      <textarea id="image-custom-prompt" rows="5" style="width:100%;"></textarea>
+      <div style="margin-top:10px;">
+        <button id="image-custom-generate-button">生成</button>
+        <button id="image-custom-cancel-button">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分割したスクリプトを読み込む。順番が重要：scene.js, image.js, main.jsの順で。 -->
+  <script src="scene.js"></script>
+  <script src="image.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
+--- 
+styles.css 
+/* styles.css */
+
+/* ベース */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.main-content {
+  display: flex;
+  justify-content: space-between;
+}
+
+.left-pane {
+  width: 60%;
+}
+.right-pane {
+  width: 35%;
+  padding-left: 20px;
+  border-left: 2px solid #ccc;
+}
+
+/* 見出し */
+h1 {
+  text-align: center;
+}
+h2 {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.api-key-section {
+  margin-bottom:20px;
+}
+input, textarea {
+  width:100%;
+  padding:10px;
+  font-size:14px;
+  border:1px solid #ccc;
+  border-radius:4px;
+}
+
+button {
+  padding:10px 20px;
+  background-color:#4CAF50;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+button:hover {
+  background-color:#45a049;
+}
+
+.scene-history {
+  max-height:100vh;
+  overflow-y:auto;
+  border:1px solid #ddd;
+  padding:10px;
+  background-color:#f9f9f9;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.history-tile {
+  padding:10px;
+  border:1px solid #ccc;
+  background-color:#fff;
+  border-radius:5px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.scene-text, .action-text, .scenario-text {
+  margin:0;
+  padding:5px;
+  font-size:14px;
+  border:1px dashed transparent;
+  cursor:text;
+}
+.scene-text[contenteditable]:focus,
+.action-text[contenteditable]:focus,
+.scenario-text[contenteditable]:focus {
+  border:1px dashed #4CAF50;
+  outline:none;
+}
+
+#story {
+  font-size:1.6rem;
+  padding-bottom:20px;
+}
+
+/* モーダル */
+.modal {
+  position: fixed;
+  top:0; left:0;
+  width:100%;
+  height:100%;
+  background-color:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+.modal-content {
+  background-color:#fff;
+  padding:20px 40px;
+  border-radius:5px;
+  text-align:center;
+  max-height:80vh;
+  overflow-y:auto;
+}
+--- 
+image.js 
+/********************************
+ * image.js - 画像生成関連
+ ********************************/
+
+/** 自動生成(現シーン) */
+async function generateImageFromCurrentScene(){
+    if(!window.apiKey){
+      alert('APIキーが設定されていません。');
+      return;
+    }
+    const lastSceneEntry=[...window.sceneHistory].reverse().find(e=>e.type==='scene');
+    if(!lastSceneEntry){
+      alert('まだシーンがありません。');
+      return;
+    }
+    const promptText=`シーンのイメージ: ${lastSceneEntry.content}`;
+    const sceneId=lastSceneEntry.sceneId;
+  
+    window.cancelRequested=false;
+    showLoadingModal(true);
+  
+    try{
+      window.currentRequestController=new AbortController();
+      const signal=window.currentRequestController.signal;
+  
+      const response=await fetch('https://api.openai.com/v1/images/generations',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${window.apiKey}`
+        },
+        body:JSON.stringify({
+          prompt: promptText,
+          n:1,
+          size:'512x512'
+        }),
+        signal
+      });
+      if(window.cancelRequested){
+        showLoadingModal(false);
+        return;
+      }
+      const data=await response.json();
+      if(window.cancelRequested){
+        showLoadingModal(false);
+        return;
+      }
+      if(data.error){
+        throw new Error(data.error.message);
+      }
+  
+      const imageUrl=data.data[0].url;
+      window.sceneHistory.push({
+        type:'image',
+        sceneId,
+        prompt: promptText,
+        url: imageUrl
+      });
+      localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+      updateSceneHistory();
+    }catch(error){
+      if(error.name==='AbortError'){
+        console.warn('画像生成キャンセル');
+      } else {
+        console.error('画像生成失敗:',error);
+        alert('画像生成失敗:\n'+error.message);
+      }
+    } finally {
+      showLoadingModal(false);
+    }
+  }
+  
+  /** カスタム画像生成モーダルを開く */
+  function openImagePromptModal(prompt='', index=null){
+    window.editingImageEntry=null;
+    if(index!==null){
+      // 再生成のパターン
+      window.editingImageEntry={ index };
+      const entry=window.sceneHistory[index];
+      if(entry && entry.type==='image'){
+        prompt=entry.prompt;
+      }
+    } else {
+      // 新規
+      const lastSceneEntry=[...window.sceneHistory].reverse().find(e=> e.type==='scene');
+      if(lastSceneEntry){
+        prompt=`${lastSceneEntry.content}`;
+      } else {
+        prompt= window.scenario || 'Fantasy scene';
+      }
+    }
+    document.getElementById('image-custom-prompt').value=prompt;
+    document.getElementById('image-prompt-modal').style.display='flex';
+  }
+  
+  /** カスタム画像生成モーダルを閉じる */
+  function closeImagePromptModal(){
+    document.getElementById('image-prompt-modal').style.display='none';
+    window.editingImageEntry=null;
+  }
+  
+  /** カスタム画像生成ボタン押下 */
+  async function onCustomImageGenerate(){
+    if(!window.apiKey){
+      alert('APIキーが設定されていません。');
+      return;
+    }
+    const promptText = document.getElementById('image-custom-prompt').value.trim() || 'Fantasy scene';
+  
+    window.cancelRequested=false;
+    showLoadingModal(true);
+    closeImagePromptModal();
+  
+    try{
+      window.currentRequestController=new AbortController();
+      const signal=window.currentRequestController.signal;
+  
+      const response=await fetch('https://api.openai.com/v1/images/generations',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${window.apiKey}`
+        },
+        body:JSON.stringify({
+          model: "dall-e-3",
+          prompt: promptText,
+          n:1,
+          size:'1024x1024'
+        }),
+        signal
+      });
+      if(window.cancelRequested){
+        showLoadingModal(false);
+        return;
+      }
+      const data=await response.json();
+      if(window.cancelRequested){
+        showLoadingModal(false);
+        return;
+      }
+      if(data.error){
+        throw new Error(data.error.message);
+      }
+  
+      const imageUrl=data.data[0].url;
+  
+      if(window.editingImageEntry){
+        // 既存画像の再生成
+        const idx=window.editingImageEntry.index;
+        const entry=window.sceneHistory[idx];
+        if(entry && entry.type==='image'){
+          entry.url=imageUrl;
+          entry.prompt=promptText;
+        }
+      } else {
+        // 新規
+        const lastSceneEntry=[...window.sceneHistory].reverse().find(e=> e.type==='scene');
+        if(!lastSceneEntry){
+          alert('シーンがありません。');
+          return;
+        }
+        window.sceneHistory.push({
+          type:'image',
+          sceneId:lastSceneEntry.sceneId,
+          prompt: promptText,
+          url: imageUrl
+        });
+      }
+  
+      localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+      updateSceneHistory();
+    }catch(error){
+      if(error.name==='AbortError'){
+        console.warn('カスタム画像生成キャンセル');
+      } else {
+        console.error('カスタム画像生成失敗:',error);
+        alert('カスタム画像生成失敗:\n'+error.message);
+      }
+    } finally {
+      showLoadingModal(false);
+    }
+  }
+  
+  /** 左ペインに「現シーン画像」を表示 */
+  function displaySceneImagesInLeftPane(){
+    const listDiv=document.getElementById('scene-image-list');
+    if(!listDiv)return;
+    listDiv.innerHTML='';
+  
+    const lastSceneEntry=[...window.sceneHistory].reverse().find(e=> e.type==='scene');
+    if(!lastSceneEntry)return;
+  
+    const sId=lastSceneEntry.sceneId;
+    const images=window.sceneHistory.filter(e=> e.type==='image' && e.sceneId===sId);
+    images.forEach(imgEntry=>{
+      const img=document.createElement('img');
+      img.src=imgEntry.url;
+      img.alt='シーン画像';
+      img.style.maxWidth='100%';
+      listDiv.appendChild(img);
+    });
+  }
+  --- 
+main.js 
+/********************************
+ * main.js - ページ全体の初期化・イベント登録
+ ********************************/
+
+window.onload = () => {
+    // ローカルストレージから各種情報を取得
+    const savedApiKey = localStorage.getItem('apiKey');
+    if(savedApiKey){
+      window.apiKey = savedApiKey;
+      document.querySelector('.api-key-section').style.display='none';
+    }
+  
+    const savedScenario = localStorage.getItem('scenario');
+    const savedSceneHistory = localStorage.getItem('sceneHistory');
+    const savedCurrentScene = localStorage.getItem('currentScene');
+  
+    if(savedScenario){
+      window.scenario = savedScenario;
+      const scenarioInput=document.getElementById('scenario-input');
+      if(scenarioInput) scenarioInput.value=window.scenario;
+    }
+    if(savedSceneHistory){
+      window.sceneHistory=JSON.parse(savedSceneHistory);
+    }
+    if(savedCurrentScene){
+      window.currentScene=parseInt(savedCurrentScene,10);
+    }
+  
+    if(window.scenario && window.scenario.trim()!==''){
+      document.querySelector('.input-section').style.display='none';
+      document.querySelector('.game-section').style.display='block';
+    } else {
+      document.querySelector('.input-section').style.display='block';
+      document.querySelector('.game-section').style.display='none';
+    }
+  
+    // シナリオタイルを表示
+    displayScenarioTile();
+    // 履歴を更新
+    updateSceneHistory();
+    // 最後のシーンを表示
+    showLastScene();
+  
+    // 各種イベントリスナー
+    document.getElementById('cancel-request-button')
+      .addEventListener('click', onCancelFetch);
+  
+    document.getElementById('set-api-key-button')
+      .addEventListener('click', ()=>{
+        setApiKey();
+      });
+  
+    document.getElementById('start-button')
+      .addEventListener('click', ()=>{
+        startGame();
+      });
+  
+    document.getElementById('next-scene')
+      .addEventListener('click', ()=>{
+        nextScene();
+      });
+  
+    document.getElementById('clear-history-button')
+      .addEventListener('click', ()=>{
+        clearHistory();
+      });
+  
+    // 画像生成
+    document.getElementById('image-auto-generate-button')
+      .addEventListener('click', ()=>{
+        generateImageFromCurrentScene();
+      });
+  
+    document.getElementById('image-prompt-modal-button')
+      .addEventListener('click', ()=>{
+        openImagePromptModal();
+      });
+  
+    document.getElementById('image-custom-generate-button')
+      .addEventListener('click', ()=>{
+        onCustomImageGenerate();
+      });
+  
+    document.getElementById('image-custom-cancel-button')
+      .addEventListener('click', ()=>{
+        closeImagePromptModal();
+      });
+  };
+  
+  /** 1) APIキー設定 */
+  function setApiKey(){
+    window.apiKey = document.getElementById('api-key-input').value.trim();
+    if(window.apiKey){
+      localStorage.setItem('apiKey', window.apiKey);
+      alert('APIキーが設定されました。');
+      document.querySelector('.api-key-section').style.display='none';
+      document.querySelector('.input-section').style.display='block';
+    } else {
+      alert('APIキーを入力してください。');
+    }
+  }
+  --- 
+scene.js 
+/********************************
+ * scene.js - シナリオ/シーン管理関連
+ ********************************/
+
+// グローバル変数
+window.apiKey = '';
+window.scenario = '';
+window.currentScene = 0;
+window.sceneHistory = []; // {type:'scene'|'action'|'image', sceneId?: string, content?:string, url?:string, prompt?:string}
+window.currentRequestController = null;
+window.cancelRequested = false;
+window.editingImageEntry = null;
+
+// シーンごとにユニークIDを生成
+function generateUniqueId() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+/** ゲーム開始 */
+async function startGame(){
+  window.scenario = document.getElementById('scenario-input').value.trim();
+  if(!window.scenario){
+    alert('シナリオを入力してください');
+    return;
+  }
+  localStorage.setItem('scenario', window.scenario);
+
+  document.querySelector('.input-section').style.display='none';
+  document.querySelector('.game-section').style.display='block';
+
+  displayScenarioTile();
+  await getNextScene();
+}
+
+/** シナリオタイルの表示 */
+function displayScenarioTile(){
+  const historyContainer=document.getElementById('scene-history');
+  if(!historyContainer)return;
+
+  let scenarioTile=document.getElementById('scenario-tile');
+  if(!scenarioTile){
+    scenarioTile=document.createElement('div');
+    scenarioTile.id='scenario-tile';
+    scenarioTile.className='history-tile';
+  } else {
+    scenarioTile.innerHTML='';
+  }
+
+  const deleteScenarioBtn=document.createElement('button');
+  deleteScenarioBtn.textContent='削除';
+  deleteScenarioBtn.style.marginBottom='5px';
+  deleteScenarioBtn.addEventListener('click',()=>{
+    window.scenario='';
+    localStorage.removeItem('scenario');
+    displayScenarioTile();
+    updateSceneHistory();
+  });
+  scenarioTile.appendChild(deleteScenarioBtn);
+
+  const scenarioText=document.createElement('p');
+  scenarioText.className='scenario-text';
+  scenarioText.setAttribute('contenteditable','true');
+  scenarioText.innerHTML=DOMPurify.sanitize(window.scenario || '（シナリオは未入力です）');
+  scenarioText.addEventListener('blur',()=>{
+    window.scenario=scenarioText.textContent.trim();
+    if(window.scenario){
+      localStorage.setItem('scenario', window.scenario);
+    } else {
+      localStorage.removeItem('scenario');
+    }
+    showLastScene();
+  });
+  scenarioTile.appendChild(scenarioText);
+
+  historyContainer.innerHTML='';
+  historyContainer.appendChild(scenarioTile);
+}
+
+/** 次のシーンを取得 */
+async function getNextScene(){
+  if(!window.apiKey){
+    alert('APIキーが設定されていません。');
+    return;
+  }
+  const playerInput=document.getElementById('player-input').value.trim();
+  if(window.currentScene>0 && !playerInput){
+    alert('プレイヤーの行動を入力してください');
+    return;
+  }
+
+  window.cancelRequested=false;
+  showLoadingModal(true);
+
+  const messages=[
+    {role:'system', content:'あなたはTRPGのゲームマスターです。HTMLタグOK。'},
+    {role:'user', content:`シナリオ概要:${window.scenario}`}
+  ];
+  window.sceneHistory.forEach(e=>{
+    if(e.type==='scene'){
+      messages.push({role:'assistant', content:e.content});
+    } else if(e.type==='action'){
+      messages.push({role:'user', content:`プレイヤーの行動:${e.content}`});
+    }
+  });
+  if(playerInput){
+    messages.push({role:'user', content:`プレイヤーの行動:${playerInput}`});
+    window.sceneHistory.push({type:'action', content:playerInput});
+  }
+
+  try {
+    window.currentRequestController=new AbortController();
+    const signal=window.currentRequestController.signal;
+
+    const response=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${window.apiKey}`
+      },
+      body:JSON.stringify({
+        model:'gpt-4',
+        messages
+      }),
+      signal
+    });
+    if(window.cancelRequested){
+      showLoadingModal(false);
+      return;
+    }
+    const data=await response.json();
+    if(window.cancelRequested){
+      showLoadingModal(false);
+      return;
+    }
+    if(data.error){
+      throw new Error(data.error.message);
+    }
+    const nextScene=data.choices[0].message.content;
+
+    // シーンID付与
+    const newSceneId=generateUniqueId();
+    window.sceneHistory.push({
+      type:'scene',
+      sceneId: newSceneId,
+      content: nextScene
+    });
+    window.currentScene++;
+
+    localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+    localStorage.setItem('currentScene', window.currentScene);
+
+    const safeSceneHTML=DOMPurify.sanitize(`次のシーン:<br>${nextScene}`);
+    document.getElementById('story').innerHTML=safeSceneHTML;
+    document.getElementById('player-action').textContent='プレイヤーがどんな行動を取るか？';
+    document.getElementById('next-scene').style.display='inline-block';
+    document.getElementById('player-input').style.display='inline-block';
+    document.getElementById('player-input').value='';
+
+    updateSceneHistory();
+  } catch(error){
+    if(error.name==='AbortError'){
+      console.warn('シーン取得キャンセル');
+    } else {
+      console.error('シーン取得失敗:',error);
+      alert('シーン取得に失敗:\n'+error.message);
+    }
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+/** シーン履歴表示 (シーンと画像を同タイルに) */
+function updateSceneHistory(){
+  const historyContainer=document.getElementById('scene-history');
+  if(!historyContainer)return;
+
+  const scenarioTile=document.getElementById('scenario-tile');
+  historyContainer.innerHTML='';
+
+  if(scenarioTile){
+    historyContainer.appendChild(scenarioTile);
+  }
+
+  window.sceneHistory.forEach((entry, index)=>{
+    if(entry.type==='scene'){
+      const tile=document.createElement('div');
+      tile.className='history-tile';
+
+      // 削除ボタン (シーン + 画像まとめて削除)
+      const deleteBtn=document.createElement('button');
+      deleteBtn.textContent='削除';
+      deleteBtn.style.marginBottom='5px';
+      deleteBtn.addEventListener('click',()=>{
+        const delSceneId=entry.sceneId;
+        window.sceneHistory = window.sceneHistory.filter(e=>{
+          if(e.type==='scene' && e.sceneId===delSceneId) return false;
+          if(e.type==='image' && e.sceneId===delSceneId) return false;
+          return true;
+        });
+        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        updateSceneHistory();
+      });
+      tile.appendChild(deleteBtn);
+
+      // シーン本文
+      const sceneText=document.createElement('p');
+      sceneText.className='scene-text';
+      sceneText.innerHTML=DOMPurify.sanitize(entry.content);
+      sceneText.setAttribute('contenteditable','true');
+      sceneText.addEventListener('blur',()=>{
+        entry.content=sceneText.textContent.trim();
+        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        showLastScene();
+      });
+      tile.appendChild(sceneText);
+
+      // 画像 (同じ sceneId のものをまとめる)
+      const relatedImages = window.sceneHistory
+        .filter(e=> e.type==='image' && e.sceneId===entry.sceneId);
+      relatedImages.forEach((imgEntry) => {
+        const img=document.createElement('img');
+        img.src=imgEntry.url;
+        img.alt='生成画像';
+        img.style.maxWidth='100%';
+        tile.appendChild(img);
+
+        // 再生成
+        const regenBtn=document.createElement('button');
+        regenBtn.textContent='再生成';
+        regenBtn.addEventListener('click',()=>{
+          const idxInHistory= window.sceneHistory.indexOf(imgEntry);
+          if(idxInHistory>=0){
+            openImagePromptModal(imgEntry.prompt, idxInHistory);
+          }
+        });
+        tile.appendChild(regenBtn);
+
+        // 画像だけ削除
+        const imgDeleteBtn=document.createElement('button');
+        imgDeleteBtn.textContent='画像だけ削除';
+        imgDeleteBtn.addEventListener('click',()=>{
+          const idxInHistory= window.sceneHistory.indexOf(imgEntry);
+          if(idxInHistory>=0){
+            window.sceneHistory.splice(idxInHistory,1);
+            localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+            updateSceneHistory();
+          }
+        });
+        tile.appendChild(imgDeleteBtn);
+      });
+
+      historyContainer.appendChild(tile);
+
+    } else if(entry.type==='action'){
+      const tile=document.createElement('div');
+      tile.className='history-tile';
+
+      // 行動削除
+      const deleteBtn=document.createElement('button');
+      deleteBtn.textContent='削除';
+      deleteBtn.style.marginBottom='5px';
+      deleteBtn.addEventListener('click',()=>{
+        window.sceneHistory.splice(index,1);
+        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        updateSceneHistory();
+      });
+      tile.appendChild(deleteBtn);
+
+      // 行動テキスト
+      const actionText=document.createElement('p');
+      actionText.className='action-text';
+      actionText.innerHTML=DOMPurify.sanitize(entry.content);
+      actionText.setAttribute('contenteditable','true');
+      actionText.addEventListener('blur',()=>{
+        entry.content=actionText.textContent.trim();
+        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        showLastScene();
+      });
+      tile.appendChild(actionText);
+
+      historyContainer.appendChild(tile);
+    }
+  });
+
+  historyContainer.scrollTop=historyContainer.scrollHeight;
+  showLastScene();
+  displaySceneImagesInLeftPane();
+}
+
+/** 最後のシーンをメインに表示 */
+function showLastScene(){
+  const lastSceneEntry=[...window.sceneHistory].reverse().find(e=>e.type==='scene');
+  if(lastSceneEntry){
+    const safeHTML=DOMPurify.sanitize(`次のシーン:<br>${lastSceneEntry.content}`);
+    document.getElementById('story').innerHTML=safeHTML;
+    document.getElementById('next-scene').style.display='inline-block';
+    document.getElementById('player-input').style.display='inline-block';
+    document.getElementById('player-action').textContent='プレイヤーがどんな行動を取るか？';
+  } else {
+    document.getElementById('story').textContent='';
+    document.getElementById('next-scene').style.display='none';
+    document.getElementById('player-input').style.display='none';
+    document.getElementById('player-action').textContent='';
+  }
+}
+
+/** 次のシーン ボタン */
+function nextScene(){
+  getNextScene();
+}
+
+/** 履歴クリア */
+function clearHistory(){
+  const isOk=confirm('全部消えてしまいますが良いですか？');
+  if(!isOk)return;
+
+  localStorage.removeItem('sceneHistory');
+  localStorage.removeItem('currentScene');
+  localStorage.removeItem('scenario');
+
+  window.sceneHistory=[];
+  window.currentScene=0;
+  window.scenario='';
+
+  document.getElementById('story').textContent='';
+  document.getElementById('player-action').textContent='';
+  document.getElementById('player-input').value='';
+  document.getElementById('next-scene').style.display='none';
+  document.getElementById('player-input').style.display='none';
+
+  document.querySelector('.input-section').style.display='block';
+  document.querySelector('.game-section').style.display='none';
+
+  displayScenarioTile();
+  updateSceneHistory();
+}
+
+/** キャンセルボタン */
+function onCancelFetch(){
+  window.cancelRequested=true;
+  if(window.currentRequestController){
+    window.currentRequestController.abort();
+  }
+  showLoadingModal(false);
+}
+
+/** ローディングモーダル表示/非表示 */
+function showLoadingModal(show){
+  const modal=document.getElementById('loading-modal');
+  if(!modal)return;
+  modal.style.display= show ? 'flex':'none';
+}
+--- 

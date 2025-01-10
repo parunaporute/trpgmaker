@@ -4,10 +4,8 @@
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-
   <!-- メインのCSS -->
   <link rel="stylesheet" href="styles.css" />
-
   <!-- DOMPurify (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
@@ -49,7 +47,6 @@
           <div id="player-action"></div>
           <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
           <button id="next-scene" style="display:none;">次のシーン</button>
-
         </div>
       </div>
 
@@ -81,6 +78,9 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- 分割したスクリプトを読み込む。順番が重要：scene.js, image.js, main.jsの順で。 -->
+  <script src="scene.js"></script>
+  <script src="image.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
