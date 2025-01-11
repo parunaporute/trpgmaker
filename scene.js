@@ -6,7 +6,7 @@
 window.apiKey = '';
 window.scenario = '';
 window.currentScene = 0;
-window.sceneHistory = []; 
+window.sceneHistory = [];
 // 例: {type:'scene'|'action'|'image', sceneId?: string, content?:string, dataUrl?:string, prompt?:string}
 window.currentRequestController = null;
 window.cancelRequested = false;
@@ -18,9 +18,9 @@ function generateUniqueId() {
 }
 
 /** ゲーム開始 */
-async function startGame(){
+async function startGame() {
   window.scenario = document.getElementById('scenario-input').value.trim();
-  if(!window.scenario){
+  if (!window.scenario) {
     alert('シナリオを入力してください');
     return;
   }
@@ -34,12 +34,12 @@ async function startGame(){
 }
 
 /** シナリオタイルの表示 */
-function displayScenarioTile(){
+function displayScenarioTile() {
   const historyContainer = document.getElementById('scene-history');
-  if(!historyContainer) return;
+  if (!historyContainer) return;
 
   let scenarioTile = document.getElementById('scenario-tile');
-  if(!scenarioTile){
+  if (!scenarioTile) {
     scenarioTile = document.createElement('div');
     scenarioTile.id = 'scenario-tile';
     scenarioTile.className = 'history-tile';
@@ -50,10 +50,10 @@ function displayScenarioTile(){
   // シナリオ本文（contenteditable）
   const scenarioText = document.createElement('p');
   scenarioText.className = 'scenario-text';
-  if(!window.apiKey){
+  if (!window.apiKey) {
     scenarioText.removeAttribute('contenteditable');
   } else {
-    scenarioText.setAttribute('contenteditable','true');
+    scenarioText.setAttribute('contenteditable', 'true');
   }
 
   // 表示上は「（シナリオは未入力です）」をプレースホルダーに
@@ -64,10 +64,10 @@ function displayScenarioTile(){
 
   // 変更があったら保存
   scenarioText.addEventListener('blur', () => {
-    if(!window.apiKey) return;
+    if (!window.apiKey) return;
     const rawText = scenarioText.textContent.trim();
 
-    if(!rawText || rawText === '（シナリオは未入力です）'){
+    if (!rawText || rawText === '（シナリオは未入力です）') {
       window.scenario = '';
       localStorage.removeItem('scenario');
     } else {
@@ -91,8 +91,11 @@ async function getNextScene(){
     alert('APIキーが設定されていません。');
     return;
   }
+  
   const playerInput = document.getElementById('player-input').value.trim();
-  if(window.currentScene > 0 && !playerInput){
+  // シーンが既にある場合のみ、プレイヤー行動が未入力ならアラートを出す
+  const hasScene = window.sceneHistory.some(e => e.type === 'scene');
+  if(hasScene && !playerInput){
     alert('プレイヤーの行動を入力してください');
     return;
   }
@@ -165,7 +168,10 @@ async function getNextScene(){
     await saveSceneHistoryToIndexedDB(window.sceneHistory);
     localStorage.setItem('currentScene', window.currentScene);
 
-    document.getElementById('player-input').value = '';
+    // もしプレイヤー入力欄に入力があったならリセット
+    if(playerInput){
+      document.getElementById('player-input').value = '';
+    }
 
     updateSceneHistory();
     showLastScene();
@@ -186,14 +192,14 @@ async function getNextScene(){
  * - 通常は「最新シーン(末尾)」はメイン表示( showLastScene )に回すので除外するが、
  *   「APIキーが無いとき」は最新シーンも履歴に入れて表示する
  */
-function updateSceneHistory(){
+function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
-  if(!historyContainer) return;
+  if (!historyContainer) return;
 
   // すでに作成していたシナリオタイルを復帰
   const scenarioTile = document.getElementById('scenario-tile');
   historyContainer.innerHTML = '';
-  if(scenarioTile){
+  if (scenarioTile) {
     historyContainer.appendChild(scenarioTile);
   }
 
@@ -204,13 +210,13 @@ function updateSceneHistory(){
   // 履歴を表示
   window.sceneHistory.forEach((entry, index) => {
     // APIキーがあれば「最新シーン」は除外してメイン表示へ回す
-    if(window.apiKey){
-      if(entry.sceneId && entry.sceneId === latestSceneId){
+    if (window.apiKey) {
+      if (entry.sceneId && entry.sceneId === latestSceneId) {
         return;
       }
     }
 
-    if(entry.type === 'scene'){
+    if (entry.type === 'scene') {
       // シーン表示
       const tile = document.createElement('div');
       tile.className = 'history-tile';
@@ -219,13 +225,13 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async ()=>{
-        if(!window.apiKey) return;
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
         // シーン + それに紐づく画像を削除
         const delId = entry.sceneId;
-        window.sceneHistory = window.sceneHistory.filter(e=>{
-          if(e.type === 'scene' && e.sceneId === delId) return false;
-          if(e.type === 'image' && e.sceneId === delId) return false;
+        window.sceneHistory = window.sceneHistory.filter(e => {
+          if (e.type === 'scene' && e.sceneId === delId) return false;
+          if (e.type === 'image' && e.sceneId === delId) return false;
           return true;
         });
         await saveSceneHistoryToIndexedDB(window.sceneHistory);
@@ -237,14 +243,14 @@ function updateSceneHistory(){
       // シーン本文
       const sceneText = document.createElement('p');
       sceneText.className = 'scene-text';
-      if(!window.apiKey){
+      if (!window.apiKey) {
         sceneText.removeAttribute('contenteditable');
       } else {
-        sceneText.setAttribute('contenteditable','true');
+        sceneText.setAttribute('contenteditable', 'true');
       }
       sceneText.innerHTML = DOMPurify.sanitize(entry.content);
-      sceneText.addEventListener('blur', async ()=>{
-        if(!window.apiKey) return;
+      sceneText.addEventListener('blur', async () => {
+        if (!window.apiKey) return;
         entry.content = sceneText.textContent.trim();
         await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
@@ -252,7 +258,7 @@ function updateSceneHistory(){
 
       historyContainer.appendChild(tile);
 
-    } else if(entry.type === 'action'){
+    } else if (entry.type === 'action') {
       // プレイヤー行動
       const tile = document.createElement('div');
       tile.className = 'history-tile';
@@ -260,31 +266,31 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async ()=>{
-        if(!window.apiKey) return;
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
 
         // 最新アクションなら、最新シーンも削除
         let lastActionIndex = -1;
-        for(let i = window.sceneHistory.length - 1; i >= 0; i--){
-          if(window.sceneHistory[i].type === 'action'){
+        for (let i = window.sceneHistory.length - 1; i >= 0; i--) {
+          if (window.sceneHistory[i].type === 'action') {
             lastActionIndex = i;
             break;
           }
         }
-        if(index === lastActionIndex){
+        if (index === lastActionIndex) {
           let lastSceneIndex = -1;
-          for(let i = window.sceneHistory.length - 1; i >= 0; i--){
-            if(window.sceneHistory[i].type === 'scene'){
+          for (let i = window.sceneHistory.length - 1; i >= 0; i--) {
+            if (window.sceneHistory[i].type === 'scene') {
               lastSceneIndex = i;
               break;
             }
           }
-          if(lastSceneIndex !== -1){
+          if (lastSceneIndex !== -1) {
             window.sceneHistory.splice(lastSceneIndex, 1);
           }
         }
 
-        window.sceneHistory.splice(index,1);
+        window.sceneHistory.splice(index, 1);
         await saveSceneHistoryToIndexedDB(window.sceneHistory);
         updateSceneHistory();
         showLastScene();
@@ -293,14 +299,14 @@ function updateSceneHistory(){
 
       const actionText = document.createElement('p');
       actionText.className = 'action-text';
-      if(!window.apiKey){
+      if (!window.apiKey) {
         actionText.removeAttribute('contenteditable');
       } else {
-        actionText.setAttribute('contenteditable','true');
+        actionText.setAttribute('contenteditable', 'true');
       }
       actionText.innerHTML = DOMPurify.sanitize(entry.content);
-      actionText.addEventListener('blur', async ()=>{
-        if(!window.apiKey) return;
+      actionText.addEventListener('blur', async () => {
+        if (!window.apiKey) return;
         entry.content = actionText.textContent.trim();
         await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
@@ -308,7 +314,7 @@ function updateSceneHistory(){
 
       historyContainer.appendChild(tile);
 
-    } else if(entry.type === 'image'){
+    } else if (entry.type === 'image') {
       // 古いシーンの画像
       const tile = document.createElement('div');
       tile.className = 'history-tile';
@@ -322,10 +328,10 @@ function updateSceneHistory(){
       // 画像再生成
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
-      regenBtn.addEventListener('click', ()=>{
-        if(!window.apiKey) return;
+      regenBtn.addEventListener('click', () => {
+        if (!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(entry);
-        if(idxInHistory >= 0){
+        if (idxInHistory >= 0) {
           openImagePromptModal(entry.prompt, idxInHistory);
         }
       });
@@ -334,11 +340,11 @@ function updateSceneHistory(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像だけ削除';
-      imgDeleteBtn.addEventListener('click', async ()=>{
-        if(!window.apiKey) return;
+      imgDeleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(entry);
-        if(idxInHistory >= 0){
-          window.sceneHistory.splice(idxInHistory,1);
+        if (idxInHistory >= 0) {
+          window.sceneHistory.splice(idxInHistory, 1);
           await saveSceneHistoryToIndexedDB(window.sceneHistory);
           updateSceneHistory();
           showLastScene();
@@ -354,13 +360,19 @@ function updateSceneHistory(){
 }
 
 /** 最新のシーン(末尾) をメイン表示 (APIキーがある時のみ利用) */
-function showLastScene(){
+function showLastScene() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
   const storyDiv = document.getElementById('story');
   const lastSceneImagesDiv = document.getElementById('last-scene-images');
-  if(!storyDiv || !lastSceneImagesDiv) return;
+  if (!storyDiv || !lastSceneImagesDiv) return;
 
-  if(lastSceneEntry){
+  // APIキーがあるときはボタン類表示／非表示の処理も行う
+  const nextSceneBtn = document.getElementById('next-scene');
+  const playerInput = document.getElementById('player-input');
+  const playerActionLabel = document.getElementById('player-action');
+
+  // シーンが存在する場合
+  if (lastSceneEntry) {
     // シーン本文
     const safeHTML = DOMPurify.sanitize(lastSceneEntry.content);
     storyDiv.innerHTML = safeHTML;
@@ -370,7 +382,7 @@ function showLastScene(){
 
     // 最新シーンに紐づく画像を表示
     const sId = lastSceneEntry.sceneId;
-    const images = window.sceneHistory.filter(e=> e.type === 'image' && e.sceneId === sId);
+    const images = window.sceneHistory.filter(e => e.type === 'image' && e.sceneId === sId);
     images.forEach(imgEntry => {
       const container = document.createElement('div');
       container.style.marginBottom = '10px';
@@ -384,10 +396,10 @@ function showLastScene(){
       // 画像再生成
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
-      regenBtn.addEventListener('click', ()=>{
-        if(!window.apiKey) return;
+      regenBtn.addEventListener('click', () => {
+        if (!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(imgEntry);
-        if(idxInHistory>=0){
+        if (idxInHistory >= 0) {
           openImagePromptModal(imgEntry.prompt, idxInHistory);
         }
       });
@@ -396,11 +408,11 @@ function showLastScene(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像削除';
-      imgDeleteBtn.addEventListener('click', async ()=>{
-        if(!window.apiKey) return;
+      imgDeleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(imgEntry);
-        if(idxInHistory>=0){
-          window.sceneHistory.splice(idxInHistory,1);
+        if (idxInHistory >= 0) {
+          window.sceneHistory.splice(idxInHistory, 1);
           await saveSceneHistoryToIndexedDB(window.sceneHistory);
           showLastScene();
           updateSceneHistory();
@@ -412,39 +424,56 @@ function showLastScene(){
     });
 
     // APIキーがあるときのみボタン類を表示
-    if(window.apiKey){
-      document.getElementById('next-scene').style.display = 'inline-block';
-      document.getElementById('player-input').style.display = 'inline-block';
-      document.getElementById('player-action').textContent = 'プレイヤーがどんな行動を取るか？';
+    if (window.apiKey) {
+      nextSceneBtn.style.display = 'inline-block';
+      playerInput.style.display = 'inline-block';
+      playerActionLabel.textContent = 'プレイヤーがどんな行動を取るか？';
     } else {
-      document.getElementById('next-scene').style.display = 'none';
-      document.getElementById('player-input').style.display = 'none';
-      document.getElementById('player-action').textContent = '';
+      nextSceneBtn.style.display = 'none';
+      playerInput.style.display = 'none';
+      playerActionLabel.textContent = '';
     }
   } else {
     // シーンがまだ無い場合
-    storyDiv.textContent = '';
+    storyDiv.innerHTML = '';
     lastSceneImagesDiv.innerHTML = '';
-    document.getElementById('next-scene').style.display = 'none';
-    document.getElementById('player-input').style.display = 'none';
-    document.getElementById('player-action').textContent = '';
+    nextSceneBtn.style.display = 'none';
+    playerInput.style.display = 'none';
+    playerActionLabel.textContent = '';
+
+    // 「シーンを生成する」ボタンを追加
+    // 既に同じボタンが存在していないか確認し、あれば削除
+    let generateBtn = document.getElementById('generate-scene-button');
+    if (!generateBtn) {
+      generateBtn = document.createElement('button');
+      generateBtn.id = 'generate-scene-button';
+      generateBtn.textContent = 'シーンを生成する';
+      // ボタン押下時に最初のシーン生成を実行
+      generateBtn.addEventListener('click', () => {
+        // ボタンをクリックしたら自身を削除してからシーン取得を開始
+        generateBtn.remove();
+        getNextScene();
+      });
+      // ボタンを storyDiv に追加（必要に応じ位置を調整）
+      storyDiv.appendChild(generateBtn);
+    }
   }
 }
 
 /** 次のシーン ボタン */
-function nextScene(){
+function nextScene() {
   getNextScene();
 }
 
 /** 履歴クリア */
-async function clearHistory(){
+async function clearHistory() {
   const isOk = confirm('履歴をすべて削除します。（シナリオも削除されます）よろしいですか？');
-  if(!isOk) return;
+  if (!isOk) return;
 
   // IndexedDB の sceneHistory をクリア
-  if(window.sceneHistory && window.sceneHistory.length > 0){
+  if (window.sceneHistory && window.sceneHistory.length > 0) {
     // IndexedDBのストアを直接クリアするためにトランザクションを利用
-    if(window.indexedDB){
+    if (window.indexedDB) {
       try {
         const tx = db.transaction("sceneHistory", "readwrite");
         const store = tx.objectStore("sceneHistory");
@@ -486,17 +515,17 @@ async function clearHistory(){
   updateSceneHistory();
 }
 /** キャンセルボタン */
-function onCancelFetch(){
+function onCancelFetch() {
   window.cancelRequested = true;
-  if(window.currentRequestController){
+  if (window.currentRequestController) {
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
 }
 
 /** ローディングモーダル表示/非表示 */
-function showLoadingModal(show){
+function showLoadingModal(show) {
   const modal = document.getElementById('loading-modal');
-  if(!modal) return;
+  if (!modal) return;
   modal.style.display = show ? 'flex' : 'none';
 }
