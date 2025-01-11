@@ -40,7 +40,6 @@ async function generateImageFromCurrentScene() {
         prompt: promptText,
         n: 1,
         size: "1024x1024",
-        // ここがポイント：Base64で直接取得する
         response_format: "b64_json"
       }),
       signal,
@@ -72,7 +71,9 @@ async function generateImageFromCurrentScene() {
       dataUrl: dataUrl,
     });
 
-    localStorage.setItem("sceneHistory", JSON.stringify(window.sceneHistory));
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
     updateSceneHistory();
     showLastScene();
   } catch (error) {
@@ -143,7 +144,6 @@ async function onCustomImageGenerate() {
         prompt: promptText,
         n: 1,
         size: "1024x1024",
-        // ここがポイント：Base64で直接取得する
         response_format: "b64_json"
       }),
       signal,
@@ -191,7 +191,9 @@ async function onCustomImageGenerate() {
       });
     }
 
-    localStorage.setItem("sceneHistory", JSON.stringify(window.sceneHistory));
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
     updateSceneHistory();
     showLastScene();
   } catch (error) {

@@ -161,7 +161,8 @@ async function getNextScene(){
     });
     window.currentScene++;
 
-    localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+    // IndexedDB保存 & currentSceneはlocalStorageに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
     localStorage.setItem('currentScene', window.currentScene);
 
     document.getElementById('player-input').value = '';
@@ -183,7 +184,7 @@ async function getNextScene(){
 /**
  * シーン履歴表示
  * - 通常は「最新シーン(末尾)」はメイン表示( showLastScene )に回すので除外するが、
- *   今回の要望として「APIキーが無いとき」は最新シーンも履歴に入れて表示する
+ *   「APIキーが無いとき」は最新シーンも履歴に入れて表示する
  */
 function updateSceneHistory(){
   const historyContainer = document.getElementById('scene-history');
@@ -218,7 +219,7 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', ()=>{
+      deleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         // シーン + それに紐づく画像を削除
         const delId = entry.sceneId;
@@ -227,7 +228,7 @@ function updateSceneHistory(){
           if(e.type === 'image' && e.sceneId === delId) return false;
           return true;
         });
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
         updateSceneHistory();
         showLastScene();
       });
@@ -242,10 +243,10 @@ function updateSceneHistory(){
         sceneText.setAttribute('contenteditable','true');
       }
       sceneText.innerHTML = DOMPurify.sanitize(entry.content);
-      sceneText.addEventListener('blur', ()=>{
+      sceneText.addEventListener('blur', async ()=>{
         if(!window.apiKey) return;
         entry.content = sceneText.textContent.trim();
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
       tile.appendChild(sceneText);
 
@@ -259,7 +260,7 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', ()=>{
+      deleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
 
         // 最新アクションなら、最新シーンも削除
@@ -284,7 +285,7 @@ function updateSceneHistory(){
         }
 
         window.sceneHistory.splice(index,1);
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
         updateSceneHistory();
         showLastScene();
       });
@@ -298,10 +299,10 @@ function updateSceneHistory(){
         actionText.setAttribute('contenteditable','true');
       }
       actionText.innerHTML = DOMPurify.sanitize(entry.content);
-      actionText.addEventListener('blur', ()=>{
+      actionText.addEventListener('blur', async ()=>{
         if(!window.apiKey) return;
         entry.content = actionText.textContent.trim();
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
       tile.appendChild(actionText);
 
@@ -333,12 +334,12 @@ function updateSceneHistory(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像だけ削除';
-      imgDeleteBtn.addEventListener('click', ()=>{
+      imgDeleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(entry);
         if(idxInHistory >= 0){
           window.sceneHistory.splice(idxInHistory,1);
-          localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
           updateSceneHistory();
           showLastScene();
         }
@@ -395,12 +396,12 @@ function showLastScene(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像削除';
-      imgDeleteBtn.addEventListener('click', ()=>{
+      imgDeleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(imgEntry);
         if(idxInHistory>=0){
           window.sceneHistory.splice(idxInHistory,1);
-          localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
           showLastScene();
           updateSceneHistory();
         }
@@ -436,11 +437,15 @@ function nextScene(){
 }
 
 /** 履歴クリア */
-function clearHistory(){
+async function clearHistory(){
   const isOk = confirm('履歴をすべて削除します。（シナリオは残ります）よろしいですか？');
   if(!isOk) return;
 
-  localStorage.removeItem('sceneHistory');
+  // IndexedDB の sceneHistory をクリア
+  if(window.sceneHistory && window.sceneHistory.length > 0){
+    window.sceneHistory = [];
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+  }
   localStorage.removeItem('currentScene');
 
   window.sceneHistory = [];

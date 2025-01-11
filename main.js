@@ -2,7 +2,10 @@
  * main.js - ページ全体の初期化・イベント登録
  ********************************/
 
-window.onload = () => {
+window.onload = async () => {
+  // まずIndexedDB初期化
+  await initIndexedDB();
+
   // ローカルストレージから各種情報を取得
   const savedApiKey = localStorage.getItem('apiKey');
   if(savedApiKey){
@@ -10,10 +13,6 @@ window.onload = () => {
   }
 
   const savedScenario = localStorage.getItem('scenario');
-  const savedSceneHistory = localStorage.getItem('sceneHistory');
-  const savedCurrentScene = localStorage.getItem('currentScene');
-
-  // もし '（シナリオは未入力です）' が localStorage に保存されていたら、空として扱う
   if(savedScenario){
     window.scenario = savedScenario;
     if(window.scenario === '（シナリオは未入力です）'){
@@ -26,11 +25,16 @@ window.onload = () => {
     }
   }
 
-  if(savedSceneHistory){
-    window.sceneHistory = JSON.parse(savedSceneHistory);
-  }
+  // sceneHistory は IndexedDB から取得
+  const loadedHistory = await loadSceneHistoryFromIndexedDB();
+  window.sceneHistory = loadedHistory || [];
+
+  // currentScene は localStorage から読み取る
+  const savedCurrentScene = localStorage.getItem('currentScene');
   if(savedCurrentScene){
     window.currentScene = parseInt(savedCurrentScene, 10);
+  } else {
+    window.currentScene = 0;
   }
 
   // APIキーが無い場合 -> .input-section や .game-section をどうするか
