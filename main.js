@@ -7,21 +7,25 @@ window.onload = () => {
   const savedApiKey = localStorage.getItem('apiKey');
   if(savedApiKey){
     window.apiKey = savedApiKey;
-    // APIキーが既にあればAPIキー入力エリアを隠す
-    document.querySelector('.api-key-section').style.display = 'none';
   }
 
   const savedScenario = localStorage.getItem('scenario');
   const savedSceneHistory = localStorage.getItem('sceneHistory');
   const savedCurrentScene = localStorage.getItem('currentScene');
 
+  // もし '（シナリオは未入力です）' が localStorage に保存されていたら、空として扱う
   if(savedScenario){
     window.scenario = savedScenario;
+    if(window.scenario === '（シナリオは未入力です）'){
+      window.scenario = '';
+      localStorage.removeItem('scenario');
+    }
     const scenarioInput = document.getElementById('scenario-input');
     if(scenarioInput) {
       scenarioInput.value = window.scenario;
     }
   }
+
   if(savedSceneHistory){
     window.sceneHistory = JSON.parse(savedSceneHistory);
   }
@@ -29,13 +33,23 @@ window.onload = () => {
     window.currentScene = parseInt(savedCurrentScene, 10);
   }
 
-  // シナリオがあればゲーム画面を表示、なければシナリオ入力画面を表示
-  if(window.scenario && window.scenario.trim() !== ''){
+  // APIキーが無い場合 -> .input-section や .game-section をどうするか
+  if(!window.apiKey){
+    // APIキー入力欄だけは表示
     document.querySelector('.input-section').style.display = 'none';
-    document.querySelector('.game-section').style.display = 'block';
-  } else {
-    document.querySelector('.input-section').style.display = 'block';
     document.querySelector('.game-section').style.display = 'none';
+  } else {
+    // APIキーがある場合はAPIキー入力欄を非表示
+    document.querySelector('.api-key-section').style.display = 'none';
+
+    // シナリオがあればゲーム画面を表示、なければシナリオ入力画面を表示
+    if(window.scenario && window.scenario.trim() !== ''){
+      document.querySelector('.input-section').style.display = 'none';
+      document.querySelector('.game-section').style.display = 'block';
+    } else {
+      document.querySelector('.input-section').style.display = 'block';
+      document.querySelector('.game-section').style.display = 'none';
+    }
   }
 
   // シナリオタイルと履歴を表示、最後のシーンをメインに表示
@@ -47,46 +61,69 @@ window.onload = () => {
   document.getElementById('cancel-request-button')
     .addEventListener('click', onCancelFetch);
 
-  document.getElementById('set-api-key-button')
-    .addEventListener('click', () => {
+  const setApiKeyBtn = document.getElementById('set-api-key-button');
+  if(setApiKeyBtn){
+    setApiKeyBtn.addEventListener('click', () => {
       setApiKey();
     });
+  }
 
-  document.getElementById('start-button')
-    .addEventListener('click', () => {
+  const clearApiKeyBtn = document.getElementById('clear-api-key-button');
+  if(clearApiKeyBtn){
+    clearApiKeyBtn.addEventListener('click', () => {
+      clearApiKey();
+    });
+  }
+
+  const startBtn = document.getElementById('start-button');
+  if(startBtn){
+    startBtn.addEventListener('click', () => {
       startGame();
     });
+  }
 
-  document.getElementById('next-scene')
-    .addEventListener('click', () => {
+  const nextSceneBtn = document.getElementById('next-scene');
+  if(nextSceneBtn){
+    nextSceneBtn.addEventListener('click', () => {
       nextScene();
     });
+  }
 
-  document.getElementById('clear-history-button')
-    .addEventListener('click', () => {
+  const clearHistoryBtn = document.getElementById('clear-history-button');
+  if(clearHistoryBtn){
+    clearHistoryBtn.addEventListener('click', () => {
       clearHistory();
     });
+  }
 
   // 画像生成関連
-  document.getElementById('image-auto-generate-button')
-    .addEventListener('click', () => {
+  const autoGenBtn = document.getElementById('image-auto-generate-button');
+  if(autoGenBtn){
+    autoGenBtn.addEventListener('click', () => {
       generateImageFromCurrentScene();
     });
+  }
 
-  document.getElementById('image-prompt-modal-button')
-    .addEventListener('click', () => {
+  const promptModalBtn = document.getElementById('image-prompt-modal-button');
+  if(promptModalBtn){
+    promptModalBtn.addEventListener('click', () => {
       openImagePromptModal();
     });
+  }
 
-  document.getElementById('image-custom-generate-button')
-    .addEventListener('click', () => {
+  const customGenBtn = document.getElementById('image-custom-generate-button');
+  if(customGenBtn){
+    customGenBtn.addEventListener('click', () => {
       onCustomImageGenerate();
     });
+  }
 
-  document.getElementById('image-custom-cancel-button')
-    .addEventListener('click', () => {
+  const customCancelBtn = document.getElementById('image-custom-cancel-button');
+  if(customCancelBtn){
+    customCancelBtn.addEventListener('click', () => {
       closeImagePromptModal();
     });
+  }
 };
 
 /** APIキー設定 */
@@ -95,9 +132,19 @@ function setApiKey(){
   if(window.apiKey){
     localStorage.setItem('apiKey', window.apiKey);
     alert('APIキーが設定されました。');
-    document.querySelector('.api-key-section').style.display = 'none';
-    document.querySelector('.input-section').style.display = 'block';
+    // ページをリロード
+    location.reload();
   } else {
     alert('APIキーを入力してください。');
   }
+}
+
+/** APIキークリア */
+function clearApiKey(){
+  const ok = confirm('APIキーをクリアすると操作ができなくなります。よろしいですか？');
+  if(!ok) return;
+  localStorage.removeItem('apiKey');
+  window.apiKey = '';
+  // ページをリロード
+  location.reload();
 }
