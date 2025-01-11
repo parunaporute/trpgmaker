@@ -1,6 +1,7 @@
 index.html 
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
@@ -10,6 +11,7 @@ index.html
   <!-- DOMPurify (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
+
 <body>
   <!-- 履歴をクリア -->
   <button id="clear-history-button" style="margin-top:20px;">履歴をクリア</button>
@@ -75,12 +77,13 @@ index.html
   </div>
 
   <!-- スクリプトをこの順番で読み込む -->
+  <script src="indexedDB.js"></script>
   <script src="scene.js"></script>
   <script src="image.js"></script>
   <script src="main.js"></script>
 </body>
-</html>
---- 
+
+</html>--- 
 styles.css 
 /* styles.css */
 
@@ -243,7 +246,6 @@ async function generateImageFromCurrentScene() {
         prompt: promptText,
         n: 1,
         size: "1024x1024",
-        // ここがポイント：Base64で直接取得する
         response_format: "b64_json"
       }),
       signal,
@@ -275,7 +277,9 @@ async function generateImageFromCurrentScene() {
       dataUrl: dataUrl,
     });
 
-    localStorage.setItem("sceneHistory", JSON.stringify(window.sceneHistory));
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
     updateSceneHistory();
     showLastScene();
   } catch (error) {
@@ -346,7 +350,6 @@ async function onCustomImageGenerate() {
         prompt: promptText,
         n: 1,
         size: "1024x1024",
-        // ここがポイント：Base64で直接取得する
         response_format: "b64_json"
       }),
       signal,
@@ -394,7 +397,9 @@ async function onCustomImageGenerate() {
       });
     }
 
-    localStorage.setItem("sceneHistory", JSON.stringify(window.sceneHistory));
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
     updateSceneHistory();
     showLastScene();
   } catch (error) {
@@ -409,12 +414,107 @@ async function onCustomImageGenerate() {
   }
 }
 --- 
+indexedDB.js 
+/********************************
+ * indexedDB.js
+ * IndexedDB関連の初期化・保存・読み込み等を担当
+ ********************************/
+
+let db = null;
+
+/**
+ * DB初期化
+ * "trpgDB" というDBに "sceneHistory" ストアを作る
+ */
+function initIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("trpgDB", 1);
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      if (!db.objectStoreNames.contains("sceneHistory")) {
+        db.createObjectStore("sceneHistory", { keyPath: "id" });
+      }
+    };
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      resolve();
+    };
+    request.onerror = (event) => {
+      console.error("IndexedDBの初期化に失敗:", event.target.error);
+      reject(event.target.error);
+    };
+  });
+}
+
+/**
+ * sceneHistory をまとめて IndexedDB へ保存
+ * 1レコード (id=1) に配列データを保存する
+ */
+function saveSceneHistoryToIndexedDB(sceneHistory) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve();
+      return;
+    }
+    const tx = db.transaction("sceneHistory", "readwrite");
+    const store = tx.objectStore("sceneHistory");
+
+    // まず既存データをクリア
+    const clearRequest = store.clear();
+    clearRequest.onsuccess = () => {
+      // クリア後に、id=1 として保存
+      const record = { id: 1, data: sceneHistory };
+      const putReq = store.put(record);
+      putReq.onsuccess = () => {
+        resolve();
+      };
+      putReq.onerror = (err) => {
+        reject(err);
+      };
+    };
+    clearRequest.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
+/**
+ * IndexedDBから sceneHistory をロード
+ * 1レコード (id=1) に格納した配列データを取り出す
+ */
+function loadSceneHistoryFromIndexedDB() {
+  return new Promise((resolve) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve([]);
+      return;
+    }
+    const tx = db.transaction("sceneHistory", "readonly");
+    const store = tx.objectStore("sceneHistory");
+    const getReq = store.get(1);
+    getReq.onsuccess = (event) => {
+      if (event.target.result && event.target.result.data) {
+        resolve(event.target.result.data);
+      } else {
+        resolve([]);
+      }
+    };
+    getReq.onerror = () => {
+      resolve([]);
+    };
+  });
+}
+--- 
 main.js 
 /********************************
  * main.js - ページ全体の初期化・イベント登録
  ********************************/
 
-window.onload = () => {
+window.onload = async () => {
+  // まずIndexedDB初期化
+  await initIndexedDB();
+
   // ローカルストレージから各種情報を取得
   const savedApiKey = localStorage.getItem('apiKey');
   if(savedApiKey){
@@ -422,10 +522,6 @@ window.onload = () => {
   }
 
   const savedScenario = localStorage.getItem('scenario');
-  const savedSceneHistory = localStorage.getItem('sceneHistory');
-  const savedCurrentScene = localStorage.getItem('currentScene');
-
-  // もし '（シナリオは未入力です）' が localStorage に保存されていたら、空として扱う
   if(savedScenario){
     window.scenario = savedScenario;
     if(window.scenario === '（シナリオは未入力です）'){
@@ -438,11 +534,16 @@ window.onload = () => {
     }
   }
 
-  if(savedSceneHistory){
-    window.sceneHistory = JSON.parse(savedSceneHistory);
-  }
+  // sceneHistory は IndexedDB から取得
+  const loadedHistory = await loadSceneHistoryFromIndexedDB();
+  window.sceneHistory = loadedHistory || [];
+
+  // currentScene は localStorage から読み取る
+  const savedCurrentScene = localStorage.getItem('currentScene');
   if(savedCurrentScene){
     window.currentScene = parseInt(savedCurrentScene, 10);
+  } else {
+    window.currentScene = 0;
   }
 
   // APIキーが無い場合 -> .input-section や .game-section をどうするか
@@ -725,7 +826,8 @@ async function getNextScene(){
     });
     window.currentScene++;
 
-    localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+    // IndexedDB保存 & currentSceneはlocalStorageに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
     localStorage.setItem('currentScene', window.currentScene);
 
     document.getElementById('player-input').value = '';
@@ -747,7 +849,7 @@ async function getNextScene(){
 /**
  * シーン履歴表示
  * - 通常は「最新シーン(末尾)」はメイン表示( showLastScene )に回すので除外するが、
- *   今回の要望として「APIキーが無いとき」は最新シーンも履歴に入れて表示する
+ *   「APIキーが無いとき」は最新シーンも履歴に入れて表示する
  */
 function updateSceneHistory(){
   const historyContainer = document.getElementById('scene-history');
@@ -782,7 +884,7 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', ()=>{
+      deleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         // シーン + それに紐づく画像を削除
         const delId = entry.sceneId;
@@ -791,7 +893,7 @@ function updateSceneHistory(){
           if(e.type === 'image' && e.sceneId === delId) return false;
           return true;
         });
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
         updateSceneHistory();
         showLastScene();
       });
@@ -806,10 +908,10 @@ function updateSceneHistory(){
         sceneText.setAttribute('contenteditable','true');
       }
       sceneText.innerHTML = DOMPurify.sanitize(entry.content);
-      sceneText.addEventListener('blur', ()=>{
+      sceneText.addEventListener('blur', async ()=>{
         if(!window.apiKey) return;
         entry.content = sceneText.textContent.trim();
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
       tile.appendChild(sceneText);
 
@@ -823,7 +925,7 @@ function updateSceneHistory(){
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
       deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', ()=>{
+      deleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
 
         // 最新アクションなら、最新シーンも削除
@@ -848,7 +950,7 @@ function updateSceneHistory(){
         }
 
         window.sceneHistory.splice(index,1);
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
         updateSceneHistory();
         showLastScene();
       });
@@ -862,10 +964,10 @@ function updateSceneHistory(){
         actionText.setAttribute('contenteditable','true');
       }
       actionText.innerHTML = DOMPurify.sanitize(entry.content);
-      actionText.addEventListener('blur', ()=>{
+      actionText.addEventListener('blur', async ()=>{
         if(!window.apiKey) return;
         entry.content = actionText.textContent.trim();
-        localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
       });
       tile.appendChild(actionText);
 
@@ -897,12 +999,12 @@ function updateSceneHistory(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像だけ削除';
-      imgDeleteBtn.addEventListener('click', ()=>{
+      imgDeleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(entry);
         if(idxInHistory >= 0){
           window.sceneHistory.splice(idxInHistory,1);
-          localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
           updateSceneHistory();
           showLastScene();
         }
@@ -959,12 +1061,12 @@ function showLastScene(){
       // 画像削除
       const imgDeleteBtn = document.createElement('button');
       imgDeleteBtn.textContent = '画像削除';
-      imgDeleteBtn.addEventListener('click', ()=>{
+      imgDeleteBtn.addEventListener('click', async ()=>{
         if(!window.apiKey) return;
         const idxInHistory = window.sceneHistory.indexOf(imgEntry);
         if(idxInHistory>=0){
           window.sceneHistory.splice(idxInHistory,1);
-          localStorage.setItem('sceneHistory', JSON.stringify(window.sceneHistory));
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
           showLastScene();
           updateSceneHistory();
         }
@@ -1000,11 +1102,15 @@ function nextScene(){
 }
 
 /** 履歴クリア */
-function clearHistory(){
+async function clearHistory(){
   const isOk = confirm('履歴をすべて削除します。（シナリオは残ります）よろしいですか？');
   if(!isOk) return;
 
-  localStorage.removeItem('sceneHistory');
+  // IndexedDB の sceneHistory をクリア
+  if(window.sceneHistory && window.sceneHistory.length > 0){
+    window.sceneHistory = [];
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+  }
   localStorage.removeItem('currentScene');
 
   window.sceneHistory = [];
