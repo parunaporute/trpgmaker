@@ -1,6 +1,32 @@
 index.html 
 <!DOCTYPE html>
 <html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>TRPG メニュー</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container" style="text-align:center; margin-top:50px;">
+    <h1>TRPG メニュー</h1>
+    <button id="character-create" disabled style="margin:10px; cursor:not-allowed;">キャラクタ作成</button>
+    <button id="party-create" disabled style="margin:10px; cursor:not-allowed;">パーティ作成</button>
+    <button id="scenario" style="margin:10px;">シナリオ</button>
+  </div>
+  
+  <script>
+    // 「シナリオ」ボタン押下で scenario.html へ遷移
+    document.getElementById("scenario").addEventListener("click", function() {
+      window.location.href = "scenario.html";
+    });
+  </script>
+</body>
+</html>
+--- 
+scenario.html 
+<!DOCTYPE html>
+<html lang="ja">
 
 <head>
   <meta charset="UTF-8" />
