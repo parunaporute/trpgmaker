@@ -4,46 +4,35 @@
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <!-- メインのCSS -->
   <link rel="stylesheet" href="styles.css" />
-  <!-- DOMPurify (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
 <body>
   <!-- 履歴をクリア -->
   <button id="clear-history-button" style="margin-top:20px;">履歴をクリア</button>
-  <button id="clear-api-key-button" style="background-color:#f44336;">APIキーをクリア</button>
-  
+
   <!-- 新たに戻るボタンを追加 -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
   <div class="container">
     <!-- シーン履歴やその他のセクション -->
     <div id="scene-history" class="scene-history"></div>
-    <!-- APIキー入力セクション -->
-    <div class="api-key-section">
-      <label for="api-key-input">ChatGPT APIキーを入力：</label>
-      <input type="text" id="api-key-input" placeholder="APIキーを入力" />
-      <button id="set-api-key-button">APIキー設定</button>
-    </div>
+    
     <!-- シナリオ入力セクション -->
     <div class="input-section">
       <label for="scenario-input">シナリオを入力してください：</label>
       <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
       <button id="start-button">ゲーム開始</button>
     </div>
+
     <!-- ゲーム画面セクション -->
     <div class="game-section" style="display:none;">
-      <!-- 最新シーンを表示 -->
       <div id="story" style="margin-bottom:20px;"></div>
-      <!-- 最新シーンに紐づく画像 -->
       <div id="last-scene-images" style="margin-bottom:20px;"></div>
-      <!-- 画像生成ボタン -->
       <div>
         <button id="image-auto-generate-button">自動生成(現シーンから)</button>
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
-      <!-- プレイヤー行動入力欄 -->
       <div id="player-action" style="margin-top:20px;"></div>
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
@@ -75,7 +64,7 @@
   <script src="scene.js"></script>
   <script src="image.js"></script>
   <script src="main.js"></script>
-  
+
   <!-- メニューに戻るボタン用のスクリプト -->
   <script>
     document.getElementById("back-to-menu").addEventListener("click", function() {

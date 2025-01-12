@@ -39,13 +39,9 @@ window.onload = async () => {
 
   // APIキーが無い場合 -> .input-section や .game-section をどうするか
   if(!window.apiKey){
-    // APIキー入力欄だけは表示
     document.querySelector('.input-section').style.display = 'none';
     document.querySelector('.game-section').style.display = 'none';
   } else {
-    // APIキーがある場合はAPIキー入力欄を非表示
-    document.querySelector('.api-key-section').style.display = 'none';
-
     // シナリオがあればゲーム画面を表示、なければシナリオ入力画面を表示
     if(window.scenario && window.scenario.trim() !== ''){
       document.querySelector('.input-section').style.display = 'none';
