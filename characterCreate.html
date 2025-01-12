@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>キャラクタ作成</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- DOMPurify等必要なライブラリがあればここに読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="container" style="max-width:800px;">
+    <h1>キャラクタ作成</h1>
+    <!-- キャラクタ関連ストレージのクリア -->
+    <button id="clear-character-btn" style="background-color:#f44336;">キャラをクリア</button>
+    <!-- ガチャボタン -->
+    <button id="gacha-btn" style="margin:10px;">ガチャ</button>
+
+    <!-- ガチャ実行中モーダル -->
+    <div id="gacha-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>生成中...</p>
+        <button id="cancel-gacha-btn">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 生成されたカード表示領域 -->
+    <div id="card-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;"></div>
+
+    <!-- メニューボタン -->
+    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  </div>
+
+  <script src="indexedDB.js"></script>
+  <script src="characterCreate.js"></script>
+  <script>
+    // メニューに戻るボタン
+    document.getElementById("back-to-menu").addEventListener("click", function () {
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>
