@@ -171,121 +171,139 @@ body {
   margin: 20px auto;
   padding: 20px;
   background-color: #fff;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
   text-align: center;
 }
+
 h2 {
   font-size: 1.5em;
   margin-bottom: 10px;
 }
 
 .api-key-section {
-  margin-bottom:20px;
+  margin-bottom: 20px;
 }
 
-input, textarea {
-  width:100%;
-  padding:10px;
-  font-size:14px;
-  border:1px solid #ccc;
-  border-radius:4px;
+input,
+textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 button {
-  padding:10px 20px;
-  background-color:#4CAF50;
-  color:#fff;
-  border:none;
-  border-radius:4px;
-  cursor:pointer;
-  margin-bottom:10px;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px;
 }
+
 button:hover {
-  background-color:#45a049;
+  background-color: #45a049;
 }
 
 /* シーン履歴 */
 .scene-history {
-  max-height:300px;
-  overflow-y:auto;
-  border:1px solid #ddd;
-  padding:10px;
-  background-color:#f9f9f9;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-bottom:20px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .history-tile {
-  padding:10px;
-  border:1px solid #ccc;
-  background-color:#fff;
-  border-radius:5px;
-  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+  padding: 10px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* テキスト編集領域 */
 .scene-text,
 .action-text,
 .scenario-text {
-  margin:0;
-  padding:5px;
-  font-size:14px;
-  border:1px dashed transparent;
-  cursor:text;
+  margin: 0;
+  padding: 5px;
+  font-size: 14px;
+  border: 1px dashed transparent;
+  cursor: text;
 }
+
 .scene-text[contenteditable]:focus,
 .action-text[contenteditable]:focus,
 .scenario-text[contenteditable]:focus {
-  border:1px dashed #4CAF50;
-  outline:none;
+  border: 1px dashed #4CAF50;
+  outline: none;
 }
 
 /* メイン表示するシーン部分 */
 #story {
-  font-size:1.4rem;
-  padding-bottom:10px;
-  border-bottom:1px solid #ccc;
-  min-height:60px;
+  font-size: 1.4rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  min-height: 60px;
 }
 
 /* モーダル */
 .modal {
   position: fixed;
-  top:0; left:0;
-  width:100%;
-  height:100%;
-  background-color:rgba(0,0,0,0.5);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:9999;
-}
-.modal-content {
-  background-color:#fff;
-  padding:20px 40px;
-  border-radius:5px;
-  text-align:center;
-  max-height:80vh;
-  overflow-y:auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
 }
 
-#card-container{
-  display: flex;
-  flex-wrap: wrap;
-  gap:20px;
+.modal-content {
+  background-color: #fff;
+  padding: 20px 40px;
+  border-radius: 5px;
+  text-align: center;
+  max-height: 80vh;
+  overflow-y: auto;
 }
+
+
+/* --- styles.css --- */
+
+/* 既存の共通部分はそのままで */
+
+/* カードコンテナをCSS Gridに変更 */
+#card-container {
+  display: grid;
+  gap: 20px;
+  /* 1列(スマホ)～3列(PC)になるようにレスポンシブに設定 */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
 /* カードコンテナの共通設定 */
 .card {
-  width: 250px;               /* 任意の幅。縦横比1:1.618を満たすため、高さは約 250 * 1.618 ≒ 405px */
-  height: calc(250px * 1.618);
-  perspective: 1000px;        /* 3D効果用 */
+  /* 横幅はセル幅に合わせる */
+  width: 100%;
+  /* ブラウザ対応の場合、aspect-ratioプロパティで比率を指定 */
+  aspect-ratio: 1 / 1.618;
+  perspective: 1000px;
+  /* 3D効果用 */
   cursor: pointer;
   transition: transform 0.3s ease;
+  position: relative;
 }
 
 /* マウスオーバー時に少し大きく */
@@ -295,7 +313,9 @@ button:hover {
 
 /* 内部要素 */
 .card-inner {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
@@ -308,18 +328,20 @@ button:hover {
 }
 
 /* 表面 */
-.card-front, .card-back {
+.card-front,
+.card-back {
   position: absolute;
   top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border-radius: 8px;
   backface-visibility: hidden;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 表面のスタイル（ポケモンカード風レイアウト） */
+/* 表面のスタイル */
 .card-front {
   background-color: #fff;
   display: flex;
@@ -327,12 +349,16 @@ button:hover {
   position: relative;
 }
 
+.card-front h3 {
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+}
+
 /* 左上にタイプ表示用 */
 .card-front .card-type {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background-color: rgba(255,255,255,0.8);
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.8);
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: bold;
@@ -341,11 +367,12 @@ button:hover {
 }
 
 /* 画像エリア */
+/* ※画像はカード全体の横幅に合わせた高さ（1:1.618）ではなく画像領域は独自の高さ設定
+   必要に応じ、ここも調整してください。 */
 .card-front .card-image {
   width: 100%;
-  flex-shrink: 0;
-  /* 16:9の比率維持：横幅に対して高さは width*9/16 */
-  height: calc(100% * (9 / 16));
+  /* 高さはカード全体の高さのうち適切な割合（例：40%～50%）に調整する */
+  height: 40%;
   background: linear-gradient(135deg, #ccc, #eee);
   display: flex;
   align-items: center;
@@ -360,13 +387,13 @@ button:hover {
   object-fit: cover;
 }
 
-/* 画像生成ボタンは画像エリアに配置（画像が無い場合のみ表示させる） */
+/* 画像生成ボタンは画像エリアに配置（画像が無い場合のみ表示） */
 .card-front .gen-image-btn {
   position: absolute;
   bottom: 8px;
   right: 8px;
   padding: 4px 8px;
-  background-color: rgba(0,0,0,0.6);
+  background-color: rgba(0, 0, 0, 0.6);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -390,6 +417,23 @@ button:hover {
   font-size: 0.85rem;
 }
 
+/* 状態、特技、キャプションのスタイル */
+.card-front .card-info p:last-child {
+  padding: 0;
+  height: 100%;
+  font-size: 0.85rem;
+  align-items: center;
+  display: flex;
+  background-color: #EEE;
+  margin-top: 10px;
+}
+
+.card-front .card-info p:last-child span {
+  transform: skew(-5deg);
+  display: flex;
+  padding: 10px;
+}
+
 /* 裏面：かっこよさげな背景 */
 .card-back {
   box-sizing: border-box;
@@ -403,7 +447,14 @@ button:hover {
   padding: 10px;
   text-align: center;
 }
---- 
+
+/* --- レスポンシブ（必要なら追加） --- */
+/* 例えば、より狭い画面では最小幅を220pxにするなど */
+@media (max-width: 600px) {
+  #card-container {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}--- 
 backToMenu.js 
 document.getElementById("back-to-menu").addEventListener("click", function () {
     window.location.href = "index.html";
@@ -577,7 +628,7 @@ function displayCharacterCards(characters) {
            ==================== */
         const cardFront = document.createElement("div");
         cardFront.className = "card-front";
-
+        
         // タイプ（左上固定）
         const typeEl = document.createElement("div");
         typeEl.className = "card-type";
@@ -611,6 +662,9 @@ function displayCharacterCards(characters) {
         const infoContainer = document.createElement("div");
         infoContainer.className = "card-info";
 
+        const nameEl = document.createElement("p");
+        nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(char.name) + "</h3>";
+        infoContainer.appendChild(nameEl);
         if (char.state) {
             const stateEl = document.createElement("p");
             stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
@@ -621,7 +675,7 @@ function displayCharacterCards(characters) {
         infoContainer.appendChild(specialEl);
 
         const captionEl = document.createElement("p");
-        captionEl.textContent = char.caption;
+        captionEl.innerHTML = "<span>" + char.caption + "</span>";
         infoContainer.appendChild(captionEl);
 
         cardFront.appendChild(infoContainer);
