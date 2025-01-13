@@ -165,7 +165,7 @@ function displayCharacterCards(characters) {
            ==================== */
         const cardFront = document.createElement("div");
         cardFront.className = "card-front";
-        
+        cardFront.innerHTML = "<div class='bezel'></div>"
         // タイプ（左上固定）
         const typeEl = document.createElement("div");
         typeEl.className = "card-type";
@@ -240,7 +240,32 @@ async function generateCharacterImage(char, index) {
         alert("APIキーが設定されていません。");
         return;
     }
-    const promptText = `${char.caption}というキャラクタだけを描いてください。絶対に文字を入れないでください。アイテムはお任せのスタイルで。キャラクタは可能な限り親しみやすいアニメ調にしてください。`;
+
+    let promptText;
+    if(char.type == "キャラクター") {
+        
+        promptText = `${char.name}というキャラクタを描いてください。
+        状態：${char.state}
+        特技：${char.special}
+        副題：${char.caption}
+        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。
+        可能な限り親しみやすいアニメ調にしてください。
+        性別に特に指定が無ければ90%の確率で女性、10%の確率で男性にしてください。`;
+
+    } else if(char.type == "モンスター") {
+        promptText = `${char.name}というモンスターを描いてください。
+        状態：${char.state}
+        特技：${char.special}
+        副題：${char.caption}
+        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。`;
+        
+    } else if(char.type == "アイテム") {
+        promptText = `${char.name}というモンスターを描いてください。
+        特技：${char.special}
+        副題：${char.caption}
+        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。`;
+    }
+console.log(promptText);
     try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
