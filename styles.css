@@ -116,11 +116,132 @@ button:hover {
   overflow-y:auto;
 }
 
-/* キャラクタカード用 */
+#card-container{
+  display: flex;
+  flex-wrap: wrap;
+  gap:20px;
+}
+/* カードコンテナの共通設定 */
 .card {
+  width: 250px;               /* 任意の幅。縦横比1:1.618を満たすため、高さは約 250 * 1.618 ≒ 405px */
+  height: calc(250px * 1.618);
+  perspective: 1000px;        /* 3D効果用 */
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+/* マウスオーバー時に少し大きく */
+.card:hover {
+  transform: scale(1.05);
+}
+
+/* 内部要素 */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+/* クリックで反転 */
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+/* 表面 */
+.card-front, .card-back {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 表面のスタイル（ポケモンカード風レイアウト） */
+.card-front {
   background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 左上にタイプ表示用 */
+.card-front .card-type {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(255,255,255,0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  z-index: 2;
+}
+
+/* 画像エリア */
+.card-front .card-image {
+  width: 100%;
+  flex-shrink: 0;
+  /* 16:9の比率維持：横幅に対して高さは width*9/16 */
+  height: calc(100% * (9 / 16));
+  background: linear-gradient(135deg, #ccc, #eee);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 画像エリア内の実際の画像 */
+.card-front .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 画像生成ボタンは画像エリアに配置（画像が無い場合のみ表示させる） */
+.card-front .gen-image-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background-color: rgba(0,0,0,0.6);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  z-index: 2;
+}
+
+/* 下部テキスト情報 */
+.card-front .card-info {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+/* 状態、特技、キャプションのスタイル */
+.card-front .card-info p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* 裏面：かっこよさげな背景 */
+.card-back {
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: #fff;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
   padding: 10px;
-  margin-bottom: 10px;
+  text-align: center;
 }

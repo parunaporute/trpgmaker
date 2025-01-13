@@ -148,61 +148,88 @@ function displayCharacterCards(characters) {
         return;
     }
     characters.forEach((char, idx) => {
+        // 外枠のカード要素（flip効果用）
         const card = document.createElement("div");
         card.className = "card";
-        card.style.border = "1px solid #ccc";
-        card.style.padding = "10px";
-        card.style.width = "calc(50% - 10px)";
-        card.style.boxSizing = "border-box";
+        // クリックでカード裏面へ切り替え
+        card.addEventListener("click", () => {
+            card.classList.toggle("flipped");
+        });
 
-        // タイプ表示
-        const typeEl = document.createElement("p");
-        typeEl.className = "type";
+        // 内部要素（表裏を内包する要素）
+        const cardInner = document.createElement("div");
+        cardInner.className = "card-inner";
+
+        /* ====================
+           表面 (Front)
+           ==================== */
+        const cardFront = document.createElement("div");
+        cardFront.className = "card-front";
+
+        // タイプ（左上固定）
+        const typeEl = document.createElement("div");
+        typeEl.className = "card-type";
         typeEl.innerHTML = "<strong>" + DOMPurify.sanitize(char.type) + "</strong>";
-        card.appendChild(typeEl);
-
-        // 名前表示
-        const nameEl = document.createElement("h3");
-        nameEl.className = "name";
-        nameEl.textContent = char.name;
-        card.appendChild(nameEl);
-
-        // 状態、特技、キャプション
-        if (char.state != "") {
-            const stateEl = document.createElement("p");
-            stateEl.className = "status";
-            stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
-            card.appendChild(stateEl);
-        }
-
-        const specialEl = document.createElement("p");
-        specialEl.className = "special";
-        specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
-        card.appendChild(specialEl);
-
-        const captionEl = document.createElement("p");
-        captionEl.className = "caption";
-        captionEl.innerHTML = DOMPurify.sanitize(char.caption);
-        card.appendChild(captionEl);
+        cardFront.appendChild(typeEl);
 
         // 画像表示エリア
-        const imageEl = document.createElement("img");
-        imageEl.style.maxWidth = "100%";
-        imageEl.style.display = char.imageData ? "block" : "none";
-        imageEl.src = char.imageData || "";
-        card.appendChild(imageEl);
+        const imageContainer = document.createElement("div");
+        imageContainer.className = "card-image";
+        // すでに画像がある場合
+        if (char.imageData) {
+            const imageEl = document.createElement("img");
+            imageEl.src = char.imageData;
+            imageEl.alt = char.name;
+            imageContainer.appendChild(imageEl);
+        } else {
+            // プレースホルダー＋画像生成ボタン（画像が無い場合）
+            const genImgBtn = document.createElement("button");
+            genImgBtn.className = "gen-image-btn";
+            genImgBtn.textContent = "画像生成";
+            genImgBtn.addEventListener("click", (e) => {
+                // クリックイベントがカード反転に伝播しないように
+                e.stopPropagation();
+                generateCharacterImage(char, idx);
+            });
+            imageContainer.appendChild(genImgBtn);
+        }
+        cardFront.appendChild(imageContainer);
 
-        // 「画像生成」ボタン
-        const genImgBtn = document.createElement("button");
-        genImgBtn.textContent = "画像生成";
-        genImgBtn.addEventListener("click", () => {
-            generateCharacterImage(char, idx);
-        });
-        card.appendChild(genImgBtn);
+        // 下部情報（状態、特技、キャプション）
+        const infoContainer = document.createElement("div");
+        infoContainer.className = "card-info";
 
+        if (char.state) {
+            const stateEl = document.createElement("p");
+            stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
+            infoContainer.appendChild(stateEl);
+        }
+        const specialEl = document.createElement("p");
+        specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
+        infoContainer.appendChild(specialEl);
+
+        const captionEl = document.createElement("p");
+        captionEl.textContent = char.caption;
+        infoContainer.appendChild(captionEl);
+
+        cardFront.appendChild(infoContainer);
+
+        /* ====================
+           裏面 (Back)
+           ==================== */
+        const cardBack = document.createElement("div");
+        cardBack.className = "card-back";
+        // 裏面に表示する内容。ここではキャラクター名など、好みに応じてアレンジしてください。
+        cardBack.innerHTML = `<strong>${DOMPurify.sanitize(char.type)}</strong>`;
+
+        // 組み立て
+        cardInner.appendChild(cardFront);
+        cardInner.appendChild(cardBack);
+        card.appendChild(cardInner);
         container.appendChild(card);
     });
 }
+
 
 /** 画像生成処理：DALL·E APIなどを利用 */
 async function generateCharacterImage(char, index) {
