@@ -165,7 +165,7 @@ function displayCharacterCards(characters) {
            ==================== */
         const cardFront = document.createElement("div");
         cardFront.className = "card-front";
-
+        
         // タイプ（左上固定）
         const typeEl = document.createElement("div");
         typeEl.className = "card-type";
@@ -199,6 +199,9 @@ function displayCharacterCards(characters) {
         const infoContainer = document.createElement("div");
         infoContainer.className = "card-info";
 
+        const nameEl = document.createElement("p");
+        nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(char.name) + "</h3>";
+        infoContainer.appendChild(nameEl);
         if (char.state) {
             const stateEl = document.createElement("p");
             stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
@@ -209,7 +212,7 @@ function displayCharacterCards(characters) {
         infoContainer.appendChild(specialEl);
 
         const captionEl = document.createElement("p");
-        captionEl.textContent = char.caption;
+        captionEl.innerHTML = "<span>" + char.caption + "</span>";
         infoContainer.appendChild(captionEl);
 
         cardFront.appendChild(infoContainer);
