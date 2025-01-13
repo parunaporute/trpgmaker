@@ -26,7 +26,7 @@ characterCreate.html
     </div>
 
     <!-- 生成されたカード表示領域 -->
-    <div id="card-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;"></div>
+    <div id="card-container"></div>
 
     <!-- メニューボタン -->
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
@@ -274,14 +274,136 @@ button:hover {
   overflow-y:auto;
 }
 
-/* キャラクタカード用 */
+#card-container{
+  display: flex;
+  flex-wrap: wrap;
+  gap:20px;
+}
+/* カードコンテナの共通設定 */
 .card {
+  width: 250px;               /* 任意の幅。縦横比1:1.618を満たすため、高さは約 250 * 1.618 ≒ 405px */
+  height: calc(250px * 1.618);
+  perspective: 1000px;        /* 3D効果用 */
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+/* マウスオーバー時に少し大きく */
+.card:hover {
+  transform: scale(1.05);
+}
+
+/* 内部要素 */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+/* クリックで反転 */
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+/* 表面 */
+.card-front, .card-back {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 表面のスタイル（ポケモンカード風レイアウト） */
+.card-front {
   background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 左上にタイプ表示用 */
+.card-front .card-type {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(255,255,255,0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  z-index: 2;
+}
+
+/* 画像エリア */
+.card-front .card-image {
+  width: 100%;
+  flex-shrink: 0;
+  /* 16:9の比率維持：横幅に対して高さは width*9/16 */
+  height: calc(100% * (9 / 16));
+  background: linear-gradient(135deg, #ccc, #eee);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 画像エリア内の実際の画像 */
+.card-front .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 画像生成ボタンは画像エリアに配置（画像が無い場合のみ表示させる） */
+.card-front .gen-image-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background-color: rgba(0,0,0,0.6);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  z-index: 2;
+}
+
+/* 下部テキスト情報 */
+.card-front .card-info {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+/* 状態、特技、キャプションのスタイル */
+.card-front .card-info p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* 裏面：かっこよさげな背景 */
+.card-back {
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: #fff;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
   padding: 10px;
-  margin-bottom: 10px;
-}--- 
+  text-align: center;
+}
+--- 
 backToMenu.js 
 document.getElementById("back-to-menu").addEventListener("click", function () {
     window.location.href = "index.html";
@@ -404,7 +526,6 @@ function parseCharacterData(text) {
     const lines = text.split("\n");
     const characters = [];
     let currentChar = { type: "", name: "", state: "", special: "", caption: "" };
-    console.log("オリジナル", lines);
     lines.forEach((line) => {
         line = line.trim();
         if (line.startsWith("【名前】")) {
@@ -423,7 +544,6 @@ function parseCharacterData(text) {
             currentChar.caption = line.replace("【キャプション】", "").replace("：", "").trim();
         }
     });
-    console.log("パース", currentChar);
 
     if (currentChar.name) {
         characters.push({ ...currentChar });
@@ -440,61 +560,88 @@ function displayCharacterCards(characters) {
         return;
     }
     characters.forEach((char, idx) => {
+        // 外枠のカード要素（flip効果用）
         const card = document.createElement("div");
         card.className = "card";
-        card.style.border = "1px solid #ccc";
-        card.style.padding = "10px";
-        card.style.width = "calc(50% - 10px)";
-        card.style.boxSizing = "border-box";
+        // クリックでカード裏面へ切り替え
+        card.addEventListener("click", () => {
+            card.classList.toggle("flipped");
+        });
 
-        // タイプ表示
-        const typeEl = document.createElement("p");
-        typeEl.className = "type";
+        // 内部要素（表裏を内包する要素）
+        const cardInner = document.createElement("div");
+        cardInner.className = "card-inner";
+
+        /* ====================
+           表面 (Front)
+           ==================== */
+        const cardFront = document.createElement("div");
+        cardFront.className = "card-front";
+
+        // タイプ（左上固定）
+        const typeEl = document.createElement("div");
+        typeEl.className = "card-type";
         typeEl.innerHTML = "<strong>" + DOMPurify.sanitize(char.type) + "</strong>";
-        card.appendChild(typeEl);
-
-        // 名前表示
-        const nameEl = document.createElement("h3");
-        nameEl.className = "name";
-        nameEl.textContent = char.name;
-        card.appendChild(nameEl);
-
-        // 状態、特技、キャプション
-        if (char.state != "") {
-            const stateEl = document.createElement("p");
-            stateEl.className = "status";
-            stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
-            card.appendChild(stateEl);
-        }
-
-        const specialEl = document.createElement("p");
-        specialEl.className = "special";
-        specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
-        card.appendChild(specialEl);
-
-        const captionEl = document.createElement("p");
-        captionEl.className = "caption";
-        captionEl.innerHTML = DOMPurify.sanitize(char.caption);
-        card.appendChild(captionEl);
+        cardFront.appendChild(typeEl);
 
         // 画像表示エリア
-        const imageEl = document.createElement("img");
-        imageEl.style.maxWidth = "100%";
-        imageEl.style.display = char.imageData ? "block" : "none";
-        imageEl.src = char.imageData || "";
-        card.appendChild(imageEl);
+        const imageContainer = document.createElement("div");
+        imageContainer.className = "card-image";
+        // すでに画像がある場合
+        if (char.imageData) {
+            const imageEl = document.createElement("img");
+            imageEl.src = char.imageData;
+            imageEl.alt = char.name;
+            imageContainer.appendChild(imageEl);
+        } else {
+            // プレースホルダー＋画像生成ボタン（画像が無い場合）
+            const genImgBtn = document.createElement("button");
+            genImgBtn.className = "gen-image-btn";
+            genImgBtn.textContent = "画像生成";
+            genImgBtn.addEventListener("click", (e) => {
+                // クリックイベントがカード反転に伝播しないように
+                e.stopPropagation();
+                generateCharacterImage(char, idx);
+            });
+            imageContainer.appendChild(genImgBtn);
+        }
+        cardFront.appendChild(imageContainer);
 
-        // 「画像生成」ボタン
-        const genImgBtn = document.createElement("button");
-        genImgBtn.textContent = "画像生成";
-        genImgBtn.addEventListener("click", () => {
-            generateCharacterImage(char, idx);
-        });
-        card.appendChild(genImgBtn);
+        // 下部情報（状態、特技、キャプション）
+        const infoContainer = document.createElement("div");
+        infoContainer.className = "card-info";
 
+        if (char.state) {
+            const stateEl = document.createElement("p");
+            stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
+            infoContainer.appendChild(stateEl);
+        }
+        const specialEl = document.createElement("p");
+        specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
+        infoContainer.appendChild(specialEl);
+
+        const captionEl = document.createElement("p");
+        captionEl.textContent = char.caption;
+        infoContainer.appendChild(captionEl);
+
+        cardFront.appendChild(infoContainer);
+
+        /* ====================
+           裏面 (Back)
+           ==================== */
+        const cardBack = document.createElement("div");
+        cardBack.className = "card-back";
+        // 裏面に表示する内容。ここではキャラクター名など、好みに応じてアレンジしてください。
+        cardBack.innerHTML = `<strong>${DOMPurify.sanitize(char.type)}</strong>`;
+
+        // 組み立て
+        cardInner.appendChild(cardFront);
+        cardInner.appendChild(cardBack);
+        card.appendChild(cardInner);
         container.appendChild(card);
     });
 }
+
 
 /** 画像生成処理：DALL·E APIなどを利用 */
 async function generateCharacterImage(char, index) {
