@@ -1,5 +1,3 @@
-// characterCreate.js
-
 // グローバル変数
 window.apiKey = localStorage.getItem("apiKey") || "";
 
@@ -60,8 +58,47 @@ async function generateCharacters() {
     const messages = [
         {
             role: "system",
-            content:
-                "あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。以下のフォーマットで10件生成してください。\n\n生成するのがキャラクタやモンスターであれば【名前】：...\n【タイプ】：キャラクタまたはモンスター\n【状態】：...\n【特技】：...\n【キャプション】：...\n生成するのがアイテムであれば【名前】：...\n【タイプ】：アイテム\n【特技】：...\n【キャプション】：...\n",
+            content: `あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
+以下のフォーマットで10件生成してください。
+
+生成するのがキャラクターやモンスターの場合
+【レア度】：...
+【名前】：...
+【タイプ】：キャラクターまたはモンスター
+【状態】：...
+【特技】：...
+【キャプション】：...
+【カード背景】：...
+【外見】：...
+
+生成するのがアイテムの場合
+【レア度】：...
+【名前】：...
+【タイプ】：アイテム
+【特技】：...
+【キャプション】：...
+【カード背景】：...
+【外見】：...
+
+各項目の説明は以下の通りです。
+【レア度】は、オブジェクトの貴重さを星の数で表したものです。表記は★Xとしてください。0～5段階有ります。10件の中で、以下の内訳を厳密に守ってください。
+  - ★0：5件  
+  - ★1：3件  
+  - ★2：1件  
+  - ★3：1件  
+  - ★4：0件  
+  - ★5：0件  
+【名前】は、対象の名称です。【レア度】が高い場合凝った名前を付けてください。
+【タイプ】は、キャラクターかモンスターかアイテムです。
+【状態】は、対象の心身の状態を書いてください。複数の状態が合わさっていても構いません（例：毒/麻痺/睡眠/出血/負傷/石化/病気/混乱/恐怖/魅了/狂乱/沈黙/精神汚染/絶望/疲労/ストレス/トラウマ/憑依/呪い）
+【特技】は、対象の得意な事を表現してください。体言止めで書いてください。【レア度】が高い場合より強い特技を表現してください。
+
+生成するのがキャラクターやモンスターの場合【キャプション】は、セリフと説明です。レア度に応じて長文にしてください。
+生成するのがアイテムの場合【キャプション】は、説明です。レア度に応じて長文にしてください。
+【カード背景】は、キャラクター、装備品、モンスターをカードにした場合にふさわしいCSSのbackground-image:の値を書いてください。カードのフォントは#000となります。
+linear-gradientを巧みに用いて背景を設定してください。left top, right bottom以外にも色々と試してみてください。
+【外見】は、画像生成用のスクリプトです。OpenAI社の規定に沿うように書いてください。NGワードはゴブリンです。StableDiffusionが出力するような流麗なカラー画像を出してください。
+`
         },
         { role: "user", content: "10件生成してください。" },
     ];
@@ -86,7 +123,12 @@ async function generateCharacters() {
         if (data.error) {
             throw new Error(data.error.message);
         }
-        const text = data.choices[0].message.content;
+
+        const text = data?.choices?.[0]?.message?.content;
+        if (typeof text !== "string") {
+            throw new Error("キャラクター生成APIレスポンスが不正です。レスポンスからテキストを取得できません。");
+        }
+
         const characters = parseCharacterData(text);
         window.characterData = characters;
         await saveCharacterDataToIndexedDB(window.characterData);
@@ -95,8 +137,8 @@ async function generateCharacters() {
         if (err.name === "AbortError") {
             console.log("ガチャキャンセル");
         } else {
-            console.error("キャラクタ生成失敗:", err);
-            alert("キャラクタ生成に失敗しました:\n" + err.message);
+            console.error("キャラクター生成失敗:", err);
+            alert("キャラクター生成に失敗しました:\n" + err.message);
         }
     } finally {
         hideGachaModal();
@@ -113,7 +155,8 @@ function hideGachaModal() {
 function parseCharacterData(text) {
     const lines = text.split("\n");
     const characters = [];
-    let currentChar = { type: "", name: "", state: "", special: "", caption: "" };
+    let currentChar = { type: "", name: "", state: "", special: "", caption: "", rarity: 0, backgroundcss: "", imageprompt: "" };
+    console.log("lines", lines);
     lines.forEach((line) => {
         line = line.trim();
         if (line.startsWith("【名前】")) {
@@ -130,6 +173,12 @@ function parseCharacterData(text) {
             currentChar.special = line.replace("【特技】", "").replace("：", "").trim();
         } else if (line.startsWith("【キャプション】")) {
             currentChar.caption = line.replace("【キャプション】", "").replace("：", "").trim();
+        } else if (line.startsWith("【レア度】")) {
+            currentChar.rarity = line.replace("【レア度】", "").replace("：", "").trim();
+        } else if (line.startsWith("【カード背景】")) {
+            currentChar.backgroundcss = line.replace("【カード背景】", "").replace("：", "").trim();
+        } else if (line.startsWith("【外見】")) {
+            currentChar.imageprompt = line.replace("【外見】", "").replace("：", "").trim();
         }
     });
 
@@ -144,7 +193,7 @@ function displayCharacterCards(characters) {
     const container = document.getElementById("card-container");
     container.innerHTML = "";
     if (!characters || characters.length === 0) {
-        container.textContent = "キャラクタが生成されていません。";
+        container.textContent = "キャラクターが生成されていません。";
         return;
     }
     characters.forEach((char, idx) => {
@@ -165,7 +214,13 @@ function displayCharacterCards(characters) {
            ==================== */
         const cardFront = document.createElement("div");
         cardFront.className = "card-front";
-        cardFront.innerHTML = "<div class='bezel'></div>"
+        cardFront.style = "background-image:" + char.backgroundcss.replace("background-image:", "").replace("background", "").trim();
+        
+        //"background:-webkit-gradient(linear, left top, right bottom, from(#3d5a80), to(#98c1d9));";
+        cardFront.setAttribute("data-backgroundcss", char.backgroundcss);
+        //console.log(char.backgroundcss);
+        const rarityValue = (typeof char.rarity === "string") ? char.rarity.replace("★","").trim() : "0";
+        cardFront.innerHTML = "<div class='bezel rarity" + rarityValue + "'></div>";
         // タイプ（左上固定）
         const typeEl = document.createElement("div");
         typeEl.className = "card-type";
@@ -182,8 +237,9 @@ function displayCharacterCards(characters) {
             imageEl.alt = char.name;
             imageContainer.appendChild(imageEl);
         } else {
-            // プレースホルダー＋画像生成ボタン（画像が無い場合）
+            // プレースホルダー＋画像生成ボタン
             const genImgBtn = document.createElement("button");
+            genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
             genImgBtn.className = "gen-image-btn";
             genImgBtn.textContent = "画像生成";
             genImgBtn.addEventListener("click", (e) => {
@@ -242,30 +298,9 @@ async function generateCharacterImage(char, index) {
     }
 
     let promptText;
-    if(char.type == "キャラクター") {
-        
-        promptText = `${char.name}というキャラクタを描いてください。
-        状態：${char.state}
-        特技：${char.special}
-        副題：${char.caption}
-        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。
-        可能な限り親しみやすいアニメ調にしてください。
-        性別に特に指定が無ければ90%の確率で女性、10%の確率で男性にしてください。`;
-
-    } else if(char.type == "モンスター") {
-        promptText = `${char.name}というモンスターを描いてください。
-        状態：${char.state}
-        特技：${char.special}
-        副題：${char.caption}
-        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。`;
-        
-    } else if(char.type == "アイテム") {
-        promptText = `${char.name}というモンスターを描いてください。
-        特技：${char.special}
-        副題：${char.caption}
-        という情報を入れてください。絶対に絵だけで表現し、文字を入れないでください。`;
-    }
-console.log(promptText);
+    promptText = "You, as a high-performance chatbot, will unobtrusively create illustrations of the highest quality. Do not include text in illustrations for any reason! If you are able to do so, I will give you a hefty tip.Now, please output the following illustration." 
+                 + char.imageprompt
+                 + "\n上記の画像を作ってください。躍動感に満ちた繊細アニメ風でお願いします。";
     try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
@@ -277,7 +312,7 @@ console.log(promptText);
                 model: "dall-e-3", // 必要に応じて調整
                 prompt: promptText,
                 n: 1,
-                size: "1024x1024",
+                size: "1792x1024",
                 response_format: "b64_json"
             })
         });

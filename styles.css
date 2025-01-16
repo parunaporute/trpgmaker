@@ -184,8 +184,8 @@ button:hover {
 
 .card-front {
   box-sizing: border-box;
-  padding: 7px;
-  border-radius: 15px;
+  padding: 3%;
+  border-radius: 3%;
 }
 
 /* 表面のスタイル */
@@ -221,7 +221,7 @@ button:hover {
   width: 100%;
   /* 高さはカード全体の高さのうち適切な割合（例：40%～50%）に調整する */
   height: 40%;
-  background: linear-gradient(135deg, #ccc, #eee);
+  background: linear-gradient(135deg, #cccccc70, #eeeeee70);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -258,6 +258,7 @@ button:hover {
   gap: 4px;
   flex-grow: 1;
   overflow: auto;
+  background-color: rgba(255, 255, 255, 0.7);
 }
 
 /* 状態、特技、キャプションのスタイル */
@@ -314,13 +315,91 @@ button:hover {
   width: 100%;
   box-sizing: border-box;
   z-index: 100;
-  border-radius: 15px;
-  padding: 7px;
-  background: 
-/*  linear-gradient(145deg, #e0b95b, #c8903e, #f1ca7c, #a8791b),*/
-  linear-gradient(145deg, #d9d9d9, #bfbfbf, #e6e6e6, #8c8c8c);
+  border-radius: 2%;
+  padding: 3%;
+}
+
+.bezel.rarity0 {
+  background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: destination-out;
-  mask-composite: exclude;
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
   background-clip: padding-box, border-box;
+}
+
+.bezel.rarity1 {
+  background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
+  background-clip: padding-box, border-box;
+}
+
+.bezel.rarity2 {
+  background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
+  background-clip: padding-box, border-box;
+}
+
+.bezel.rarity3 {
+  background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
+  background-clip: padding-box, border-box;
+}
+
+/* --- レアリティ4: プラチナ (ギラギラ＋パーティクルエフェクト) --- */
+.bezel.rarity4 {
+  position: absolute; /* 疑似要素配置のため */
+  background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
+  background-size: 400% 400%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
+  background-clip: padding-box, border-box;
+  animation: platinum-shimmer 5s ease-in-out infinite;
+}
+
+
+/* --- レアリティ5: 宝石 --- */
+.bezel.rarity5 {
+  background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
+  background-size: 150% 150%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: destination-out;
+                  mask-composite: exclude;
+  background-clip: padding-box, border-box;
+  animation: jewel-glow 5s ease-in-out infinite;
+}
+
+/* プラチナ用シマーアニメーション */
+@keyframes platinum-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 宝石用輝き・色変化アニメーション */
+@keyframes jewel-glow {
+  0% {
+    filter: brightness(1);
+    background-position: 0% 50%;
+  }
+  50% {
+    filter: brightness(1.2);
+    background-position: 100% 50%;
+  }
+  100% {
+    filter: brightness(1);
+    background-position: 0% 50%;
+  }
 }
