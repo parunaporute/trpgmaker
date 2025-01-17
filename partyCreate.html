@@ -13,6 +13,11 @@
     <!-- 倉庫ボタン -->
     <button id="show-warehouse-btn">倉庫</button>
 
+    <!-- 選択モードボタン（パーティ側） -->
+    <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
+    <!-- 選択したカードを倉庫に戻すボタン -->
+    <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">選択したカードを倉庫に戻す</button>
+
     <!-- パーティ枠（group="Party" のカードを表示）-->
     <div id="party-card-container" style="margin-top:20px;"></div>
 
@@ -20,19 +25,13 @@
     <div id="warehouse-modal" class="modal" style="display:none;">
       <div class="modal-content">
         <h2>倉庫</h2>
-        <p>（クリックでカードを選択/解除）</p>
-        <div id="warehouse-card-container" style="margin:10px 0;"></div>
-        <button id="add-to-party-btn" style="margin:10px;">パーティに入れる</button>
+        <!-- 選択モードボタン（倉庫側） -->
+        <button id="toggle-warehouse-selection-mode-btn">選択モード</button>
+        <!-- 倉庫選択カードをパーティに入れるボタン -->
+        <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
-      </div>
-    </div>
-
-    <!-- カードを倉庫に戻すモーダル -->
-    <div id="return-to-warehouse-modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <p>倉庫に戻しますか？</p>
-        <button id="return-ok-btn">OK</button>
-        <button id="return-cancel-btn">キャンセル</button>
+        
+        <div id="warehouse-card-container" style="margin:10px 0;"></div>
       </div>
     </div>
 

@@ -19,6 +19,12 @@
     <!-- 「ガチャ箱のカードを倉庫に入れる」ボタン -->
     <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
 
+    <!-- 選択モード切り替えボタン -->
+    <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
+
+    <!-- 選択したものを倉庫に送るボタン（選択中のみ表示） -->
+    <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
+
     <!-- ガチャ実行前確認モーダル -->
     <div id="gacha-confirm-modal" class="modal" style="display:none;">
       <div class="modal-content">
@@ -33,15 +39,6 @@
       <div class="modal-content">
         <p>生成中...</p>
         <button id="cancel-gacha-btn">キャンセル</button>
-      </div>
-    </div>
-
-    <!-- カードクリック時のモーダル（倉庫へ移すか） -->
-    <div id="move-to-warehouse-modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <p>カードを倉庫に入れますか？</p>
-        <button id="move-to-warehouse-ok">OK</button>
-        <button id="move-to-warehouse-cancel">キャンセル</button>
       </div>
     </div>
 

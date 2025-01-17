@@ -114,6 +114,7 @@ button:hover {
 }
 
 .modal-content {
+  width: calc(100% - 20px);
   background-color: #fff;
   padding: 20px 40px;
   border-radius: 5px;

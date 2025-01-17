@@ -5,6 +5,10 @@ window.apiKey = localStorage.getItem("apiKey") || "";
 // group: "GachaBox" | "Warehouse" | "Party" など
 window.characterData = [];
 
+// 選択モードフラグ
+let isSelectionMode = false;
+
+// ページ読み込み時
 window.addEventListener("load", async function () {
     await initIndexedDB();
     const stored = await loadCharacterDataFromIndexedDB();
@@ -12,9 +16,25 @@ window.addEventListener("load", async function () {
         window.characterData = stored;
     }
     displayCharacterCards(window.characterData);
+
+    // クリアボタン
+    document.getElementById("clear-character-btn").addEventListener("click", onClearCharacter);
+
+    // ガチャボタン
+    document.getElementById("gacha-btn").addEventListener("click", onGachaButton);
+
+    // ガチャ箱 → 倉庫 移動ボタン
+    document.getElementById("move-gacha-to-warehouse-btn").addEventListener("click", onMoveGachaToWarehouse);
+
+    // 選択モード切り替えボタン
+    document.getElementById("toggle-selection-mode-btn").addEventListener("click", toggleSelectionMode);
+
+    // 「選択したものを倉庫に送る」ボタン
+    document.getElementById("move-selected-to-warehouse-btn").addEventListener("click", moveSelectedCardsToWarehouse);
 });
 
-document.getElementById("clear-character-btn").addEventListener("click", async function () {
+/** キャラクリア処理 */
+async function onClearCharacter() {
     const ok = confirm("キャラクタ情報をクリアします。よろしいですか？");
     if (ok) {
         window.characterData = [];
@@ -22,9 +42,10 @@ document.getElementById("clear-character-btn").addEventListener("click", async f
         document.getElementById("card-container").innerHTML = "";
         alert("キャラクタ情報をクリアしました。");
     }
-});
+}
 
-document.getElementById("gacha-btn").addEventListener("click", function () {
+/** ガチャボタン押下 */
+function onGachaButton() {
     const confirmModal = document.getElementById("gacha-confirm-modal");
     confirmModal.style.display = "flex";
 
@@ -40,12 +61,14 @@ document.getElementById("gacha-btn").addEventListener("click", function () {
     cancelBtn.onclick = () => {
         confirmModal.style.display = "none";
     };
-});
+}
 
+/** ガチャ箱クリア */
 function clearGachaBox() {
     window.characterData = window.characterData.filter(card => card.group !== "GachaBox");
 }
 
+/** ガチャ実行 */
 async function runGacha() {
     document.getElementById("gacha-modal").style.display = "flex";
     if (!window.apiKey) {
@@ -57,9 +80,11 @@ async function runGacha() {
     const signal = window.currentGachaController.signal;
     const cardCount = 10;
 
+    // レア度をランダムで決定
     const rarities = pickRaritiesForNCards(cardCount);
     const countMap = makeRarityCountMap(rarities);
 
+    // systemプロンプト
     const systemContent = `
 あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
 以下の6段階のレア度「★0～★5」のうち、
@@ -141,11 +166,13 @@ async function runGacha() {
     }
 }
 
+/** ガチャモーダルを隠す */
 function hideGachaModal() {
     document.getElementById("gacha-modal").style.display = "none";
 }
 
-document.getElementById("move-gacha-to-warehouse-btn").addEventListener("click", async () => {
+/** ガチャ箱のカードを倉庫へ */
+async function onMoveGachaToWarehouse() {
     let changed = false;
     window.characterData.forEach(card => {
         if (card.group === "GachaBox") {
@@ -160,8 +187,9 @@ document.getElementById("move-gacha-to-warehouse-btn").addEventListener("click",
     } else {
         alert("ガチャ箱にカードがありません。");
     }
-});
+}
 
+/** テキストをパースして配列に格納 */
 function parseCharacterData(text) {
     const lines = text.split("\n");
     const characters = [];
@@ -224,9 +252,11 @@ function parseCharacterData(text) {
     return characters;
 }
 
+/** カード表示更新 */
 function displayCharacterCards(characters) {
     const container = document.getElementById("card-container");
     container.innerHTML = "";
+    // 倉庫以外（Party, GachaBoxなど）を表示
     const visibleCards = characters.filter(card => card.group !== "Warehouse");
     if (visibleCards.length === 0) {
         container.textContent = "キャラクターが生成されていません。";
@@ -234,47 +264,29 @@ function displayCharacterCards(characters) {
     }
     visibleCards.forEach((ch) => {
         const realIndex = window.characterData.findIndex(c => c.id === ch.id);
-        const cardEl = createCardElement(ch, realIndex, () => {
-            showMoveToWarehouseModal(realIndex);
-        });
+        const cardEl = createCardElement(ch, realIndex);
         container.appendChild(cardEl);
     });
 }
 
-let currentSelectedCardIndex = -1;
-function showMoveToWarehouseModal(index) {
-    currentSelectedCardIndex = index;
-    const modal = document.getElementById("move-to-warehouse-modal");
-    modal.style.display = "flex";
-}
-
-document.getElementById("move-to-warehouse-ok").addEventListener("click", async () => {
-    const modal = document.getElementById("move-to-warehouse-modal");
-    modal.style.display = "none";
-    if (currentSelectedCardIndex >= 0) {
-        window.characterData[currentSelectedCardIndex].group = "Warehouse";
-        await saveCharacterDataToIndexedDB(window.characterData);
-        displayCharacterCards(window.characterData);
-    }
-    currentSelectedCardIndex = -1;
-});
-
-document.getElementById("move-to-warehouse-cancel").addEventListener("click", () => {
-    document.getElementById("move-to-warehouse-modal").style.display = "none";
-    currentSelectedCardIndex = -1;
-});
-
-function createCardElement(char, index, onClick) {
+/** カードDOM生成 */
+function createCardElement(char, index) {
     const card = document.createElement("div");
     card.className = "card";
-    card.addEventListener("click", () => {
-        card.classList.toggle("flipped");
-        if (onClick) {
-            setTimeout(() => {
-                onClick();
-            }, 300);
+    card.setAttribute("data-id", char.id);
+
+    // 選択モード中のクリックで選択トグル
+    card.addEventListener("click", (e) => {
+        if (isSelectionMode) {
+            e.stopPropagation();
+            card.classList.toggle("selected");
+            updateMoveSelectedButtonVisibility();
+        } else {
+            // 通常時（選択モードオフ）はカードの表裏反転のみ
+            card.classList.toggle("flipped");
         }
     });
+
     const cardInner = document.createElement("div");
     cardInner.className = "card-inner";
 
@@ -302,6 +314,7 @@ function createCardElement(char, index, onClick) {
         imageEl.alt = char.name;
         imageContainer.appendChild(imageEl);
     } else {
+        // 画像がまだ無い場合、生成ボタンを設置
         const genImgBtn = document.createElement("button");
         genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
         genImgBtn.className = "gen-image-btn";
@@ -347,6 +360,7 @@ function createCardElement(char, index, onClick) {
     return card;
 }
 
+/** 画像生成 */
 async function generateCharacterImage(char, index) {
     if (!window.apiKey) {
         alert("APIキーが設定されていません。");
@@ -389,7 +403,7 @@ async function generateCharacterImage(char, index) {
     }
 }
 
-/** 以下は確率計算に関する関数 */
+/** レア度計算 */
 function pickRaritiesForNCards(n) {
     const rarityDist = [
         { star: "★0", probability: 0.50 },
@@ -420,4 +434,55 @@ function makeRarityCountMap(rarities) {
         counts[r] = (counts[r] || 0) + 1;
     });
     return counts;
+}
+
+/* ===== 以下、選択モード関連処理 ===== */
+
+/** 選択モードの切り替え */
+function toggleSelectionMode() {
+    isSelectionMode = !isSelectionMode;
+    const btn = document.getElementById("toggle-selection-mode-btn");
+    if (isSelectionMode) {
+        btn.textContent = "選択モード解除";
+    } else {
+        btn.textContent = "選択モード";
+        // 選択が残っていたら解除
+        const selectedCards = document.querySelectorAll("#card-container .card.selected");
+        selectedCards.forEach(card => card.classList.remove("selected"));
+    }
+    updateMoveSelectedButtonVisibility();
+}
+
+/** 選択中のカードがあれば「選択したものを倉庫に送る」ボタンを表示 */
+function updateMoveSelectedButtonVisibility() {
+    const selectedCards = document.querySelectorAll("#card-container .card.selected");
+    const moveBtn = document.getElementById("move-selected-to-warehouse-btn");
+    if (isSelectionMode && selectedCards.length > 0) {
+        moveBtn.style.display = "inline-block";
+    } else {
+        moveBtn.style.display = "none";
+    }
+}
+
+/** 選択したカードを倉庫に送る */
+async function moveSelectedCardsToWarehouse() {
+    const selectedCards = document.querySelectorAll("#card-container .card.selected");
+    if (selectedCards.length === 0) {
+        alert("カードが選択されていません。");
+        return;
+    }
+    // 選択されたカードを倉庫へ
+    selectedCards.forEach(el => {
+        const cardId = el.getAttribute("data-id");
+        const realIndex = window.characterData.findIndex(c => c.id === cardId);
+        if (realIndex !== -1) {
+            window.characterData[realIndex].group = "Warehouse";
+        }
+    });
+    await saveCharacterDataToIndexedDB(window.characterData);
+
+    // 選択解除 & 再描画
+    selectedCards.forEach(card => card.classList.remove("selected"));
+    displayCharacterCards(window.characterData);
+    updateMoveSelectedButtonVisibility();
 }
