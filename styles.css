@@ -114,12 +114,13 @@ button:hover {
 }
 
 .modal-content {
+  box-sizing: border-box;
   width: calc(100% - 20px);
   background-color: #fff;
   padding: 20px 40px;
   border-radius: 5px;
   text-align: center;
-  max-height: 80vh;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -422,7 +423,7 @@ button:hover {
 /* --- 倉庫モーダル内のカードも3列に --- */
 #warehouse-card-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 

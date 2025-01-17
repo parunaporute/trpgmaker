@@ -2,19 +2,19 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>キャラクタ作成</title>
+  <title>エレメント作成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <!-- DOMPurify等必要なライブラリがあればここに読み込み -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
 <body>
+    <!-- メニューボタン -->
+    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   <div class="container" style="max-width:800px;">
-    <h1>キャラクタ作成</h1>
-    <!-- キャラクタ関連ストレージのクリア -->
-    <button id="clear-character-btn" style="background-color:#f44336;">キャラをクリア</button>
+    <h1>エレメント作成</h1>
     <!-- ガチャボタン -->
-    <button id="gacha-btn" style="margin:10px;">ガチャ</button>
+    <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
 
     <!-- 「ガチャ箱のカードを倉庫に入れる」ボタン -->
     <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
@@ -45,8 +45,6 @@
     <!-- 生成されたカード表示領域 -->
     <div id="card-container"></div>
 
-    <!-- メニューボタン -->
-    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   </div>
 
   <script src="js/indexedDB.js"></script>

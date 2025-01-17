@@ -107,14 +107,6 @@ window.onload = async () => {
     });
   }
 
-  // 履歴クリアボタン
-  const clearHistoryBtn = document.getElementById('clear-history-button');
-  if (clearHistoryBtn) {
-    clearHistoryBtn.addEventListener('click', () => {
-      clearHistory();
-    });
-  }
-
   // 画像生成関連のボタン
   const autoGenBtn = document.getElementById('image-auto-generate-button');
   if (autoGenBtn) {

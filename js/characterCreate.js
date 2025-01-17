@@ -17,8 +17,6 @@ window.addEventListener("load", async function () {
     }
     displayCharacterCards(window.characterData);
 
-    // クリアボタン
-    document.getElementById("clear-character-btn").addEventListener("click", onClearCharacter);
 
     // ガチャボタン
     document.getElementById("gacha-btn").addEventListener("click", onGachaButton);
@@ -33,17 +31,6 @@ window.addEventListener("load", async function () {
     document.getElementById("move-selected-to-warehouse-btn").addEventListener("click", moveSelectedCardsToWarehouse);
 });
 
-/** キャラクリア処理 */
-async function onClearCharacter() {
-    const ok = confirm("キャラクタ情報をクリアします。よろしいですか？");
-    if (ok) {
-        window.characterData = [];
-        await saveCharacterDataToIndexedDB(window.characterData);
-        document.getElementById("card-container").innerHTML = "";
-        alert("キャラクタ情報をクリアしました。");
-    }
-}
-
 /** ガチャボタン押下 */
 function onGachaButton() {
     const confirmModal = document.getElementById("gacha-confirm-modal");
@@ -55,7 +42,7 @@ function onGachaButton() {
     okBtn.onclick = async () => {
         confirmModal.style.display = "none";
         clearGachaBox();
-        runGacha();
+        runGacha(10, "ランダムで");
     };
 
     cancelBtn.onclick = () => {
@@ -69,7 +56,7 @@ function clearGachaBox() {
 }
 
 /** ガチャ実行 */
-async function runGacha() {
+async function runGacha(cardCount, addPrompt) {
     document.getElementById("gacha-modal").style.display = "flex";
     if (!window.apiKey) {
         alert("APIキーが設定されていません。");
@@ -78,7 +65,6 @@ async function runGacha() {
     }
     window.currentGachaController = new AbortController();
     const signal = window.currentGachaController.signal;
-    const cardCount = 10;
 
     // レア度をランダムで決定
     const rarities = pickRaritiesForNCards(cardCount);
@@ -118,7 +104,7 @@ async function runGacha() {
 
     const messages = [
         { role: "system", content: systemContent },
-        { role: "user", content: `合計${cardCount}件、順番は問わないので上記レア度数で生成してください。` },
+        { role: "user", content: `${addPrompt}合計${cardCount}件、順番は問わないので上記レア度数で生成してください。` },
     ];
 
     try {
@@ -144,7 +130,7 @@ async function runGacha() {
 
         const text = data?.choices?.[0]?.message?.content;
         if (typeof text !== "string") {
-            throw new Error("キャラクター生成APIレスポンスが不正です。");
+            throw new Error("エレメント生成APIレスポンスが不正です。");
         }
 
         const newCards = parseCharacterData(text);
@@ -158,8 +144,8 @@ async function runGacha() {
         if (err.name === "AbortError") {
             console.log("ガチャキャンセル");
         } else {
-            console.error("キャラクター生成失敗:", err);
-            alert("キャラクター生成に失敗しました:\n" + err.message);
+            console.error("エレメント生成失敗:", err);
+            alert("エレメント生成に失敗しました:\n" + err.message);
         }
     } finally {
         hideGachaModal();
@@ -256,10 +242,13 @@ function parseCharacterData(text) {
 function displayCharacterCards(characters) {
     const container = document.getElementById("card-container");
     container.innerHTML = "";
-    // 倉庫以外（Party, GachaBoxなど）を表示
-    const visibleCards = characters.filter(card => card.group !== "Warehouse");
+    // 修正）倉庫に入っていない AND パーティに入っていないカードを表示
+    // （つまり "group" が "Warehouse" でも "Party" でもないカード）
+    const visibleCards = characters.filter(
+        card => card.group !== "Warehouse" && card.group !== "Party"
+    );
     if (visibleCards.length === 0) {
-        container.textContent = "キャラクターが生成されていません。";
+        container.textContent = "エレメントが生成されていません。";
         return;
     }
     visibleCards.forEach((ch) => {

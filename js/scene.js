@@ -465,55 +465,6 @@ function nextScene() {
   getNextScene();
 }
 
-/** 履歴クリア */
-async function clearHistory() {
-  const isOk = confirm('履歴をすべて削除します。（シナリオも削除されます）よろしいですか？');
-  if (!isOk) return;
-
-  // IndexedDB の sceneHistory をクリア
-  if (window.sceneHistory && window.sceneHistory.length > 0) {
-    // IndexedDBのストアを直接クリアするためにトランザクションを利用
-    if (window.indexedDB) {
-      try {
-        const tx = db.transaction("sceneHistory", "readwrite");
-        const store = tx.objectStore("sceneHistory");
-        await new Promise((resolve, reject) => {
-          const clearRequest = store.clear();
-          clearRequest.onsuccess = () => resolve();
-          clearRequest.onerror = (err) => reject(err);
-        });
-      } catch (err) {
-        console.error("IndexedDBクリア失敗:", err);
-      }
-    }
-    window.sceneHistory = [];
-    await saveSceneHistoryToIndexedDB(window.sceneHistory);
-  }
-
-  localStorage.removeItem('currentScene');
-
-  // シナリオも削除する
-  localStorage.removeItem('scenario');
-  window.scenario = '';
-
-  window.sceneHistory = [];
-  window.currentScene = 0;
-
-  document.getElementById('story').textContent = '';
-  document.getElementById('player-action').textContent = '';
-  document.getElementById('player-input').value = '';
-  document.getElementById('next-scene').style.display = 'none';
-  document.getElementById('player-input').style.display = 'none';
-
-  // 状態に応じたセクションの表示切替
-  // ※ シナリオが削除されているので input-section を表示、game-section を非表示とする
-  document.querySelector('.input-section').style.display = 'block';
-  document.querySelector('.game-section').style.display = 'none';
-
-  // 履歴とシナリオタイル再表示
-  displayScenarioTile();
-  updateSceneHistory();
-}
 /** キャンセルボタン */
 function onCancelFetch() {
   window.cancelRequested = true;

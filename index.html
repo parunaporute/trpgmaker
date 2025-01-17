@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <div class="container" style="text-align:center; margin-top:50px;">
     <h1>TRPG メニュー</h1>
@@ -15,12 +17,21 @@
       <button id="set-api-key-button">APIキー設定</button>
       <button id="clear-api-key-button" style="background-color:#f44336;">APIキーをクリア</button>
     </div>
-    <!-- キャラクタ作成ボタン有効化 -->
-    <button id="character-create" style="margin:10px;">キャラクタ作成</button>
-    <!-- パーティ作成ボタンのdisabledを解除し、押下でpartyCreate.htmlへ -->
-    <button id="party-create" style="margin:10px;">パーティ作成</button>
-    <button id="scenario" style="margin:10px;">シナリオ</button>
+    <div class="element-section">
+      <!-- キャラクタ作成ボタン有効化 -->
+      <button id="character-create">エレメント作成</button>
+      <!-- パーティ作成ボタンのdisabledを解除し、押下でpartyCreate.htmlへ -->
+      <button id="party-create">パーティ作成</button>
+      <!-- キャラクタ関連ストレージのクリア -->
+      <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
+    </div>
+    <div class="scenario-section">
+      <button id="scenario">フリーシナリオ</button>
+      <!-- 履歴をクリア -->
+      <button id="clear-history-button" style="background-color:#f44336">シナリオをクリア</button>
+    </div>
   </div>
+
 
   <!-- 外部JavaScript -->
   <script src="js/menu.js"></script>
@@ -35,4 +46,5 @@
     });
   </script>
 </body>
+
 </html>
