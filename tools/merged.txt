@@ -17,11 +17,32 @@ characterCreate.html
     <!-- ガチャボタン -->
     <button id="gacha-btn" style="margin:10px;">ガチャ</button>
 
+    <!-- 「ガチャ箱のカードを倉庫に入れる」ボタン -->
+    <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
+
+    <!-- ガチャ実行前確認モーダル -->
+    <div id="gacha-confirm-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
+        <button id="gacha-confirm-ok">OK</button>
+        <button id="gacha-confirm-cancel">キャンセル</button>
+      </div>
+    </div>
+
     <!-- ガチャ実行中モーダル -->
     <div id="gacha-modal" class="modal" style="display:none;">
       <div class="modal-content">
         <p>生成中...</p>
         <button id="cancel-gacha-btn">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- カードクリック時のモーダル（倉庫へ移すか） -->
+    <div id="move-to-warehouse-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>カードを倉庫に入れますか？</p>
+        <button id="move-to-warehouse-ok">OK</button>
+        <button id="move-to-warehouse-cancel">キャンセル</button>
       </div>
     </div>
 
@@ -63,7 +84,8 @@ index.html
     </div>
     <!-- キャラクタ作成ボタン有効化 -->
     <button id="character-create" style="margin:10px;">キャラクタ作成</button>
-    <button id="party-create" disabled style="margin:10px; cursor:not-allowed;">パーティ作成</button>
+    <!-- パーティ作成ボタンのdisabledを解除し、押下でpartyCreate.htmlへ -->
+    <button id="party-create" style="margin:10px;">パーティ作成</button>
     <button id="scenario" style="margin:10px;">シナリオ</button>
   </div>
 
@@ -74,7 +96,60 @@ index.html
     document.getElementById("character-create").addEventListener("click", function () {
       window.location.href = "characterCreate.html";
     });
+    // パーティ作成ボタン押下時、partyCreate.htmlへ遷移
+    document.getElementById("party-create").addEventListener("click", function () {
+      window.location.href = "partyCreate.html";
+    });
   </script>
+</body>
+</html>
+--- 
+partyCreate.html 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>パーティ編成</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>パーティ編成</h1>
+    <!-- 倉庫ボタン -->
+    <button id="show-warehouse-btn">倉庫</button>
+
+    <!-- パーティ枠（group="Party" のカードを表示）-->
+    <div id="party-card-container" style="margin-top:20px;"></div>
+
+    <!-- 倉庫モーダル -->
+    <div id="warehouse-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h2>倉庫</h2>
+        <p>（クリックでカードを選択/解除）</p>
+        <div id="warehouse-card-container" style="margin:10px 0;"></div>
+        <button id="add-to-party-btn" style="margin:10px;">パーティに入れる</button>
+        <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
+      </div>
+    </div>
+
+    <!-- カードを倉庫に戻すモーダル -->
+    <div id="return-to-warehouse-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>倉庫に戻しますか？</p>
+        <button id="return-ok-btn">OK</button>
+        <button id="return-cancel-btn">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 戻るボタン -->
+    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  </div>
+
+  <!-- スクリプト読み込み -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/partyCreate.js"></script>
 </body>
 </html>
 --- 
@@ -480,43 +555,44 @@ button:hover {
 .bezel.rarity0 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity1 {
   background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity2 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 /* --- レアリティ4: プラチナ (ギラギラ＋パーティクルエフェクト) --- */
 .bezel.rarity4 {
-  position: absolute; /* 疑似要素配置のため */
+  position: absolute;
+  /* 疑似要素配置のため */
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
   background-size: 400% 400%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
   animation: platinum-shimmer 5s ease-in-out infinite;
 }
@@ -527,8 +603,8 @@ button:hover {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
   animation: jewel-glow 5s ease-in-out infinite;
 }
@@ -538,9 +614,11 @@ button:hover {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -552,13 +630,1855 @@ button:hover {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
+
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+}
+
+/* --- partyCreate.htmlのカードを3列に --- */
+#party-card-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  /* PC等の広い画面では3列、
+     スマホ等狭い画面では1列になるようにメディアクエリを使う場合: */
+}
+
+/* --- 倉庫モーダル内のカードも3列に --- */
+#warehouse-card-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* 選択状態を分かりやすくする */
+.card.selected {
+  outline: 4px solid #f44336; /* 例: 赤色アウトライン */
+  outline-offset: -4px;
+  transform: scale(1.05);     /* 少し拡大する */
+  box-shadow: 0 0 10px rgba(244,67,54,0.6); /* 赤色のややぼかし */
+}--- 
+backToMenu.js 
+document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+});
+--- 
+characterCreate.js 
+// グローバル変数
+window.apiKey = localStorage.getItem("apiKey") || "";
+
+// キャラクタ情報の保存形式: [{ id, name, state, special, caption, imageData?, rarity, backgroundcss, imageprompt, type, group }, ...]
+// group: "GachaBox" | "Warehouse" | "Party" など
+window.characterData = [];
+
+window.addEventListener("load", async function () {
+    await initIndexedDB();
+    const stored = await loadCharacterDataFromIndexedDB();
+    if (stored) {
+        window.characterData = stored;
+    }
+    displayCharacterCards(window.characterData);
+});
+
+document.getElementById("clear-character-btn").addEventListener("click", async function () {
+    const ok = confirm("キャラクタ情報をクリアします。よろしいですか？");
+    if (ok) {
+        window.characterData = [];
+        await saveCharacterDataToIndexedDB(window.characterData);
+        document.getElementById("card-container").innerHTML = "";
+        alert("キャラクタ情報をクリアしました。");
+    }
+});
+
+document.getElementById("gacha-btn").addEventListener("click", function () {
+    const confirmModal = document.getElementById("gacha-confirm-modal");
+    confirmModal.style.display = "flex";
+
+    const okBtn = document.getElementById("gacha-confirm-ok");
+    const cancelBtn = document.getElementById("gacha-confirm-cancel");
+
+    okBtn.onclick = async () => {
+        confirmModal.style.display = "none";
+        clearGachaBox();
+        runGacha();
+    };
+
+    cancelBtn.onclick = () => {
+        confirmModal.style.display = "none";
+    };
+});
+
+function clearGachaBox() {
+    window.characterData = window.characterData.filter(card => card.group !== "GachaBox");
+}
+
+async function runGacha() {
+    document.getElementById("gacha-modal").style.display = "flex";
+    if (!window.apiKey) {
+        alert("APIキーが設定されていません。");
+        hideGachaModal();
+        return;
+    }
+    window.currentGachaController = new AbortController();
+    const signal = window.currentGachaController.signal;
+    const cardCount = 10;
+
+    const rarities = pickRaritiesForNCards(cardCount);
+    const countMap = makeRarityCountMap(rarities);
+
+    const systemContent = `
+あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
+以下の6段階のレア度「★0～★5」のうち、
+今回の${cardCount}件では以下の内訳を厳密に守って生成してください：
+- ★0: ${countMap["★0"]}件
+- ★1: ${countMap["★1"]}件
+- ★2: ${countMap["★2"]}件
+- ★3: ${countMap["★3"]}件
+- ★4: ${countMap["★4"]}件
+- ★5: ${countMap["★5"]}件
+
+生成するのがキャラクターやモンスターの場合
+【レア度】：...
+【名前】：...
+【タイプ】：キャラクターまたはモンスター
+【状態】：...
+【特技】：...
+【キャプション】：...
+【カード背景】：...
+【外見】：...
+
+生成するのがアイテムの場合
+【レア度】：...
+【名前】：...
+【タイプ】：アイテム
+【特技】：...
+【キャプション】：...
+【カード背景】：...
+【外見】：...
+  `;
+
+    const messages = [
+        { role: "system", content: systemContent },
+        { role: "user", content: `合計${cardCount}件、順番は問わないので上記レア度数で生成してください。` },
+    ];
+
+    try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${window.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-4",
+                messages: messages,
+                temperature: 0.7,
+            }),
+            signal,
+        });
+        if (signal.aborted) return;
+
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+
+        const text = data?.choices?.[0]?.message?.content;
+        if (typeof text !== "string") {
+            throw new Error("キャラクター生成APIレスポンスが不正です。");
+        }
+
+        const newCards = parseCharacterData(text);
+        newCards.forEach(card => {
+            card.group = "GachaBox";
+        });
+        window.characterData.push(...newCards);
+        await saveCharacterDataToIndexedDB(window.characterData);
+        displayCharacterCards(window.characterData);
+    } catch (err) {
+        if (err.name === "AbortError") {
+            console.log("ガチャキャンセル");
+        } else {
+            console.error("キャラクター生成失敗:", err);
+            alert("キャラクター生成に失敗しました:\n" + err.message);
+        }
+    } finally {
+        hideGachaModal();
+    }
+}
+
+function hideGachaModal() {
+    document.getElementById("gacha-modal").style.display = "none";
+}
+
+document.getElementById("move-gacha-to-warehouse-btn").addEventListener("click", async () => {
+    let changed = false;
+    window.characterData.forEach(card => {
+        if (card.group === "GachaBox") {
+            card.group = "Warehouse";
+            changed = true;
+        }
+    });
+    if (changed) {
+        await saveCharacterDataToIndexedDB(window.characterData);
+        displayCharacterCards(window.characterData);
+        alert("ガチャ箱のカードを倉庫に移動しました。");
+    } else {
+        alert("ガチャ箱にカードがありません。");
+    }
+});
+
+function parseCharacterData(text) {
+    const lines = text.split("\n");
+    const characters = [];
+    let currentChar = {
+        id: "",
+        type: "",
+        name: "",
+        state: "",
+        special: "",
+        caption: "",
+        rarity: "★0",
+        backgroundcss: "",
+        imageprompt: "",
+        group: "GachaBox",
+    };
+
+    function pushCurrentChar() {
+        currentChar.id = "card_" + Date.now() + "_" + Math.random().toString(36).substring(2);
+        characters.push({ ...currentChar });
+        currentChar = {
+            id: "",
+            type: "",
+            name: "",
+            state: "",
+            special: "",
+            caption: "",
+            rarity: "★0",
+            backgroundcss: "",
+            imageprompt: "",
+            group: "GachaBox",
+        };
+    }
+
+    lines.forEach((line) => {
+        line = line.trim();
+        if (line.startsWith("【名前】")) {
+            if (currentChar.name) {
+                pushCurrentChar();
+            }
+            currentChar.name = line.replace("【名前】", "").replace("：", "").trim();
+        } else if (line.startsWith("【タイプ】")) {
+            currentChar.type = line.replace("【タイプ】", "").replace("：", "").trim();
+        } else if (line.startsWith("【状態】")) {
+            currentChar.state = line.replace("【状態】", "").replace("：", "").trim();
+        } else if (line.startsWith("【特技】")) {
+            currentChar.special = line.replace("【特技】", "").replace("：", "").trim();
+        } else if (line.startsWith("【キャプション】")) {
+            currentChar.caption = line.replace("【キャプション】", "").replace("：", "").trim();
+        } else if (line.startsWith("【レア度】")) {
+            currentChar.rarity = line.replace("【レア度】", "").replace("：", "").trim();
+        } else if (line.startsWith("【カード背景】")) {
+            currentChar.backgroundcss = line.replace("【カード背景】", "").replace("：", "").trim();
+        } else if (line.startsWith("【外見】")) {
+            currentChar.imageprompt = line.replace("【外見】", "").replace("：", "").trim();
+        }
+    });
+    if (currentChar.name) {
+        pushCurrentChar();
+    }
+    return characters;
+}
+
+function displayCharacterCards(characters) {
+    const container = document.getElementById("card-container");
+    container.innerHTML = "";
+    const visibleCards = characters.filter(card => card.group !== "Warehouse");
+    if (visibleCards.length === 0) {
+        container.textContent = "キャラクターが生成されていません。";
+        return;
+    }
+    visibleCards.forEach((ch) => {
+        const realIndex = window.characterData.findIndex(c => c.id === ch.id);
+        const cardEl = createCardElement(ch, realIndex, () => {
+            showMoveToWarehouseModal(realIndex);
+        });
+        container.appendChild(cardEl);
+    });
+}
+
+let currentSelectedCardIndex = -1;
+function showMoveToWarehouseModal(index) {
+    currentSelectedCardIndex = index;
+    const modal = document.getElementById("move-to-warehouse-modal");
+    modal.style.display = "flex";
+}
+
+document.getElementById("move-to-warehouse-ok").addEventListener("click", async () => {
+    const modal = document.getElementById("move-to-warehouse-modal");
+    modal.style.display = "none";
+    if (currentSelectedCardIndex >= 0) {
+        window.characterData[currentSelectedCardIndex].group = "Warehouse";
+        await saveCharacterDataToIndexedDB(window.characterData);
+        displayCharacterCards(window.characterData);
+    }
+    currentSelectedCardIndex = -1;
+});
+
+document.getElementById("move-to-warehouse-cancel").addEventListener("click", () => {
+    document.getElementById("move-to-warehouse-modal").style.display = "none";
+    currentSelectedCardIndex = -1;
+});
+
+function createCardElement(char, index, onClick) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.addEventListener("click", () => {
+        card.classList.toggle("flipped");
+        if (onClick) {
+            setTimeout(() => {
+                onClick();
+            }, 300);
+        }
+    });
+    const cardInner = document.createElement("div");
+    cardInner.className = "card-inner";
+
+    const cardFront = document.createElement("div");
+    cardFront.className = "card-front";
+    const bgStyle = char.backgroundcss
+        .replace("background-image:", "")
+        .replace("background", "")
+        .trim();
+    cardFront.style = "background-image:" + bgStyle;
+
+    const rarityValue = (typeof char.rarity === "string") ? char.rarity.replace("★", "").trim() : "0";
+    cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
+
+    const typeEl = document.createElement("div");
+    typeEl.className = "card-type";
+    typeEl.textContent = char.type || "不明";
+    cardFront.appendChild(typeEl);
+
+    const imageContainer = document.createElement("div");
+    imageContainer.className = "card-image";
+    if (char.imageData) {
+        const imageEl = document.createElement("img");
+        imageEl.src = char.imageData;
+        imageEl.alt = char.name;
+        imageContainer.appendChild(imageEl);
+    } else {
+        const genImgBtn = document.createElement("button");
+        genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
+        genImgBtn.className = "gen-image-btn";
+        genImgBtn.textContent = "画像生成";
+        genImgBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            generateCharacterImage(char, index);
+        });
+        imageContainer.appendChild(genImgBtn);
+    }
+    cardFront.appendChild(imageContainer);
+
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "card-info";
+
+    const nameEl = document.createElement("p");
+    nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(char.name) + "</h3>";
+    infoContainer.appendChild(nameEl);
+
+    if (char.state) {
+        const stateEl = document.createElement("p");
+        stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
+        infoContainer.appendChild(stateEl);
+    }
+    const specialEl = document.createElement("p");
+    specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
+    infoContainer.appendChild(specialEl);
+
+    const captionEl = document.createElement("p");
+    captionEl.innerHTML = "<span>" + DOMPurify.sanitize(char.caption) + "</span>";
+    infoContainer.appendChild(captionEl);
+
+    cardFront.appendChild(infoContainer);
+
+    const cardBack = document.createElement("div");
+    cardBack.className = "card-back";
+    cardBack.innerHTML = `<strong>${DOMPurify.sanitize(char.type)}</strong>`;
+
+    cardInner.appendChild(cardFront);
+    cardInner.appendChild(cardBack);
+    card.appendChild(cardInner);
+
+    return card;
+}
+
+async function generateCharacterImage(char, index) {
+    if (!window.apiKey) {
+        alert("APIキーが設定されていません。");
+        return;
+    }
+    const promptText =
+        "You, as a high-performance chatbot, will unobtrusively create illustrations of the highest quality. " +
+        "Do not include text in illustrations for any reason! " +
+        "Now, please output the following illustration.\n" +
+        char.imageprompt +
+        "\n上記の画像を作ってください。躍動感に満ちた繊細アニメ風でお願いします。";
+
+    try {
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${window.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "dall-e-3",
+                prompt: promptText,
+                n: 1,
+                size: "1792x1024",
+                response_format: "b64_json",
+            }),
+        });
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+        const base64 = data.data[0].b64_json;
+        const dataUrl = "data:image/png;base64," + base64;
+        window.characterData[index].imageData = dataUrl;
+        await saveCharacterDataToIndexedDB(window.characterData);
+        displayCharacterCards(window.characterData);
+    } catch (err) {
+        console.error("画像生成失敗:", err);
+        alert("画像生成に失敗しました:\n" + err.message);
+    }
+}
+
+/** 以下は確率計算に関する関数 */
+function pickRaritiesForNCards(n) {
+    const rarityDist = [
+        { star: "★0", probability: 0.50 },
+        { star: "★1", probability: 0.20 },
+        { star: "★2", probability: 0.15 },
+        { star: "★3", probability: 0.10 },
+        { star: "★4", probability: 0.045 },
+        { star: "★5", probability: 0.005 },
+    ];
+    const results = [];
+    for (let i = 0; i < n; i++) {
+        const rand = Math.random();
+        let cum = 0;
+        for (const r of rarityDist) {
+            cum += r.probability;
+            if (rand <= cum) {
+                results.push(r.star);
+                break;
+            }
+        }
+    }
+    return results;
+}
+
+function makeRarityCountMap(rarities) {
+    const counts = { "★0": 0, "★1": 0, "★2": 0, "★3": 0, "★4": 0, "★5": 0 };
+    rarities.forEach((r) => {
+        counts[r] = (counts[r] || 0) + 1;
+    });
+    return counts;
+}
+--- 
+image.js 
+/********************************
+ * image.js - 画像生成関連
+ ********************************/
+
+/**
+ * DALL·E API からBase64形式で直接画像を受け取り、CORSを回避する方法。
+ * OpenAIの画像生成では以下のパラメータを指定することで、直接base64を返してもらうことが可能。
+ *   response_format: "b64_json"
+ */
+
+/** 自動生成(現シーン) */
+async function generateImageFromCurrentScene() {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
+  if (!lastSceneEntry) {
+    alert("まだシーンがありません。");
+    return;
+  }
+  const promptText = `シーンのイメージ: ${lastSceneEntry.content}`;
+  const sceneId = lastSceneEntry.sceneId;
+
+  window.cancelRequested = false;
+  showLoadingModal(true);
+
+  try {
+    window.currentRequestController = new AbortController();
+    const signal = window.currentRequestController.signal;
+
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json"
+      }),
+      signal,
+    });
+
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
+    }
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    // Base64文字列を取り出し、data:image/png;base64, に変換
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    window.sceneHistory.push({
+      type: "image",
+      sceneId,
+      prompt: promptText,
+      dataUrl: dataUrl,
+    });
+
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
+    updateSceneHistory();
+    showLastScene();
+  } catch (error) {
+    if (error.name === "AbortError") {
+      console.warn("画像生成キャンセル");
+    } else {
+      console.error("画像生成失敗:", error);
+      alert("画像生成失敗:\n" + error.message);
+    }
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+/** カスタム画像生成モーダルを開く */
+function openImagePromptModal(prompt = "", index = null) {
+  window.editingImageEntry = null;
+  if (index !== null) {
+    // 再生成の場合
+    window.editingImageEntry = { index };
+    const entry = window.sceneHistory[index];
+    if (entry && entry.type === "image") {
+      prompt = entry.prompt;
+    }
+  } else {
+    // 新規
+    const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
+    if (lastSceneEntry) {
+      prompt = lastSceneEntry.content;
+    } else {
+      prompt = window.scenario || "Fantasy scene";
+    }
+  }
+  document.getElementById("image-custom-prompt").value = prompt;
+  document.getElementById("image-prompt-modal").style.display = "flex";
+}
+
+/** カスタム画像生成モーダルを閉じる */
+function closeImagePromptModal() {
+  document.getElementById("image-prompt-modal").style.display = "none";
+  window.editingImageEntry = null;
+}
+
+/** カスタム画像生成ボタン押下 */
+async function onCustomImageGenerate() {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  const promptText = document.getElementById("image-custom-prompt").value.trim() || "Fantasy scene";
+
+  window.cancelRequested = false;
+  showLoadingModal(true);
+  closeImagePromptModal();
+
+  try {
+    window.currentRequestController = new AbortController();
+    const signal = window.currentRequestController.signal;
+
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json"
+      }),
+      signal,
+    });
+
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
+    }
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    // Base64文字列を取り出し、data:image/png;base64, に変換
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    if (window.editingImageEntry) {
+      // 既存画像を再生成
+      const idx = window.editingImageEntry.index;
+      const entry = window.sceneHistory[idx];
+      if (entry && entry.type === "image") {
+        entry.dataUrl = dataUrl;
+        entry.prompt = promptText;
+      }
+    } else {
+      // 新規
+      const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
+      if (!lastSceneEntry) {
+        alert("シーンがありません。");
+        return;
+      }
+      window.sceneHistory.push({
+        type: "image",
+        sceneId: lastSceneEntry.sceneId,
+        prompt: promptText,
+        dataUrl: dataUrl,
+      });
+    }
+
+    // IndexedDBに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+
+    updateSceneHistory();
+    showLastScene();
+  } catch (error) {
+    if (error.name === "AbortError") {
+      console.warn("カスタム画像生成キャンセル");
+    } else {
+      console.error("カスタム画像生成失敗:", error);
+      alert("カスタム画像生成失敗:\n" + error.message);
+    }
+  } finally {
+    showLoadingModal(false);
+  }
+}
+--- 
+indexedDB.js 
+/********************************
+ * indexedDB.js
+ * IndexedDB関連の初期化・保存・読み込み等を担当
+ ********************************/
+
+let db = null;
+
+/**
+ * DB初期化
+ * "trpgDB" というDBに "sceneHistory" と "characterData" のストアを作る
+ */
+function initIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("trpgDB", 2);  // バージョンを 2 に更新
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      // sceneHistory ストアが無ければ作成
+      if (!db.objectStoreNames.contains("sceneHistory")) {
+        db.createObjectStore("sceneHistory", { keyPath: "id" });
+      }
+      // characterData ストアが無ければ作成
+      if (!db.objectStoreNames.contains("characterData")) {
+        db.createObjectStore("characterData", { keyPath: "id" });
+      }
+    };
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      resolve();
+    };
+    request.onerror = (event) => {
+      console.error("IndexedDBの初期化に失敗:", event.target.error);
+      reject(event.target.error);
+    };
+  });
+}
+
+/**
+ * sceneHistory をまとめて IndexedDB へ保存
+ * 1レコード (id=1) に配列データを保存する
+ */
+function saveSceneHistoryToIndexedDB(sceneHistory) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve();
+      return;
+    }
+    const tx = db.transaction("sceneHistory", "readwrite");
+    const store = tx.objectStore("sceneHistory");
+
+    // まず既存データをクリア
+    const clearRequest = store.clear();
+    clearRequest.onsuccess = () => {
+      // クリア後に、id=1 として保存
+      const record = { id: 1, data: sceneHistory };
+      const putReq = store.put(record);
+      putReq.onsuccess = () => {
+        resolve();
+      };
+      putReq.onerror = (err) => {
+        reject(err);
+      };
+    };
+    clearRequest.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
+/**
+ * IndexedDBから sceneHistory をロード
+ * 1レコード (id=1) に格納した配列データを取り出す
+ */
+function loadSceneHistoryFromIndexedDB() {
+  return new Promise((resolve) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve([]);
+      return;
+    }
+    const tx = db.transaction("sceneHistory", "readonly");
+    const store = tx.objectStore("sceneHistory");
+    const getReq = store.get(1);
+    getReq.onsuccess = (event) => {
+      if (event.target.result && event.target.result.data) {
+        resolve(event.target.result.data);
+      } else {
+        resolve([]);
+      }
+    };
+    getReq.onerror = () => {
+      resolve([]);
+    };
+  });
+}
+
+/**
+ * キャラクターデータを IndexedDB に保存する
+ * ここでは、1レコード (id="characterData") にデータ全体を保存する
+ */
+function saveCharacterDataToIndexedDB(characterData) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve();  // DB が未初期化の場合はエラーではなく resolve する
+      return;
+    }
+    const tx = db.transaction("characterData", "readwrite");
+    const store = tx.objectStore("characterData");
+    const record = { id: "characterData", data: characterData };
+    const putReq = store.put(record);
+    putReq.onsuccess = () => {
+      resolve();
+    };
+    putReq.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
+/**
+ * IndexedDBからキャラクターデータをロードする
+ */
+function loadCharacterDataFromIndexedDB() {
+  return new Promise((resolve) => {
+    if (!db) {
+      console.warn("DBが未初期化です。");
+      resolve([]);
+      return;
+    }
+    const tx = db.transaction("characterData", "readonly");
+    const store = tx.objectStore("characterData");
+    const getReq = store.get("characterData");
+    getReq.onsuccess = (event) => {
+      if (event.target.result && event.target.result.data) {
+        resolve(event.target.result.data);
+      } else {
+        resolve([]);
+      }
+    };
+    getReq.onerror = () => {
+      resolve([]);
+    };
+  });
+}
+--- 
+main.js 
+/********************************
+ * main.js - ページ全体の初期化・イベント登録
+ ********************************/
+
+window.onload = async () => {
+  // まずIndexedDB初期化（sceneHistory と characterData の両方を利用）
+  await initIndexedDB();
+
+  // ローカルストレージから各種情報を取得
+  const savedApiKey = localStorage.getItem('apiKey');
+  if (savedApiKey) {
+    window.apiKey = savedApiKey;
+  }
+
+  const savedScenario = localStorage.getItem('scenario');
+  if (savedScenario) {
+    window.scenario = savedScenario;
+    if (window.scenario === '（シナリオは未入力です）') {
+      window.scenario = '';
+      localStorage.removeItem('scenario');
+    }
+    const scenarioInput = document.getElementById('scenario-input');
+    if (scenarioInput) {
+      scenarioInput.value = window.scenario;
+    }
+  }
+
+  // sceneHistory は IndexedDB から取得
+  const loadedHistory = await loadSceneHistoryFromIndexedDB();
+  window.sceneHistory = loadedHistory || [];
+
+  // currentScene は localStorage から読み取る
+  const savedCurrentScene = localStorage.getItem('currentScene');
+  if (savedCurrentScene) {
+    window.currentScene = parseInt(savedCurrentScene, 10);
+  } else {
+    window.currentScene = 0;
+  }
+
+  // APIキーが無い場合 -> .input-section や .game-section を非表示
+  if (!window.apiKey) {
+    const inputSection = document.querySelector('.input-section');
+    const gameSection = document.querySelector('.game-section');
+    if (inputSection) inputSection.style.display = 'none';
+    if (gameSection) gameSection.style.display = 'none';
+  } else {
+    // シナリオがあればゲーム画面を表示、なければシナリオ入力画面を表示
+    if (window.scenario && window.scenario.trim() !== '') {
+      if (document.querySelector('.input-section')) {
+        document.querySelector('.input-section').style.display = 'none';
+      }
+      if (document.querySelector('.game-section')) {
+        document.querySelector('.game-section').style.display = 'block';
+      }
+    } else {
+      if (document.querySelector('.input-section')) {
+        document.querySelector('.input-section').style.display = 'block';
+      }
+      if (document.querySelector('.game-section')) {
+        document.querySelector('.game-section').style.display = 'none';
+      }
+    }
+  }
+
+  // シナリオタイルと履歴を表示、最後のシーンをメインに表示
+  displayScenarioTile();
+  updateSceneHistory();
+  showLastScene();
+
+  // 各種イベントリスナーの登録
+
+  // 応答キャンセルボタン
+  const cancelRequestBtn = document.getElementById('cancel-request-button');
+  if (cancelRequestBtn) {
+    cancelRequestBtn.addEventListener('click', onCancelFetch);
+  }
+
+  // APIキー設定
+  const setApiKeyBtn = document.getElementById('set-api-key-button');
+  if (setApiKeyBtn) {
+    setApiKeyBtn.addEventListener('click', () => {
+      setApiKey();
+    });
+  }
+
+  // APIキークリア
+  const clearApiKeyBtn = document.getElementById('clear-api-key-button');
+  if (clearApiKeyBtn) {
+    clearApiKeyBtn.addEventListener('click', () => {
+      clearApiKey();
+    });
+  }
+
+  // ゲーム開始ボタン
+  const startBtn = document.getElementById('start-button');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      startGame();
+    });
+  }
+
+  // 次のシーンボタン
+  const nextSceneBtn = document.getElementById('next-scene');
+  if (nextSceneBtn) {
+    nextSceneBtn.addEventListener('click', () => {
+      nextScene();
+    });
+  }
+
+  // 履歴クリアボタン
+  const clearHistoryBtn = document.getElementById('clear-history-button');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', () => {
+      clearHistory();
+    });
+  }
+
+  // 画像生成関連のボタン
+  const autoGenBtn = document.getElementById('image-auto-generate-button');
+  if (autoGenBtn) {
+    autoGenBtn.addEventListener('click', () => {
+      generateImageFromCurrentScene();
+    });
+  }
+
+  const promptModalBtn = document.getElementById('image-prompt-modal-button');
+  if (promptModalBtn) {
+    promptModalBtn.addEventListener('click', () => {
+      openImagePromptModal();
+    });
+  }
+
+  const customGenBtn = document.getElementById('image-custom-generate-button');
+  if (customGenBtn) {
+    customGenBtn.addEventListener('click', () => {
+      onCustomImageGenerate();
+    });
+  }
+
+  const customCancelBtn = document.getElementById('image-custom-cancel-button');
+  if (customCancelBtn) {
+    customCancelBtn.addEventListener('click', () => {
+      closeImagePromptModal();
+    });
+  }
+};
+
+/** APIキー設定 */
+function setApiKey() {
+  window.apiKey = document.getElementById('api-key-input').value.trim();
+  if (window.apiKey) {
+    localStorage.setItem('apiKey', window.apiKey);
+    alert('APIキーが設定されました。');
+    // ページをリロードして反映
+    location.reload();
+  } else {
+    alert('APIキーを入力してください。');
+  }
+}
+
+/** APIキークリア */
+function clearApiKey() {
+  const ok = confirm('APIキーをクリアすると操作ができなくなります。よろしいですか？');
+  if (!ok) return;
+  localStorage.removeItem('apiKey');
+  window.apiKey = '';
+  // ページをリロードして反映
+  location.reload();
+}
+
+/** キャンセルボタン押下時の処理 */
+function onCancelFetch() {
+  window.cancelRequested = true;
+  if (window.currentRequestController) {
+    window.currentRequestController.abort();
+  }
+  showLoadingModal(false);
+}
+
+/** ローディングモーダルの表示／非表示 */
+function showLoadingModal(show) {
+  const modal = document.getElementById('loading-modal');
+  if (!modal) return;
+  modal.style.display = show ? 'flex' : 'none';
+}
+--- 
+menu.js 
+// menu.js
+
+// 「シナリオ」ボタン押下で scenario.html へ遷移
+document.getElementById("scenario").addEventListener("click", function () {
+    window.location.href = "scenario.html";
+});
+
+// APIキー設定
+document.getElementById("set-api-key-button").addEventListener("click", function () {
+    const apiKey = document.getElementById("api-key-input").value.trim();
+    if (apiKey) {
+        localStorage.setItem("apiKey", apiKey);
+        alert("APIキーが設定されました。");
+    } else {
+        alert("APIキーを入力してください。");
+    }
+});
+
+// APIキークリア
+document.getElementById("clear-api-key-button").addEventListener("click", function () {
+    const confirmClear = confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？");
+    if (confirmClear) {
+        localStorage.removeItem("apiKey");
+        alert("APIキーがクリアされました。");
+    }
+});
+
+// ページ読み込み時にAPIキーを入力欄に表示
+window.addEventListener("load", function () {
+    const savedApiKey = localStorage.getItem("apiKey");
+    if (savedApiKey) {
+        document.getElementById("api-key-input").value = savedApiKey;
+    }
+});
+
+/** パーティ作成ボタン押下時、partyCreate.htmlへ */
+document.getElementById("party-create").addEventListener("click", () => {
+  window.location.href = "partyCreate.html";
+});
+--- 
+partyCreate.js 
+window.addEventListener("load", async function(){
+    await initIndexedDB();
+    const stored = await loadCharacterDataFromIndexedDB();
+    if(stored) {
+      window.characterData = stored;
+    } else {
+      window.characterData = [];
+    }
+  
+    // パーティ表示
+    renderParty();
+  
+    // 倉庫モーダル管理
+    document.getElementById("show-warehouse-btn").addEventListener("click", () => {
+      showWarehouseModal();
+    });
+  
+    document.getElementById("close-warehouse-btn").addEventListener("click", () => {
+      document.getElementById("warehouse-modal").style.display = "none";
+    });
+  
+    // 「倉庫からパーティへ」ボタン
+    document.getElementById("add-to-party-btn").addEventListener("click", async () => {
+      // 選択中の倉庫カードをパーティに移す
+      const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
+      if(selectedCards.length === 0) {
+        alert("カードが選択されていません。");
+        return;
+      }
+      // data-id から全体配列内のカードを検索して group = "Party" に書き換え
+      selectedCards.forEach(el => {
+        const cardId = el.getAttribute("data-id");
+        const realIndex = window.characterData.findIndex(c => c.id === cardId);
+        if(realIndex !== -1){
+          window.characterData[realIndex].group = "Party";
+        }
+      });
+  
+      await saveCharacterDataToIndexedDB(window.characterData);
+      renderParty();
+      showWarehouseModal(); // 再描画
+    });
+  
+    // 戻るボタン
+    document.getElementById("back-to-menu").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+  });
+  
+  /** パーティのカードを表示 */
+  function renderParty(){
+    const partyContainer = document.getElementById("party-card-container");
+    partyContainer.innerHTML = "";
+    // group==="Party" のみ
+    const partyCards = window.characterData.filter(c => c.group === "Party");
+  
+    if(partyCards.length === 0){
+      partyContainer.textContent = "パーティにカードがありません。";
+      return;
+    }
+  
+    partyCards.forEach((card) => {
+      // 修正：サブ配列のインデックスではなく card 自体を渡す
+      const cardEl = createPartyCardElement(card);
+      partyContainer.appendChild(cardEl);
+    });
+  }
+  
+  /** 倉庫モーダルを表示し、倉庫カードを表示 */
+  function showWarehouseModal(){
+    const modal = document.getElementById("warehouse-modal");
+    modal.style.display = "flex";
+  
+    const warehouseContainer = document.getElementById("warehouse-card-container");
+    warehouseContainer.innerHTML = "";
+  
+    // group==="Warehouse" のみ
+    const warehouseCards = window.characterData.filter(c => c.group === "Warehouse");
+    if(warehouseCards.length === 0) {
+      warehouseContainer.textContent = "倉庫にカードがありません。";
+      return;
+    }
+  
+    warehouseCards.forEach((card) => {
+      // 修正：card.id を埋め込み、サブ配列idxは持たない
+      const cardEl = createWarehouseCardElement(card);
+      warehouseContainer.appendChild(cardEl);
+    });
+  }
+  
+  /** パーティカード生成（クリックで倉庫戻しモーダルを出す） */
+  function createPartyCardElement(card){
+    const cardEl = document.createElement("div");
+    cardEl.className = "card";
+  
+    // 修正：card.id を持たせる
+    cardEl.setAttribute("data-id", card.id);
+    cardEl.addEventListener("click", () => {
+      // 「倉庫に戻しますか？」モーダル
+      showReturnToWarehouseModal(card.id);
+    });
+  
+    const cardInner = document.createElement("div");
+    cardInner.className = "card-inner";
+  
+    const cardFront = document.createElement("div");
+    cardFront.className = "card-front";
+    const bgStyle = card.backgroundcss
+        .replace("background-image:", "")
+        .replace("background", "")
+        .trim();
+    cardFront.style = "background-image:" + bgStyle;
+  
+    const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
+    cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
+  
+    const typeEl = document.createElement("div");
+    typeEl.className = "card-type";
+    typeEl.textContent = card.type || "不明";
+    cardFront.appendChild(typeEl);
+  
+    const imageContainer = document.createElement("div");
+    imageContainer.className = "card-image";
+    if(card.imageData){
+      const imageEl = document.createElement("img");
+      imageEl.src = card.imageData;
+      imageEl.alt = card.name;
+      imageContainer.appendChild(imageEl);
+    }
+    cardFront.appendChild(imageContainer);
+  
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "card-info";
+  
+    const nameEl = document.createElement("p");
+    nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
+    infoContainer.appendChild(nameEl);
+  
+    if (card.state) {
+      const stateEl = document.createElement("p");
+      stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
+      infoContainer.appendChild(stateEl);
+    }
+    const specialEl = document.createElement("p");
+    specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
+    infoContainer.appendChild(specialEl);
+  
+    const captionEl = document.createElement("p");
+    captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
+    infoContainer.appendChild(captionEl);
+  
+    cardFront.appendChild(infoContainer);
+  
+    const cardBack = document.createElement("div");
+    cardBack.className = "card-back";
+    cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type)}</strong>`;
+  
+    cardInner.appendChild(cardFront);
+    cardInner.appendChild(cardBack);
+    cardEl.appendChild(cardInner);
+  
+    return cardEl;
+  }
+  
+  /** 倉庫カード生成（クリックで選択切り替え） */
+  function createWarehouseCardElement(card){
+    const cardEl = document.createElement("div");
+    cardEl.className = "card";
+    // 修正：card.id を持たせる
+    cardEl.setAttribute("data-id", card.id);
+  
+    cardEl.addEventListener("click", () => {
+      // 選択状態のtoggle
+      cardEl.classList.toggle("selected");
+    });
+  
+    const cardInner = document.createElement("div");
+    cardInner.className = "card-inner";
+  
+    const cardFront = document.createElement("div");
+    cardFront.className = "card-front";
+    const bgStyle = card.backgroundcss
+        .replace("background-image:", "")
+        .replace("background", "")
+        .trim();
+    cardFront.style = "background-image:" + bgStyle;
+  
+    const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
+    cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
+  
+    const typeEl = document.createElement("div");
+    typeEl.className = "card-type";
+    typeEl.textContent = card.type || "不明";
+    cardFront.appendChild(typeEl);
+  
+    const imageContainer = document.createElement("div");
+    imageContainer.className = "card-image";
+    if(card.imageData){
+      const imageEl = document.createElement("img");
+      imageEl.src = card.imageData;
+      imageEl.alt = card.name;
+      imageContainer.appendChild(imageEl);
+    }
+    cardFront.appendChild(imageContainer);
+  
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "card-info";
+  
+    const nameEl = document.createElement("p");
+    nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
+    infoContainer.appendChild(nameEl);
+  
+    if (card.state) {
+      const stateEl = document.createElement("p");
+      stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
+      infoContainer.appendChild(stateEl);
+    }
+    const specialEl = document.createElement("p");
+    specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
+    infoContainer.appendChild(specialEl);
+  
+    const captionEl = document.createElement("p");
+    captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
+    infoContainer.appendChild(captionEl);
+  
+    cardFront.appendChild(infoContainer);
+  
+    const cardBack = document.createElement("div");
+    cardBack.className = "card-back";
+    cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type)}</strong>`;
+  
+    cardInner.appendChild(cardFront);
+    cardInner.appendChild(cardBack);
+    cardEl.appendChild(cardInner);
+  
+    return cardEl;
+  }
+  
+  /** 「倉庫に戻しますか？」モーダル */
+  let currentPartyCardId = null;
+  function showReturnToWarehouseModal(cardId){
+    currentPartyCardId = cardId;
+    const modal = document.getElementById("return-to-warehouse-modal");
+    modal.style.display = "flex";
+  }
+  
+  document.getElementById("return-ok-btn").addEventListener("click", async ()=>{
+    const modal = document.getElementById("return-to-warehouse-modal");
+    modal.style.display = "none";
+    if(currentPartyCardId) {
+      // 修正：cardId で検索
+      const idx = window.characterData.findIndex(c => c.id === currentPartyCardId);
+      if(idx !== -1){
+        window.characterData[idx].group = "Warehouse";
+        await saveCharacterDataToIndexedDB(window.characterData);
+        renderParty();
+      }
+    }
+    currentPartyCardId = null;
+  });
+  
+  document.getElementById("return-cancel-btn").addEventListener("click", ()=>{
+    const modal = document.getElementById("return-to-warehouse-modal");
+    modal.style.display = "none";
+    currentPartyCardId = null;
+  });
+--- 
+scene.js 
+/********************************
+ * scene.js - シナリオ/シーン管理関連
+ ********************************/
+
+// グローバル変数
+window.apiKey = '';
+window.scenario = '';
+window.currentScene = 0;
+window.sceneHistory = [];
+// 例: {type:'scene'|'action'|'image', sceneId?: string, content?:string, dataUrl?:string, prompt?:string}
+window.currentRequestController = null;
+window.cancelRequested = false;
+window.editingImageEntry = null;
+
+/** ユニークIDを生成 */
+function generateUniqueId() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+/** ゲーム開始 */
+async function startGame() {
+  window.scenario = document.getElementById('scenario-input').value.trim();
+  if (!window.scenario) {
+    alert('シナリオを入力してください');
+    return;
+  }
+  localStorage.setItem('scenario', window.scenario);
+
+  document.querySelector('.input-section').style.display = 'none';
+  document.querySelector('.game-section').style.display = 'block';
+
+  displayScenarioTile();
+  await getNextScene();
+}
+
+/** シナリオタイルの表示 */
+function displayScenarioTile() {
+  const historyContainer = document.getElementById('scene-history');
+  if (!historyContainer) return;
+
+  let scenarioTile = document.getElementById('scenario-tile');
+  if (!scenarioTile) {
+    scenarioTile = document.createElement('div');
+    scenarioTile.id = 'scenario-tile';
+    scenarioTile.className = 'history-tile';
+  } else {
+    scenarioTile.innerHTML = '';
+  }
+
+  // シナリオ本文（contenteditable）
+  const scenarioText = document.createElement('p');
+  scenarioText.className = 'scenario-text';
+  if (!window.apiKey) {
+    scenarioText.removeAttribute('contenteditable');
+  } else {
+    scenarioText.setAttribute('contenteditable', 'true');
+  }
+
+  // 表示上は「（シナリオは未入力です）」をプレースホルダーに
+  const displayText = (window.scenario && window.scenario.trim() !== '')
+    ? window.scenario
+    : '（シナリオは未入力です）';
+  scenarioText.innerHTML = DOMPurify.sanitize(displayText);
+
+  // 変更があったら保存
+  scenarioText.addEventListener('blur', () => {
+    if (!window.apiKey) return;
+    const rawText = scenarioText.textContent.trim();
+
+    if (!rawText || rawText === '（シナリオは未入力です）') {
+      window.scenario = '';
+      localStorage.removeItem('scenario');
+    } else {
+      window.scenario = rawText;
+      localStorage.setItem('scenario', rawText);
+    }
+
+    showLastScene();
+  });
+
+  scenarioTile.appendChild(scenarioText);
+
+  // 履歴コンテナを一旦クリアし、シナリオタイルを追加
+  historyContainer.innerHTML = '';
+  historyContainer.appendChild(scenarioTile);
+}
+
+/** 次のシーンを取得 */
+async function getNextScene(){
+  if(!window.apiKey){
+    alert('APIキーが設定されていません。');
+    return;
+  }
+  
+  const playerInput = document.getElementById('player-input').value.trim();
+  // シーンが既にある場合のみ、プレイヤー行動が未入力ならアラートを出す
+  const hasScene = window.sceneHistory.some(e => e.type === 'scene');
+  if(hasScene && !playerInput){
+    alert('プレイヤーの行動を入力してください');
+    return;
+  }
+
+  window.cancelRequested = false;
+  showLoadingModal(true);
+
+  const messages = [
+    {role:'system', content:'あなたはTRPGのゲームマスターです。HTMLタグOK。'},
+    {role:'user', content:`シナリオ概要:${window.scenario}`}
+  ];
+
+  // これまでのシーンとプレイヤー行動をすべて messages に詰める
+  window.sceneHistory.forEach(e=>{
+    if(e.type === 'scene'){
+      messages.push({role:'assistant', content:e.content});
+    } else if(e.type === 'action'){
+      messages.push({role:'user', content:`プレイヤーの行動:${e.content}`});
+    }
+  });
+
+  // 今回の新しい行動
+  if(playerInput){
+    messages.push({role:'user', content:`プレイヤーの行動:${playerInput}`});
+    window.sceneHistory.push({ type:'action', content:playerInput });
+  }
+
+  try {
+    window.currentRequestController = new AbortController();
+    const signal = window.currentRequestController.signal;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${window.apiKey}`
+      },
+      body:JSON.stringify({
+        model:'gpt-4',
+        messages
+      }),
+      signal
+    });
+    if(window.cancelRequested){
+      showLoadingModal(false);
+      return;
+    }
+    const data = await response.json();
+    if(window.cancelRequested){
+      showLoadingModal(false);
+      return;
+    }
+    if(data.error){
+      throw new Error(data.error.message);
+    }
+
+    // 次のシーン内容
+    const nextScene = data.choices[0].message.content;
+
+    // ユニークIDを付与
+    const newSceneId = generateUniqueId();
+    window.sceneHistory.push({
+      type: 'scene',
+      sceneId: newSceneId,
+      content: nextScene
+    });
+    window.currentScene++;
+
+    // IndexedDB保存 & currentSceneはlocalStorageに保存
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+    localStorage.setItem('currentScene', window.currentScene);
+
+    // もしプレイヤー入力欄に入力があったならリセット
+    if(playerInput){
+      document.getElementById('player-input').value = '';
+    }
+
+    updateSceneHistory();
+    showLastScene();
+  } catch(error) {
+    if(error.name === 'AbortError'){
+      console.warn('シーン取得キャンセル');
+    } else {
+      console.error('シーン取得失敗:', error);
+      alert('シーン取得に失敗:\n' + error.message);
+    }
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+/**
+ * シーン履歴表示
+ * - 通常は「最新シーン(末尾)」はメイン表示( showLastScene )に回すので除外するが、
+ *   「APIキーが無いとき」は最新シーンも履歴に入れて表示する
+ */
+function updateSceneHistory() {
+  const historyContainer = document.getElementById('scene-history');
+  if (!historyContainer) return;
+
+  // すでに作成していたシナリオタイルを復帰
+  const scenarioTile = document.getElementById('scenario-tile');
+  historyContainer.innerHTML = '';
+  if (scenarioTile) {
+    historyContainer.appendChild(scenarioTile);
+  }
+
+  // 最新シーンのIDを取得
+  const latestScene = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
+  const latestSceneId = latestScene ? latestScene.sceneId : null;
+
+  // 履歴を表示
+  window.sceneHistory.forEach((entry, index) => {
+    // APIキーがあれば「最新シーン」は除外してメイン表示へ回す
+    if (window.apiKey) {
+      if (entry.sceneId && entry.sceneId === latestSceneId) {
+        return;
+      }
+    }
+
+    if (entry.type === 'scene') {
+      // シーン表示
+      const tile = document.createElement('div');
+      tile.className = 'history-tile';
+
+      // シーン削除ボタン
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '削除';
+      deleteBtn.style.marginBottom = '5px';
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
+        // シーン + それに紐づく画像を削除
+        const delId = entry.sceneId;
+        window.sceneHistory = window.sceneHistory.filter(e => {
+          if (e.type === 'scene' && e.sceneId === delId) return false;
+          if (e.type === 'image' && e.sceneId === delId) return false;
+          return true;
+        });
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
+        updateSceneHistory();
+        showLastScene();
+      });
+      tile.appendChild(deleteBtn);
+
+      // シーン本文
+      const sceneText = document.createElement('p');
+      sceneText.className = 'scene-text';
+      if (!window.apiKey) {
+        sceneText.removeAttribute('contenteditable');
+      } else {
+        sceneText.setAttribute('contenteditable', 'true');
+      }
+      sceneText.innerHTML = DOMPurify.sanitize(entry.content);
+      sceneText.addEventListener('blur', async () => {
+        if (!window.apiKey) return;
+        entry.content = sceneText.textContent.trim();
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
+      });
+      tile.appendChild(sceneText);
+
+      historyContainer.appendChild(tile);
+
+    } else if (entry.type === 'action') {
+      // プレイヤー行動
+      const tile = document.createElement('div');
+      tile.className = 'history-tile';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '削除';
+      deleteBtn.style.marginBottom = '5px';
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
+
+        // 最新アクションなら、最新シーンも削除
+        let lastActionIndex = -1;
+        for (let i = window.sceneHistory.length - 1; i >= 0; i--) {
+          if (window.sceneHistory[i].type === 'action') {
+            lastActionIndex = i;
+            break;
+          }
+        }
+        if (index === lastActionIndex) {
+          let lastSceneIndex = -1;
+          for (let i = window.sceneHistory.length - 1; i >= 0; i--) {
+            if (window.sceneHistory[i].type === 'scene') {
+              lastSceneIndex = i;
+              break;
+            }
+          }
+          if (lastSceneIndex !== -1) {
+            window.sceneHistory.splice(lastSceneIndex, 1);
+          }
+        }
+
+        window.sceneHistory.splice(index, 1);
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
+        updateSceneHistory();
+        showLastScene();
+      });
+      tile.appendChild(deleteBtn);
+
+      const actionText = document.createElement('p');
+      actionText.className = 'action-text';
+      if (!window.apiKey) {
+        actionText.removeAttribute('contenteditable');
+      } else {
+        actionText.setAttribute('contenteditable', 'true');
+      }
+      actionText.innerHTML = DOMPurify.sanitize(entry.content);
+      actionText.addEventListener('blur', async () => {
+        if (!window.apiKey) return;
+        entry.content = actionText.textContent.trim();
+        await saveSceneHistoryToIndexedDB(window.sceneHistory);
+      });
+      tile.appendChild(actionText);
+
+      historyContainer.appendChild(tile);
+
+    } else if (entry.type === 'image') {
+      // 古いシーンの画像
+      const tile = document.createElement('div');
+      tile.className = 'history-tile';
+
+      const img = document.createElement('img');
+      img.src = entry.dataUrl;
+      img.alt = '生成画像';
+      img.style.maxWidth = '100%';
+      tile.appendChild(img);
+
+      // 画像再生成
+      const regenBtn = document.createElement('button');
+      regenBtn.textContent = '再生成';
+      regenBtn.addEventListener('click', () => {
+        if (!window.apiKey) return;
+        const idxInHistory = window.sceneHistory.indexOf(entry);
+        if (idxInHistory >= 0) {
+          openImagePromptModal(entry.prompt, idxInHistory);
+        }
+      });
+      tile.appendChild(regenBtn);
+
+      // 画像削除
+      const imgDeleteBtn = document.createElement('button');
+      imgDeleteBtn.textContent = '画像だけ削除';
+      imgDeleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
+        const idxInHistory = window.sceneHistory.indexOf(entry);
+        if (idxInHistory >= 0) {
+          window.sceneHistory.splice(idxInHistory, 1);
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
+          updateSceneHistory();
+          showLastScene();
+        }
+      });
+      tile.appendChild(imgDeleteBtn);
+
+      historyContainer.appendChild(tile);
+    }
+  });
+
+  historyContainer.scrollTop = historyContainer.scrollHeight;
+}
+
+/** 最新のシーン(末尾) をメイン表示 (APIキーがある時のみ利用) */
+function showLastScene() {
+  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
+  const storyDiv = document.getElementById('story');
+  const lastSceneImagesDiv = document.getElementById('last-scene-images');
+  if (!storyDiv || !lastSceneImagesDiv) return;
+
+  // APIキーがあるときはボタン類表示／非表示の処理も行う
+  const nextSceneBtn = document.getElementById('next-scene');
+  const playerInput = document.getElementById('player-input');
+  const playerActionLabel = document.getElementById('player-action');
+
+  // シーンが存在する場合
+  if (lastSceneEntry) {
+    // シーン本文
+    const safeHTML = DOMPurify.sanitize(lastSceneEntry.content);
+    storyDiv.innerHTML = safeHTML;
+
+    // 画像一覧クリア
+    lastSceneImagesDiv.innerHTML = '';
+
+    // 最新シーンに紐づく画像を表示
+    const sId = lastSceneEntry.sceneId;
+    const images = window.sceneHistory.filter(e => e.type === 'image' && e.sceneId === sId);
+    images.forEach(imgEntry => {
+      const container = document.createElement('div');
+      container.style.marginBottom = '10px';
+
+      const img = document.createElement('img');
+      img.src = imgEntry.dataUrl;
+      img.alt = 'シーン画像';
+      img.style.maxWidth = '100%';
+      container.appendChild(img);
+
+      // 画像再生成
+      const regenBtn = document.createElement('button');
+      regenBtn.textContent = '再生成';
+      regenBtn.addEventListener('click', () => {
+        if (!window.apiKey) return;
+        const idxInHistory = window.sceneHistory.indexOf(imgEntry);
+        if (idxInHistory >= 0) {
+          openImagePromptModal(imgEntry.prompt, idxInHistory);
+        }
+      });
+      container.appendChild(regenBtn);
+
+      // 画像削除
+      const imgDeleteBtn = document.createElement('button');
+      imgDeleteBtn.textContent = '画像削除';
+      imgDeleteBtn.addEventListener('click', async () => {
+        if (!window.apiKey) return;
+        const idxInHistory = window.sceneHistory.indexOf(imgEntry);
+        if (idxInHistory >= 0) {
+          window.sceneHistory.splice(idxInHistory, 1);
+          await saveSceneHistoryToIndexedDB(window.sceneHistory);
+          showLastScene();
+          updateSceneHistory();
+        }
+      });
+      container.appendChild(imgDeleteBtn);
+
+      lastSceneImagesDiv.appendChild(container);
+    });
+
+    // APIキーがあるときのみボタン類を表示
+    if (window.apiKey) {
+      nextSceneBtn.style.display = 'inline-block';
+      playerInput.style.display = 'inline-block';
+      playerActionLabel.textContent = 'プレイヤーがどんな行動を取るか？';
+    } else {
+      nextSceneBtn.style.display = 'none';
+      playerInput.style.display = 'none';
+      playerActionLabel.textContent = '';
+    }
+  } else {
+    // シーンがまだ無い場合
+    storyDiv.innerHTML = '';
+    lastSceneImagesDiv.innerHTML = '';
+    nextSceneBtn.style.display = 'none';
+    playerInput.style.display = 'none';
+    playerActionLabel.textContent = '';
+
+    // 「シーンを生成する」ボタンを追加
+    // 既に同じボタンが存在していないか確認し、あれば削除
+    let generateBtn = document.getElementById('generate-scene-button');
+    if (!generateBtn) {
+      generateBtn = document.createElement('button');
+      generateBtn.id = 'generate-scene-button';
+      generateBtn.textContent = 'シーンを生成する';
+      // ボタン押下時に最初のシーン生成を実行
+      generateBtn.addEventListener('click', () => {
+        // ボタンをクリックしたら自身を削除してからシーン取得を開始
+        generateBtn.remove();
+        getNextScene();
+      });
+      // ボタンを storyDiv に追加（必要に応じ位置を調整）
+      storyDiv.appendChild(generateBtn);
+    }
+  }
+}
+
+/** 次のシーン ボタン */
+function nextScene() {
+  getNextScene();
+}
+
+/** 履歴クリア */
+async function clearHistory() {
+  const isOk = confirm('履歴をすべて削除します。（シナリオも削除されます）よろしいですか？');
+  if (!isOk) return;
+
+  // IndexedDB の sceneHistory をクリア
+  if (window.sceneHistory && window.sceneHistory.length > 0) {
+    // IndexedDBのストアを直接クリアするためにトランザクションを利用
+    if (window.indexedDB) {
+      try {
+        const tx = db.transaction("sceneHistory", "readwrite");
+        const store = tx.objectStore("sceneHistory");
+        await new Promise((resolve, reject) => {
+          const clearRequest = store.clear();
+          clearRequest.onsuccess = () => resolve();
+          clearRequest.onerror = (err) => reject(err);
+        });
+      } catch (err) {
+        console.error("IndexedDBクリア失敗:", err);
+      }
+    }
+    window.sceneHistory = [];
+    await saveSceneHistoryToIndexedDB(window.sceneHistory);
+  }
+
+  localStorage.removeItem('currentScene');
+
+  // シナリオも削除する
+  localStorage.removeItem('scenario');
+  window.scenario = '';
+
+  window.sceneHistory = [];
+  window.currentScene = 0;
+
+  document.getElementById('story').textContent = '';
+  document.getElementById('player-action').textContent = '';
+  document.getElementById('player-input').value = '';
+  document.getElementById('next-scene').style.display = 'none';
+  document.getElementById('player-input').style.display = 'none';
+
+  // 状態に応じたセクションの表示切替
+  // ※ シナリオが削除されているので input-section を表示、game-section を非表示とする
+  document.querySelector('.input-section').style.display = 'block';
+  document.querySelector('.game-section').style.display = 'none';
+
+  // 履歴とシナリオタイル再表示
+  displayScenarioTile();
+  updateSceneHistory();
+}
+/** キャンセルボタン */
+function onCancelFetch() {
+  window.cancelRequested = true;
+  if (window.currentRequestController) {
+    window.currentRequestController.abort();
+  }
+  showLoadingModal(false);
+}
+
+/** ローディングモーダル表示/非表示 */
+function showLoadingModal(show) {
+  const modal = document.getElementById('loading-modal');
+  if (!modal) return;
+  modal.style.display = show ? 'flex' : 'none';
 }
 --- 

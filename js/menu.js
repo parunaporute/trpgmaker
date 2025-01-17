@@ -32,3 +32,8 @@ window.addEventListener("load", function () {
         document.getElementById("api-key-input").value = savedApiKey;
     }
 });
+
+/** パーティ作成ボタン押下時、partyCreate.htmlへ */
+document.getElementById("party-create").addEventListener("click", () => {
+  window.location.href = "partyCreate.html";
+});

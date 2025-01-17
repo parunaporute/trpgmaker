@@ -24,7 +24,7 @@ for %%f in ("..\\*.css") do (
 
 echo JSƒtƒ@ƒCƒ‹‚ÌŒ‹‡ˆ—’†...
 
-for %%f in ("..\\*.js") do (
+for %%f in ("..\\js\\*.js") do (
     echo %%~nxf >> %OUTPUT_FILE%
     type "%%f" >> %OUTPUT_FILE%
     echo --- >> %OUTPUT_FILE%

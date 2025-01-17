@@ -17,7 +17,8 @@
     </div>
     <!-- キャラクタ作成ボタン有効化 -->
     <button id="character-create" style="margin:10px;">キャラクタ作成</button>
-    <button id="party-create" disabled style="margin:10px; cursor:not-allowed;">パーティ作成</button>
+    <!-- パーティ作成ボタンのdisabledを解除し、押下でpartyCreate.htmlへ -->
+    <button id="party-create" style="margin:10px;">パーティ作成</button>
     <button id="scenario" style="margin:10px;">シナリオ</button>
   </div>
 
@@ -27,6 +28,10 @@
     // キャラクタ作成ボタン押下時、characterCreate.htmlへ遷移
     document.getElementById("character-create").addEventListener("click", function () {
       window.location.href = "characterCreate.html";
+    });
+    // パーティ作成ボタン押下時、partyCreate.htmlへ遷移
+    document.getElementById("party-create").addEventListener("click", function () {
+      window.location.href = "partyCreate.html";
     });
   </script>
 </body>

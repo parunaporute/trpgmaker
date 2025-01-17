@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>パーティ編成</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>パーティ編成</h1>
+    <!-- 倉庫ボタン -->
+    <button id="show-warehouse-btn">倉庫</button>
+
+    <!-- パーティ枠（group="Party" のカードを表示）-->
+    <div id="party-card-container" style="margin-top:20px;"></div>
+
+    <!-- 倉庫モーダル -->
+    <div id="warehouse-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h2>倉庫</h2>
+        <p>（クリックでカードを選択/解除）</p>
+        <div id="warehouse-card-container" style="margin:10px 0;"></div>
+        <button id="add-to-party-btn" style="margin:10px;">パーティに入れる</button>
+        <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
+      </div>
+    </div>
+
+    <!-- カードを倉庫に戻すモーダル -->
+    <div id="return-to-warehouse-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>倉庫に戻しますか？</p>
+        <button id="return-ok-btn">OK</button>
+        <button id="return-cancel-btn">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 戻るボタン -->
+    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  </div>
+
+  <!-- スクリプト読み込み -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/partyCreate.js"></script>
+</body>
+</html>

@@ -322,43 +322,44 @@ button:hover {
 .bezel.rarity0 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity1 {
   background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity2 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 /* --- レアリティ4: プラチナ (ギラギラ＋パーティクルエフェクト) --- */
 .bezel.rarity4 {
-  position: absolute; /* 疑似要素配置のため */
+  position: absolute;
+  /* 疑似要素配置のため */
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
   background-size: 400% 400%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
   animation: platinum-shimmer 5s ease-in-out infinite;
 }
@@ -369,8 +370,8 @@ button:hover {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: destination-out;
-                  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
   background-clip: padding-box, border-box;
   animation: jewel-glow 5s ease-in-out infinite;
 }
@@ -380,9 +381,11 @@ button:hover {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -394,12 +397,38 @@ button:hover {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
+
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+}
+
+/* --- partyCreate.htmlのカードを3列に --- */
+#party-card-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  /* PC等の広い画面では3列、
+     スマホ等狭い画面では1列になるようにメディアクエリを使う場合: */
+}
+
+/* --- 倉庫モーダル内のカードも3列に --- */
+#warehouse-card-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* 選択状態を分かりやすくする */
+.card.selected {
+  outline: 4px solid #f44336; /* 例: 赤色アウトライン */
+  outline-offset: -4px;
+  transform: scale(1.05);     /* 少し拡大する */
+  box-shadow: 0 0 10px rgba(244,67,54,0.6); /* 赤色のややぼかし */
 }
