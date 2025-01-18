@@ -18,15 +18,44 @@
     <div id="wizard-step1" style="display:block;">
       <h2>ステップ1：ジャンルを選択してください</h2>
       <p>候補をChatGPTで生成します。</p>
-      <button id="generate-genre-button">ジャンル候補を生成</button>
+
+      <!-- 生成した候補の表示領域 -->
       <div id="genre-list" style="margin-top:10px;"></div>
+
+      <!-- 「ジャンル候補を作成」「ジャンルをクリア」ボタン群 -->
+      <div style="margin-top:10px;">
+        <button id="generate-genre-button">ジャンル候補を作成</button>
+        <button id="clear-genre-button">ジャンルをクリア</button>
+      </div>
+
+      <!-- 自由入力用テキストボックス＋ジャンル確定ボタン -->
+      <div style="margin-top:10px;">
+        <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." />
+        <button id="confirm-genre-button">ジャンル確定</button>
+      </div>
     </div>
 
-    <!-- ステップ2：目的達成型 or 探索型 -->
+    <!-- ステップ2：シナリオタイプ -->
     <div id="wizard-step2" style="display:none;">
       <h2>ステップ2：シナリオタイプ</h2>
+
+      <!-- ★ 選択したジャンルの表示を追加 -->
+      <p>
+        選択したジャンル：
+        <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">
+          （未選択）
+        </span>
+      </p>
+
+      <!-- シナリオタイプのボタン -->
       <button id="type-objective-btn">目的達成型</button>
       <button id="type-exploration-btn">探索型</button>
+
+      <!-- ステップ1に戻るボタン -->
+      <div style="margin-top:10px;">
+        <button id="back-to-step1-button">ステップ1に戻る</button>
+      </div>
+
       <p style="margin-top:10px;">
         ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。  
         ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
