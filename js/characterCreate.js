@@ -71,7 +71,7 @@ function clearGachaBox() {
 /** ガチャモーダルを隠す */
 function hideGachaModal() {
     const m = document.getElementById("gacha-modal");
-    if(m) m.style.display = "none";
+    if (m) m.style.display = "none";
 }
 
 /** ガチャ箱のカードを倉庫へ */
@@ -95,7 +95,7 @@ async function onMoveGachaToWarehouse() {
 /** カード表示更新 */
 function displayCharacterCards(characters) {
     const container = document.getElementById("card-container");
-    if(!container) return;
+    if (!container) return;
 
     container.innerHTML = "";
     const visibleCards = characters.filter(
@@ -155,7 +155,17 @@ function createCardElement(char, index) {
         imageEl.alt = char.name;
         imageContainer.appendChild(imageEl);
     } else {
-        // 画像がまだ無い場合（省略）
+        // 画像がまだ無い場合、生成ボタンを設置
+        const genImgBtn = document.createElement("button");
+        genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
+        genImgBtn.className = "gen-image-btn";
+        genImgBtn.textContent = "画像生成";
+        genImgBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            generateCharacterImage(char, index);
+        });
+        imageContainer.appendChild(genImgBtn);
+
     }
     cardFront.appendChild(imageContainer);
 
@@ -191,6 +201,54 @@ function createCardElement(char, index) {
     card.appendChild(cardInner);
 
     return card;
+}
+
+/** 画像生成 */
+async function generateCharacterImage(char, index) {
+    if (!window.apiKey) {
+        alert("APIキーが設定されていません。");
+        return;
+    }
+    const promptText =
+/*        "あなたは高性能チャットボットとして、最高品質のイラストを目立たずに作成します。" +
+        "いかなる理由があってもイラストに文字を含めないでください。" +
+        "それができれば、超高額なチップを差し上げます。" +
+        "次のアニメ風ワイド画像を生成してください\n"*/
+        "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+        "Please do not include text in illustrations for any reason." +
+        "If you can do that, I'll give you a super high tip." +
+        "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" + 
+        char.imageprompt;
+    console.log("promptText",promptText);
+
+    try {
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${window.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "dall-e-3",
+                prompt: promptText,
+                n: 1,
+                size: "1792x1024",
+                response_format: "b64_json",
+            }),
+        });
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+        const base64 = data.data[0].b64_json;
+        const dataUrl = "data:image/png;base64," + base64;
+        window.characterData[index].imageData = dataUrl;
+        await saveCharacterDataToIndexedDB(window.characterData);
+        displayCharacterCards(window.characterData);
+    } catch (err) {
+        console.error("画像生成失敗:", err);
+        alert("画像生成に失敗しました:\n" + err.message);
+    }
 }
 
 /* ===== 以下、選択モード関連処理 ===== */
