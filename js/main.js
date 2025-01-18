@@ -1,6 +1,8 @@
 /********************************
- * main.js - ページ全体の初期化・イベント登録
- *   (複数シナリオ対応により大幅変更)
+ * main.js
+ * - ページ全体の初期化・イベント登録
+ * - 複数シナリオ対応
+ * - 旧フリーシナリオモードの残存ロジックも保持
  ********************************/
 
 window.onload = async () => {
@@ -22,16 +24,26 @@ window.onload = async () => {
 
   // 4) もし scenarioId があれば => loadScenarioData => sceneHistory 表示
   if (window.currentScenarioId) {
-    document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
-    document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
+    // シナリオIDがある => 新しい複数シナリオ方式
 
+    // 画面の構成: シナリオ入力セクションを隠して、ゲーム画面セクションを表示
+    const inputSec = document.querySelector('.input-section');
+    if (inputSec) inputSec.style.display = 'none';
+    const gameSec = document.querySelector('.game-section');
+    if (gameSec) gameSec.style.display = 'block';
+
+    // scene.js 側の「loadScenarioData」で DBからシナリオと履歴を取得し、window.sceneHistoryに格納
     await loadScenarioData(window.currentScenarioId);
 
+    // 取得した sceneHistory を一覧表示
     updateSceneHistory();
+    // 最新シーンをメイン表示
     showLastScene();
   }
   else {
-    // 旧フリーシナリオの読み込み
+    // シナリオIDが無い => 旧フリーシナリオモード
+
+    // LocalStorageからシナリオを読み込み
     const savedScenario = localStorage.getItem('scenario');
     if (savedScenario) {
       window.scenario = savedScenario;
@@ -45,32 +57,34 @@ window.onload = async () => {
       window.currentScene = 0;
     }
 
-    // APIキーが無い場合 => input-section, game-section を隠す
+    // APIキーが無い場合 => 入力やゲーム画面を隠す
     if (!window.apiKey) {
       const inputSec = document.querySelector('.input-section');
       const gameSec = document.querySelector('.game-section');
       if (inputSec) inputSec.style.display = 'none';
       if (gameSec) gameSec.style.display = 'none';
-    } else {
+    }
+    else {
+      // シナリオがある場合 => ゲーム画面を表示
       if (window.scenario.trim() !== '') {
-        // シナリオがあればゲーム画面
-        document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
-        document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
+        const inputSec = document.querySelector('.input-section');
+        if (inputSec) inputSec.style.display = 'none';
+        const gameSec = document.querySelector('.game-section');
+        if (gameSec) gameSec.style.display = 'block';
       } else {
-        // なければ入力画面
-        document.querySelector('.input-section')?.setAttribute('style', 'display:block;');
-        document.querySelector('.game-section')?.setAttribute('style', 'display:none;');
+        // まだシナリオが無い => 入力画面を表示
+        const inputSec = document.querySelector('.input-section');
+        if (inputSec) inputSec.style.display = 'block';
+        const gameSec = document.querySelector('.game-section');
+        if (gameSec) gameSec.style.display = 'none';
       }
     }
 
-    // シナリオタイルは本来 scenarioWizard 用 → 旧フリーシナリオなら displayScenarioTile?
-    // ひとまず省略可
-
-    // シーン履歴(旧フリーシナリオ)は localStorage に保持してないので空
+    // 旧フリーシナリオでは sceneHistory はIndexedDBに保存していなかった想定 => 空のまま
     window.sceneHistory = [];
   }
 
-  // スポイラーモーダル関連
+  // ---------- ネタバレ（目的達成型）用 ----------
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
@@ -85,20 +99,20 @@ window.onload = async () => {
     });
   }
 
-  // 「カードを取得する」ボタン => scene.js の実装例を利用
+  // ---------- 「カードを取得する」ボタン（探索型向け） ----------
   const getCardButton = document.getElementById("get-card-button");
   if (getCardButton) {
-    getCardButton.addEventListener("click", async () => {
-      // シーン全文を要約して… (旧例) => runGacha(1, addPrompt)
-      alert("シーン取得からアイテム化、などのロジックは別途実装してください。");
-    });
+    // ※「scenarioPage.js」でリスナーを付ける実装でも可
+    // ここでは何もしない or scenarioPage.jsで付与
   }
 
-  // 各種ボタン
+  // ---------- 各種ボタンイベント ----------
+
+  // 旧フリーシナリオ: ゲーム開始ボタン
   const startBtn = document.getElementById('start-button');
   if (startBtn) {
     startBtn.addEventListener('click', () => {
-      // 旧フリーシナリオ用
+      // フリーシナリオ用に localStorage へ保存
       window.scenario = (document.getElementById('scenario-input')?.value || "").trim();
       if (!window.scenario) {
         alert("シナリオを入力してください");
@@ -106,11 +120,15 @@ window.onload = async () => {
       }
       localStorage.setItem('scenario', window.scenario);
 
-      document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
-      document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
+      // 入力画面を隠してゲーム画面を表示
+      const inputSec = document.querySelector('.input-section');
+      if (inputSec) inputSec.style.display = 'none';
+      const gameSec = document.querySelector('.game-section');
+      if (gameSec) gameSec.style.display = 'block';
     });
   }
 
+  // 次のシーン
   const nextSceneBtn = document.getElementById('next-scene');
   if (nextSceneBtn) {
     nextSceneBtn.addEventListener('click', () => {
@@ -118,7 +136,7 @@ window.onload = async () => {
     });
   }
 
-  // 画像生成関連
+  // 画像生成 (自動)
   const autoGenBtn = document.getElementById('image-auto-generate-button');
   if (autoGenBtn) {
     autoGenBtn.addEventListener('click', () => {
@@ -126,6 +144,7 @@ window.onload = async () => {
     });
   }
 
+  // 画像生成 (カスタム)
   const promptModalBtn = document.getElementById('image-prompt-modal-button');
   if (promptModalBtn) {
     promptModalBtn.addEventListener('click', () => {
@@ -133,6 +152,7 @@ window.onload = async () => {
     });
   }
 
+  // カスタム画像生成決定
   const customGenBtn = document.getElementById('image-custom-generate-button');
   if (customGenBtn) {
     customGenBtn.addEventListener('click', () => {
@@ -140,6 +160,7 @@ window.onload = async () => {
     });
   }
 
+  // カスタム画像生成キャンセル
   const customCancelBtn = document.getElementById('image-custom-cancel-button');
   if (customCancelBtn) {
     customCancelBtn.addEventListener('click', () => {
@@ -147,12 +168,13 @@ window.onload = async () => {
     });
   }
 
+  // リクエストキャンセル
   const cancelRequestBtn = document.getElementById('cancel-request-button');
   if (cancelRequestBtn) {
     cancelRequestBtn.addEventListener('click', onCancelFetch);
   }
 
-  // 戻るボタン
+  // メニューに戻るボタン
   const backMenuBtn = document.getElementById('back-to-menu');
   if (backMenuBtn) {
     backMenuBtn.addEventListener('click', () => {

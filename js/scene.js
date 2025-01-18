@@ -22,13 +22,6 @@ function generateUniqueId() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 }
 
-/** onload などは main.js 側で呼ばれず、代わりに scenarioPage.js で呼ばれる場合もあるが、最終的には下記手順が行われる想定：
- *  1) initIndexedDB()
- *  2) parse URL param -> scenarioId
- *  3) if scenarioId => load that scenario & sceneHistory
- *  4) else => 旧フリーシナリオモード
- */
-
 /** 指定シナリオをロードし、sceneHistoryに展開 */
 async function loadScenarioData(scenarioId) {
   try {
@@ -49,7 +42,6 @@ async function loadScenarioData(scenarioId) {
     const entries = await getSceneEntriesByScenarioId(scenarioId);
     // sceneHistory相当の配列を構築
     window.sceneHistory = entries.map(e => {
-      // type:'scene'|'action'|'image'
       return {
         entryId: e.entryId,
         type: e.type,
@@ -90,7 +82,7 @@ async function getNextScene() {
   }
   const playerInput = document.getElementById('player-input').value.trim();
 
-  // シーンが既にある場合のみ、プレイヤー行動が未入力ならアラートを出す
+  // シーンが既にある場合のみ、プレイヤー行動が未入力ならアラート
   const hasScene = window.sceneHistory.some(e => e.type === 'scene');
   if (hasScene && !playerInput) {
     alert('プレイヤーの行動を入力してください');
@@ -104,13 +96,12 @@ async function getNextScene() {
     { role: 'system', content: 'あなたはTRPGのゲームマスターです。HTMLタグOK。' },
   ];
 
-  // 複数シナリオの場合 => scenarioWizard で作った要約などをベースに
+  // 複数シナリオの場合 => scenarioWizardで作った要約などをベースに
   if (window.currentScenario) {
     const wizardData = window.currentScenario.wizardData || {};
     const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
-  }
-  else {
+  } else {
     // 旧フリーシナリオ
     messages.push({ role: 'user', content: `シナリオ概要:${window.scenario}` });
   }
@@ -161,7 +152,7 @@ async function getNextScene() {
     // 次のシーン内容
     const nextScene = data.choices[0].message.content;
 
-    // 1) (プレイヤー行動があったなら)actionをsceneHistoryへ
+    // 1) (プレイヤー行動があったなら) actionをsceneHistoryへ
     if (playerInput) {
       const actionEntry = {
         scenarioId: window.currentScenarioId || 0, // 0は旧フリー
@@ -218,16 +209,27 @@ async function getNextScene() {
   }
 }
 
-/** シーン履歴をUIに反映 */
+/**
+ * シーン履歴をUIに反映
+ * ただし「最新の1件」は表示しないという仕様のため、表示配列から除外します。
+ */
 function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
   if (!historyContainer) return;
 
-  // フリーシナリオのシナリオタイルは不要or残しても良いが、簡易的に消す
+  // いったんクリア
   historyContainer.innerHTML = '';
 
-  // 全エントリを表示
-  window.sceneHistory.forEach((entry, index) => {
+  // 「最新の1件」は履歴表示しない
+  if (window.sceneHistory.length <= 1) {
+    // 1件以下なら何も表示しない
+    return;
+  }
+
+  // 末尾1件を除いたエントリを表示対象に
+  const displayEntries = window.sceneHistory.slice(0, -1);
+
+  displayEntries.forEach((entry) => {
     if (entry.type === 'scene') {
       // シーン表示
       const tile = document.createElement('div');
@@ -240,24 +242,19 @@ function updateSceneHistory() {
       deleteBtn.addEventListener('click', async () => {
         if (!window.apiKey) return;
 
-        // 自分を削除 + それに紐づく画像も削除
         const delSceneId = entry.sceneId;
-        // sceneEntries上で sceneId===delSceneId && type==='image' も削除
-        // (scene.js上では簡易に sceneHistoryから除外 + DB削除)
-        const toRemoveIds = [];
-        // 1. 自分
-        toRemoveIds.push(entry.entryId);
-        // 2. 紐づく画像
+        const toRemoveIds = [entry.entryId];
+        // 紐づく画像も削除
         window.sceneHistory.forEach(e => {
           if (e.type === 'image' && e.sceneId === delSceneId) {
             toRemoveIds.push(e.entryId);
           }
         });
-        // まとめて削除
+        // DB削除
         for (const rid of toRemoveIds) {
           await deleteSceneEntry(rid);
         }
-        // sceneHistoryから該当項目除外
+        // メモリ上も除外
         window.sceneHistory = window.sceneHistory.filter(e => !toRemoveIds.includes(e.entryId));
 
         updateSceneHistory();
@@ -298,9 +295,7 @@ function updateSceneHistory() {
       deleteBtn.addEventListener('click', async () => {
         if (!window.apiKey) return;
 
-        // 削除
         await deleteSceneEntry(entry.entryId);
-        // 最新アクションなら、直後のsceneも消す？ →必要なら実装
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
 
         updateSceneHistory();
@@ -356,7 +351,6 @@ function updateSceneHistory() {
       imgDeleteBtn.textContent = '画像だけ削除';
       imgDeleteBtn.addEventListener('click', async () => {
         if (!window.apiKey) return;
-        // DB削除
         await deleteSceneEntry(entry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
         updateSceneHistory();
@@ -438,15 +432,12 @@ function showLastScene() {
     }
   } else {
     // シーンがまだ無い場合
-
-    // 1) 表示をクリア
     storyDiv.innerHTML = '';
     lastSceneImagesDiv.innerHTML = '';
 
-    // 2) ウィザードで作成したシナリオなら、シナリオ要約を表示
+    // ウィザードで作成したシナリオなら要約を表示
     if (window.currentScenario && window.currentScenario.wizardData) {
       const summary = window.currentScenario.wizardData.scenarioSummary || "（シナリオ概要なし）";
-      // ここで要約をHTML要素として差し込む（DOMPurifyでサニタイズ推奨）
       storyDiv.innerHTML = `
           <div style="margin-bottom: 10px; font-weight: bold;">
             ${DOMPurify.sanitize(summary)}
@@ -454,33 +445,14 @@ function showLastScene() {
         `;
     }
 
-    // 3) 「最初のシーンを作るために行動を入力してください」等の文言と操作UI
     if (window.apiKey) {
-      // 初回シーンを作るための入力欄を表示
-      nextSceneBtn.style.display = 'inline-block';   // 次のシーンボタンを表示
-      playerInput.style.display = 'block';           // プレイヤー入力欄を表示
+      nextSceneBtn.style.display = 'inline-block';
+      playerInput.style.display = 'block';
       playerActionLabel.textContent = '最初のシーンを作るために行動を入力してください。';
     } else {
-      // APIキーが無い場合はなにもできない
       nextSceneBtn.style.display = 'none';
       playerInput.style.display = 'none';
       playerActionLabel.textContent = '';
-    }
-
-
-    // 「シーンを生成する」ボタンを追加する例（旧フリーシナリオ向け）
-    if (!window.currentScenario) {
-      let generateBtn = document.getElementById('generate-scene-button');
-      if (!generateBtn) {
-        generateBtn = document.createElement('button');
-        generateBtn.id = 'generate-scene-button';
-        generateBtn.textContent = 'シーンを生成する';
-        generateBtn.addEventListener('click', () => {
-          generateBtn.remove();
-          getNextScene();
-        });
-        storyDiv.appendChild(generateBtn);
-      }
     }
   }
 }
