@@ -44,7 +44,6 @@ document.getElementById("clear-character-btn").addEventListener("click", async (
     if (confirmClear) {
         window.characterData = [];
         await saveCharacterDataToIndexedDB(window.characterData);
-        document.getElementById("card-container").innerHTML = "";
         alert("エレメント情報をクリアしました。");
     }
 });
@@ -84,17 +83,6 @@ if (clearHistoryBtn) {
 
         window.sceneHistory = [];
         window.currentScene = 0;
-
-        document.getElementById('story').textContent = '';
-        document.getElementById('player-action').textContent = '';
-        document.getElementById('player-input').value = '';
-        document.getElementById('next-scene').style.display = 'none';
-        document.getElementById('player-input').style.display = 'none';
-
-        // 状態に応じたセクションの表示切替
-        // ※ シナリオが削除されているので input-section を表示、game-section を非表示とする
-        document.querySelector('.input-section').style.display = 'block';
-        document.querySelector('.game-section').style.display = 'none';
 
         // 履歴とシナリオタイル再表示
         displayScenarioTile();

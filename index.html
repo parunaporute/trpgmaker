@@ -38,7 +38,19 @@
   </div>
 
   <!-- 外部JavaScript -->
-  <script src="js/menu.js"></script>
+  <script src="js/indexedDB.js"></script>
+  <script>
+    // ページ読み込み完了後にDB初期化を行い、終わったら menu.js を読み込むパターン
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+  
+      // このタイミングで menu.js を動的に読み込む
+      const scriptEl = document.createElement("script");
+      scriptEl.src = "js/menu.js";
+      document.head.appendChild(scriptEl);
+    });
+  </script>
+  
   <script>
     // キャラクタ作成ボタン押下時、characterCreate.htmlへ遷移
     document.getElementById("character-create").addEventListener("click", function () {
