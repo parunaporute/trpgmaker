@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <div class="container" style="text-align:center; margin-top:50px;">
     <h1>TRPG メニュー</h1>
@@ -24,33 +26,42 @@
       <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
     </div>
     <div class="scenario-section">
+      <!-- 旧フリーシナリオボタン(単一)は残しておく場合 -->
       <button id="scenario">フリーシナリオ</button>
-      <!-- 履歴クリアボタン -->
+      <!-- 履歴クリアボタン(フリーシナリオ用) -->
       <button id="clear-history-button" style="background-color:#f44336">シナリオをクリア</button>
     </div>
 
-    <!-- ★ 新しいシナリオを始めるボタンを追加 -->
+    <!-- 新しいシナリオを始めるボタン -->
     <div class="scenario-wizard-section" style="margin-top:20px;">
       <button id="start-new-scenario-button" style="background-color:#2196F3;">
         新しいシナリオを始める
       </button>
+    </div>
+
+    <!-- ★ 進行中のシナリオ一覧 -->
+    <div id="ongoing-scenarios" style="margin-top:30px;">
+      <h2>進行中のシナリオ</h2>
+      <div id="scenario-list-container">
+        <!-- JavaScriptで一覧表示 -->
+      </div>
     </div>
   </div>
 
   <!-- 外部JavaScript -->
   <script src="js/indexedDB.js"></script>
   <script>
-    // ページ読み込み完了後にDB初期化を行い、終わったら menu.js を読み込むパターン
+    // ページ読み込み完了後にDB初期化 -> menu.js を動的に読み込むパターン
     window.addEventListener("load", async () => {
       await initIndexedDB();
-  
+
       // このタイミングで menu.js を動的に読み込む
       const scriptEl = document.createElement("script");
       scriptEl.src = "js/menu.js";
       document.head.appendChild(scriptEl);
     });
   </script>
-  
+
   <script>
     // キャラクタ作成ボタン押下時、characterCreate.htmlへ遷移
     document.getElementById("character-create").addEventListener("click", function () {
@@ -61,10 +72,11 @@
       window.location.href = "partyCreate.html";
     });
 
-    // ★ 新しいシナリオを始める
-    document.getElementById("start-new-scenario-button").addEventListener("click", function() {
+    // 新しいシナリオを始める
+    document.getElementById("start-new-scenario-button").addEventListener("click", function () {
       window.location.href = "scenarioWizard.html";
     });
   </script>
 </body>
+
 </html>

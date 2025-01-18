@@ -374,9 +374,11 @@ button:hover {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -387,10 +389,12 @@ button:hover {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
+
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
@@ -416,5 +420,129 @@ button:hover {
   outline: 4px solid #f44336;
   outline-offset: -4px;
   transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(244,67,54,0.6);
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
 }
+
+/* ベース */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+.api-key-section {
+  margin-bottom: 20px;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* シーン履歴 */
+.scene-history {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.history-tile {
+  padding: 10px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* scene, actionテキスト */
+.scene-text,
+.action-text {
+  margin: 0;
+  padding: 5px;
+  font-size: 14px;
+  border: 1px dashed transparent;
+  cursor: text;
+}
+
+.scene-text[contenteditable]:focus,
+.action-text[contenteditable]:focus {
+  border: 1px dashed #4CAF50;
+  outline: none;
+}
+
+/* メイン表示するシーン部分 */
+#story {
+  font-size: 1.4rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  min-height: 60px;
+}
+
+/* モーダル */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  box-sizing: border-box;
+  width: calc(100% - 20px);
+  background-color: #fff;
+  padding: 20px 40px;
+  border-radius: 5px;
+  text-align: center;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* カード関連: 既存のまま（略） */

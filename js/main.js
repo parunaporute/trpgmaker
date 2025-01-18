@@ -1,147 +1,124 @@
 /********************************
  * main.js - ページ全体の初期化・イベント登録
+ *   (複数シナリオ対応により大幅変更)
  ********************************/
 
 window.onload = async () => {
-  // まずIndexedDB初期化（sceneHistory と characterData の両方を利用）
+  // 1) IndexedDB初期化
   await initIndexedDB();
 
-  // ローカルストレージから各種情報を取得
+  // 2) APIキー読み込み
   const savedApiKey = localStorage.getItem('apiKey');
   if (savedApiKey) {
     window.apiKey = savedApiKey;
   }
 
-  // ▼ ウィザードデータがあるかどうかをチェック
-  let wizardData = null;
-  const wizardDataStr = localStorage.getItem("wizardData");
-  if(wizardDataStr){
-    try {
-      wizardData = JSON.parse(wizardDataStr);
-    } catch(e){}
-  }
-
-  // scenario(フリー入力) を優先するが、URLクエリにfromWizard=true ならウィザードデータを使う
+  // 3) URLパラメータで scenarioId を読み取る
   const urlParams = new URLSearchParams(window.location.search);
-  const fromWizard = urlParams.get("fromWizard") === "true";
+  const scenarioIdStr = urlParams.get("scenarioId");
+  const scenarioId = scenarioIdStr ? parseInt(scenarioIdStr, 10) : null;
 
-  if(fromWizard && wizardData){
-    // ウィザードのサマリを window.scenario に設定
-    window.scenario = wizardData.scenarioSummary || "";
-    // さらに scenarioType / clearCondition も持っておく
-    window.scenarioType = wizardData.scenarioType;  // "objective" or "exploration"
-    window.clearCondition = wizardData.clearCondition; // 目的達成型でのみ使う
+  window.currentScenarioId = scenarioId || null;
 
-    // localStorageにも一応保存（リロードに備える）
-    localStorage.setItem('scenario', window.scenario);
-    // ただし クリア条件は表シナリオに含めない
-  } else {
-    // フリーシナリオ時と同じ扱い
+  // 4) もし scenarioId があれば => loadScenarioData => sceneHistory 表示
+  if (window.currentScenarioId) {
+    document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
+    document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
+
+    await loadScenarioData(window.currentScenarioId);
+
+    updateSceneHistory();
+    showLastScene();
+  }
+  else {
+    // 旧フリーシナリオの読み込み
     const savedScenario = localStorage.getItem('scenario');
     if (savedScenario) {
       window.scenario = savedScenario;
-      if (window.scenario === '（シナリオは未入力です）') {
-        window.scenario = '';
-        localStorage.removeItem('scenario');
-      }
-    }
-  }
-
-  // sceneHistory は IndexedDB から取得
-  const loadedHistory = await loadSceneHistoryFromIndexedDB();
-  window.sceneHistory = loadedHistory || [];
-
-  // currentScene は localStorage から読み取る
-  const savedCurrentScene = localStorage.getItem('currentScene');
-  if (savedCurrentScene) {
-    window.currentScene = parseInt(savedCurrentScene, 10);
-  } else {
-    window.currentScene = 0;
-  }
-
-  // scenarioType をチェックして、目的達成型ならネタバレボタン表示、探索型なら「カードを取得する」ボタンを表示
-  if(window.scenarioType === "objective"){
-    document.getElementById("spoiler-button").style.display = "inline-block";
-    // クリア条件をモーダルに表示
-    const spoilerTextEl = document.getElementById("clear-condition-text");
-    if(spoilerTextEl){
-      spoilerTextEl.textContent = window.clearCondition || "（クリア条件なし）";
-    }
-  } else if(window.scenarioType === "exploration"){
-    document.getElementById("get-card-button").style.display = "inline-block";
-  }
-
-  // APIキーが無い場合 -> .input-section や .game-section を非表示
-  if (!window.apiKey) {
-    const inputSection = document.querySelector('.input-section');
-    const gameSection = document.querySelector('.game-section');
-    if (inputSection) inputSection.style.display = 'none';
-    if (gameSection) gameSection.style.display = 'none';
-  } else {
-    // シナリオがあればゲーム画面を表示、なければシナリオ入力画面を表示
-    if (window.scenario && window.scenario.trim() !== '') {
-      if (document.querySelector('.input-section')) {
-        document.querySelector('.input-section').style.display = 'none';
-      }
-      if (document.querySelector('.game-section')) {
-        document.querySelector('.game-section').style.display = 'block';
-      }
     } else {
-      if (document.querySelector('.input-section')) {
-        document.querySelector('.input-section').style.display = 'block';
-      }
-      if (document.querySelector('.game-section')) {
-        document.querySelector('.game-section').style.display = 'none';
+      window.scenario = '';
+    }
+    const savedCurrentScene = localStorage.getItem('currentScene');
+    if (savedCurrentScene) {
+      window.currentScene = parseInt(savedCurrentScene, 10);
+    } else {
+      window.currentScene = 0;
+    }
+
+    // APIキーが無い場合 => input-section, game-section を隠す
+    if (!window.apiKey) {
+      const inputSec = document.querySelector('.input-section');
+      const gameSec = document.querySelector('.game-section');
+      if (inputSec) inputSec.style.display = 'none';
+      if (gameSec) gameSec.style.display = 'none';
+    } else {
+      if (window.scenario.trim() !== '') {
+        // シナリオがあればゲーム画面
+        document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
+        document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
+      } else {
+        // なければ入力画面
+        document.querySelector('.input-section')?.setAttribute('style', 'display:block;');
+        document.querySelector('.game-section')?.setAttribute('style', 'display:none;');
       }
     }
+
+    // シナリオタイルは本来 scenarioWizard 用 → 旧フリーシナリオなら displayScenarioTile?
+    // ひとまず省略可
+
+    // シーン履歴(旧フリーシナリオ)は localStorage に保持してないので空
+    window.sceneHistory = [];
   }
 
-  // シナリオタイルと履歴を表示、最後のシーンをメインに表示
-  displayScenarioTile();
-  updateSceneHistory();
-  showLastScene();
-
-  // 各種イベントリスナーの登録
-
-  // 応答キャンセルボタン
-  const cancelRequestBtn = document.getElementById('cancel-request-button');
-  if (cancelRequestBtn) {
-    cancelRequestBtn.addEventListener('click', onCancelFetch);
+  // スポイラーモーダル関連
+  const spoilerModal = document.getElementById("spoiler-modal");
+  const spoilerButton = document.getElementById("spoiler-button");
+  const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
+  if (spoilerButton) {
+    spoilerButton.addEventListener("click", () => {
+      spoilerModal.style.display = "flex";
+    });
   }
-
-  // APIキー設定
-  const setApiKeyBtn = document.getElementById('set-api-key-button');
-  if (setApiKeyBtn) {
-    setApiKeyBtn.addEventListener('click', () => {
-      setApiKey();
+  if (closeSpoilerModalBtn) {
+    closeSpoilerModalBtn.addEventListener("click", () => {
+      spoilerModal.style.display = "none";
     });
   }
 
-  // APIキークリア
-  const clearApiKeyBtn = document.getElementById('clear-api-key-button');
-  if (clearApiKeyBtn) {
-    clearApiKeyBtn.addEventListener('click', () => {
-      clearApiKey();
+  // 「カードを取得する」ボタン => scene.js の実装例を利用
+  const getCardButton = document.getElementById("get-card-button");
+  if (getCardButton) {
+    getCardButton.addEventListener("click", async () => {
+      // シーン全文を要約して… (旧例) => runGacha(1, addPrompt)
+      alert("シーン取得からアイテム化、などのロジックは別途実装してください。");
     });
   }
 
-  // ゲーム開始ボタン
+  // 各種ボタン
   const startBtn = document.getElementById('start-button');
   if (startBtn) {
     startBtn.addEventListener('click', () => {
-      startGame();
+      // 旧フリーシナリオ用
+      window.scenario = (document.getElementById('scenario-input')?.value || "").trim();
+      if (!window.scenario) {
+        alert("シナリオを入力してください");
+        return;
+      }
+      localStorage.setItem('scenario', window.scenario);
+
+      document.querySelector('.input-section')?.setAttribute('style', 'display:none;');
+      document.querySelector('.game-section')?.setAttribute('style', 'display:block;');
     });
   }
 
-  // 次のシーンボタン
   const nextSceneBtn = document.getElementById('next-scene');
   if (nextSceneBtn) {
     nextSceneBtn.addEventListener('click', () => {
-      nextScene();
+      getNextScene();
     });
   }
 
-  // 画像生成関連のボタン
+  // 画像生成関連
   const autoGenBtn = document.getElementById('image-auto-generate-button');
   if (autoGenBtn) {
     autoGenBtn.addEventListener('click', () => {
@@ -169,8 +146,17 @@ window.onload = async () => {
       closeImagePromptModal();
     });
   }
-};
 
-/** もしプレイヤーに「クリア条件は？」など聞かれても答えないようにする場合は、scene.js の getNextScene()で
- *  messagesに追加する前にフィルタする等の実装を行う。今回はサンプルとしてコメントで示すのみ。
- */
+  const cancelRequestBtn = document.getElementById('cancel-request-button');
+  if (cancelRequestBtn) {
+    cancelRequestBtn.addEventListener('click', onCancelFetch);
+  }
+
+  // 戻るボタン
+  const backMenuBtn = document.getElementById('back-to-menu');
+  if (backMenuBtn) {
+    backMenuBtn.addEventListener('click', () => {
+      window.location.href = "index.html";
+    });
+  }
+};

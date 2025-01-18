@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>新しいシナリオ作成ウィザード</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
 
   <!-- 戻るボタン -->
@@ -39,12 +41,10 @@
     <div id="wizard-step2" style="display:none;">
       <h2>ステップ2：シナリオタイプ</h2>
 
-      <!-- ★ 選択したジャンルの表示を追加 -->
+      <!-- 選択したジャンルの表示 -->
       <p>
         選択したジャンル：
-        <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">
-          （未選択）
-        </span>
+        <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">（未選択）</span>
       </p>
 
       <!-- シナリオタイプのボタン -->
@@ -57,7 +57,7 @@
       </div>
 
       <p style="margin-top:10px;">
-        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。  
+        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。
         ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
       </p>
     </div>
@@ -68,6 +68,10 @@
       <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
         <!-- 生成されたシナリオ概要を表示 -->
       </div>
+
+      <!-- ステップ2に戻るボタン -->
+      <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
+
       <button id="start-scenario-button" style="background-color:#4CAF50;">
         このシナリオで始める
       </button>
@@ -82,15 +86,29 @@
     </div>
   </div>
 
+  <!-- ★ シナリオ作成確認モーダル（ステップ2でタイプ選択時に出す） -->
+  <div id="confirm-scenario-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:500px;">
+      <h3>シナリオ生成の確認</h3>
+      <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
+      <p>これでシナリオを作成します。よろしいですか？</p>
+      <div style="margin-top:10px;">
+        <button id="confirm-scenario-ok">OK</button>
+        <button id="confirm-scenario-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Script -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scenarioWizard.js"></script>
 
   <!-- 戻るボタン用 -->
   <script>
-    document.getElementById("back-to-menu").addEventListener("click", function() {
+    document.getElementById("back-to-menu").addEventListener("click", function () {
       window.location.href = "index.html";
     });
   </script>
 </body>
+
 </html>

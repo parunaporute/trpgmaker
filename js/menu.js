@@ -1,6 +1,6 @@
 // menu.js
 
-// 「シナリオ」ボタン押下で scenario.html へ遷移
+// 「シナリオ」ボタン押下で scenario.html へ（←従来のフリーシナリオ用）
 document.getElementById("scenario").addEventListener("click", function () {
     window.location.href = "scenario.html";
 });
@@ -26,17 +26,43 @@ document.getElementById("clear-api-key-button").addEventListener("click", functi
 });
 
 // ページ読み込み時にAPIキーを入力欄に表示
-window.addEventListener("load", function () {
+window.addEventListener("load", async function () {
     const savedApiKey = localStorage.getItem("apiKey");
     if (savedApiKey) {
         document.getElementById("api-key-input").value = savedApiKey;
     }
+
+    // scenarios一覧を取得して表示
+    try {
+        const scenarioList = await listAllScenarios();
+        const container = document.getElementById("scenario-list-container");
+        container.innerHTML = "";
+
+        if (scenarioList.length === 0) {
+            container.textContent = "進行中のシナリオはありません。";
+        } else {
+            scenarioList.forEach(scenario => {
+                const div = document.createElement("div");
+                div.style.margin = "10px 0";
+                div.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
+
+                const btn = document.createElement("button");
+                btn.textContent = "続きへ";
+                btn.addEventListener("click", () => {
+                    window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
+                });
+                div.appendChild(btn);
+
+                container.appendChild(div);
+            });
+        }
+    } catch (err) {
+        console.error("シナリオ一覧の取得に失敗:", err);
+    }
 });
 
-/** パーティ作成ボタン押下時、partyCreate.htmlへ */
-document.getElementById("party-create").addEventListener("click", () => {
-    window.location.href = "partyCreate.html";
-});
+// パーティ作成ボタン押下時、partyCreate.htmlへ（index.htmlで既に設定済み）
+// ...
 
 // エレメントクリアボタン
 document.getElementById("clear-character-btn").addEventListener("click", async () => {
@@ -48,44 +74,18 @@ document.getElementById("clear-character-btn").addEventListener("click", async (
     }
 });
 
-// 履歴クリアボタン
+// 履歴クリアボタン（※これは旧フリーシナリオ用）
 const clearHistoryBtn = document.getElementById('clear-history-button');
 if (clearHistoryBtn) {
     clearHistoryBtn.addEventListener('click', async () => {
-        const isOk = confirm('履歴をすべて削除します。（シナリオも削除されます）よろしいですか？');
+        const isOk = confirm('履歴をすべて削除します。（シナリオも削除されます）よろしいですか？\n※これは旧フリーシナリオ用機能です。');
         if (!isOk) return;
 
-        // IndexedDB の sceneHistory をクリア
-        if (window.sceneHistory && window.sceneHistory.length > 0) {
-            // IndexedDBのストアを直接クリアするためにトランザクションを利用
-            if (window.indexedDB) {
-                try {
-                    const tx = db.transaction("sceneHistory", "readwrite");
-                    const store = tx.objectStore("sceneHistory");
-                    await new Promise((resolve, reject) => {
-                        const clearRequest = store.clear();
-                        clearRequest.onsuccess = () => resolve();
-                        clearRequest.onerror = (err) => reject(err);
-                    });
-                } catch (err) {
-                    console.error("IndexedDBクリア失敗:", err);
-                }
-            }
-            window.sceneHistory = [];
-            await saveSceneHistoryToIndexedDB(window.sceneHistory);
-        }
-
-        localStorage.removeItem('currentScene');
-
-        // シナリオも削除する
+        // 旧フリーシナリオの localStorage とかを削除
         localStorage.removeItem('scenario');
-        window.scenario = '';
+        localStorage.removeItem('currentScene');
+        // 旧 sceneHistory ストアを消す対応などが必要なら実装
 
-        window.sceneHistory = [];
-        window.currentScene = 0;
-
-        // 履歴とシナリオタイル再表示
-        displayScenarioTile();
-        updateSceneHistory();
+        alert("旧フリーシナリオ情報をクリアしました。");
     });
 }

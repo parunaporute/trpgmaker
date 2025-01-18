@@ -1,6 +1,6 @@
 /********************************
  * scenarioWizard.js
- * 新しいシナリオ作成ウィザード
+ * 新しいシナリオ作成ウィザード (複数シナリオ対応)
  ********************************/
 
 let wizardData = {
@@ -10,7 +10,7 @@ let wizardData = {
   scenarioSummary: ""    // 全体のシナリオ要約
 };
 
-window.addEventListener("load", async function(){
+window.addEventListener("load", async function () {
   await initIndexedDB();
   loadWizardDataFromLocalStorage();
 
@@ -18,24 +18,28 @@ window.addEventListener("load", async function(){
   document.getElementById("generate-genre-button").addEventListener("click", onGenerateGenre);
   document.getElementById("clear-genre-button").addEventListener("click", onClearGenre);
   document.getElementById("confirm-genre-button").addEventListener("click", onConfirmGenre);
-  
-  document.getElementById("type-objective-btn").addEventListener("click", onSelectScenarioTypeObjective);
-  document.getElementById("type-exploration-btn").addEventListener("click", onSelectScenarioTypeExploration);
+
+  document.getElementById("type-objective-btn").addEventListener("click", () => onSelectScenarioType("objective"));
+  document.getElementById("type-exploration-btn").addEventListener("click", () => onSelectScenarioType("exploration"));
 
   document.getElementById("back-to-step1-button").addEventListener("click", onBackToStep1);
+  document.getElementById("back-to-step2-button").addEventListener("click", onBackToStep2FromStep3);
+
   document.getElementById("start-scenario-button").addEventListener("click", onStartScenario);
   document.getElementById("cancel-request-button").addEventListener("click", onCancelFetch);
 
-  // もし既にwizardData.genreがあれば、step2の表示を更新
+  // モーダルのOK/Cancel
+  document.getElementById("confirm-scenario-ok").addEventListener("click", onConfirmScenarioModalOK);
+  document.getElementById("confirm-scenario-cancel").addEventListener("click", onConfirmScenarioModalCancel);
+
   updateSelectedGenreDisplay();
 });
 
-
-/** 1) ステップ1：ジャンル候補をChatGPTで生成 （押すたびに下に追加される）*/
-async function onGenerateGenre(){
+/* ---- ステップ1 ---- */
+async function onGenerateGenre() {
   const genreListDiv = document.getElementById("genre-list");
   const apiKey = localStorage.getItem("apiKey") || "";
-  if(!apiKey){
+  if (!apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
@@ -45,19 +49,18 @@ async function onGenerateGenre(){
   const signal = window.currentRequestController.signal;
 
   try {
-    // ChatGPT呼び出し
     const messages = [
       { role: "system", content: "あなたはTRPGのプロです。ジャンルを5つ提案してください。" },
       { role: "user", content: "SF, 中世ファンタジー, 現代など、TRPGに使いやすいジャンル候補を5つ、箇条書きで出してください。" }
     ];
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model:"gpt-4",
+        model: "gpt-4",
         messages: messages,
         temperature: 0.7
       }),
@@ -65,36 +68,32 @@ async function onGenerateGenre(){
     });
 
     const data = await response.json();
-    if(data.error){
-      throw new Error(data.error.message);
-    }
+    if (data.error) throw new Error(data.error.message);
 
     const content = data.choices[0].message.content;
-    // 例: 「1. SF\n2. 中世ファンタジー\n3. ...」
-    const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
+    const lines = content.split("\n").map(l => l.trim()).filter(l => l);
 
-    // 既存の表示に append で追加
-    lines.forEach(line=>{
+    // appendでボタンを追加
+    lines.forEach(line => {
       const btn = document.createElement("button");
       btn.classList.add("candidate-button");
-      btn.textContent = line.replace(/^\d+\.\s*/, ""); // 先頭の「1. 」など除去
+      btn.textContent = line.replace(/^\d+\.\s*/, "");
       btn.style.display = "block";
       btn.style.margin = "5px 0";
 
-      btn.addEventListener("click", ()=>{
+      btn.addEventListener("click", () => {
         wizardData.genre = btn.textContent;
         saveWizardDataToLocalStorage();
         highlightSelectedButton(genreListDiv, btn);
-
-        // ステップ2へ遷移して、ジャンル表示を更新
+        // ステップ1→ステップ2
         document.getElementById("wizard-step1").style.display = "none";
         document.getElementById("wizard-step2").style.display = "block";
         updateSelectedGenreDisplay();
       });
       genreListDiv.appendChild(btn);
     });
-  } catch(err) {
-    if(err.name === "AbortError"){
+  } catch (err) {
+    if (err.name === "AbortError") {
       console.log("ジャンル生成キャンセル");
     } else {
       console.error(err);
@@ -105,75 +104,108 @@ async function onGenerateGenre(){
   }
 }
 
-
-/** 2) 「ジャンルをクリア」ボタン */
-function onClearGenre(){
+function onClearGenre() {
   const genreListDiv = document.getElementById("genre-list");
   genreListDiv.innerHTML = "";
   wizardData.genre = "";
-  saveWizardDataToLocalStorage();
-  // 画面上の自由入力欄もクリア
   document.getElementById("free-genre-input").value = "";
+  saveWizardDataToLocalStorage();
 }
 
-
-/** 3) 「ジャンル確定」ボタン（自由入力） */
-function onConfirmGenre(){
+function onConfirmGenre() {
   const freeInput = document.getElementById("free-genre-input");
   const txt = (freeInput.value || "").trim();
-  if(!txt){
+  if (!txt) {
     alert("ジャンルを入力してください。");
     return;
   }
   wizardData.genre = txt;
   saveWizardDataToLocalStorage();
 
-  // ステップ1 → ステップ2
+  // ステップ1→ステップ2
   document.getElementById("wizard-step1").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
   updateSelectedGenreDisplay();
 }
 
+/* ---- ステップ2 ---- */
 
-/** ステップ2：目的達成型を選択 */
-async function onSelectScenarioTypeObjective(){
-  wizardData.scenarioType = "objective";
-  wizardData.clearCondition = "";
-  await generateScenarioSummaryAndClearCondition();
-  // ステップ2 → ステップ3
-  document.getElementById("wizard-step2").style.display = "none";
-  document.getElementById("wizard-step3").style.display = "block";
+// シナリオタイプ選択時→いきなり生成せず、モーダルを出す
+function onSelectScenarioType(type) {
+  wizardData.scenarioType = type;
   saveWizardDataToLocalStorage();
+
+  // モーダルのテキストを更新
+  const textEl = document.getElementById("confirm-genre-type-text");
+  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type === "objective" ? "目的達成型" : "探索型"}`;
+  // モーダル表示
+  const modal = document.getElementById("confirm-scenario-modal");
+  modal.style.display = "flex";
 }
 
+// モーダル: OK
+async function onConfirmScenarioModalOK() {
+  // モーダルを閉じる
+  const modal = document.getElementById("confirm-scenario-modal");
+  modal.style.display = "none";
 
-/** ステップ2：探索型を選択 */
-async function onSelectScenarioTypeExploration(){
-  wizardData.scenarioType = "exploration";
-  wizardData.clearCondition = "";
-  await generateScenarioSummary();
-  // ステップ2 → ステップ3
+  // ここでシナリオ生成開始
+  if (wizardData.scenarioType === "objective") {
+    await generateScenarioSummaryAndClearCondition();
+  } else {
+    await generateScenarioSummary();
+  }
+
+  // ステップ2→ステップ3
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step3").style.display = "block";
-  saveWizardDataToLocalStorage();
 }
 
+// モーダル: キャンセル
+function onConfirmScenarioModalCancel() {
+  const modal = document.getElementById("confirm-scenario-modal");
+  modal.style.display = "none";
+  // ステップ2に留まる
+}
 
-/** ★ ステップ2 → ステップ1に戻るボタン */
-function onBackToStep1(){
+function onBackToStep1() {
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step1").style.display = "block";
 }
 
+/* ---- ステップ3 ---- */
 
-/** 目的達成型シナリオ生成 */
-async function generateScenarioSummaryAndClearCondition(){
+// 「ステップ2に戻る」
+function onBackToStep2FromStep3() {
+  document.getElementById("wizard-step3").style.display = "none";
+  document.getElementById("wizard-step2").style.display = "block";
+}
+
+// 「このシナリオで始める」 => 新しいシナリオIDを発行し、scenario.html へ
+async function onStartScenario() {
+  try {
+    // シナリオ名を何にするか？ ひとまずジャンルか、あるいは "新シナリオ"
+    let title = wizardData.genre || "新シナリオ";
+
+    // シナリオをDBに追加
+    const scenarioId = await createNewScenario(wizardData, title);
+
+    // scenario.html?scenarioId=xxx に飛ぶ
+    window.location.href = `scenario.html?scenarioId=${scenarioId}`;
+  } catch (err) {
+    console.error("シナリオ作成失敗:", err);
+    alert("シナリオを開始できませんでした:\n" + err.message);
+  }
+}
+
+/* ---- シナリオ生成 (GPT呼び出し) ---- */
+async function generateScenarioSummaryAndClearCondition() {
   wizardData.scenarioSummary = "";
   wizardData.clearCondition = "";
   saveWizardDataToLocalStorage();
 
   const apiKey = localStorage.getItem("apiKey") || "";
-  if(!apiKey){
+  if (!apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
@@ -197,36 +229,33 @@ async function generateScenarioSummaryAndClearCondition(){
     ];
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model:"gpt-4",
+        model: "gpt-4",
         messages,
-        temperature:0.7
+        temperature: 0.7
       }),
       signal
     });
     const data = await response.json();
-    if(data.error){
-      throw new Error(data.error.message);
-    }
+    if (data.error) throw new Error(data.error.message);
+
     const text = data.choices[0].message.content;
-    
-    // 「【クリア条件】」で分割して格納
     let clearConditionPart = "";
     let summaryPart = text;
-    if(text.includes("【クリア条件】")){
+    if (text.includes("【クリア条件】")) {
       const arr = text.split("【クリア条件】");
       summaryPart = arr[0].trim();
       clearConditionPart = arr[1] ? arr[1].trim() : "";
     }
     wizardData.scenarioSummary = summaryPart;
     wizardData.clearCondition = clearConditionPart;
-  } catch(err){
-    if(err.name === "AbortError"){
+  } catch (err) {
+    if (err.name === "AbortError") {
       console.log("目的達成型シナリオ生成キャンセル");
     } else {
       console.error(err);
@@ -239,14 +268,12 @@ async function generateScenarioSummaryAndClearCondition(){
   }
 }
 
-
-/** 探索型シナリオ生成 */
-async function generateScenarioSummary(){
+async function generateScenarioSummary() {
   wizardData.scenarioSummary = "";
   saveWizardDataToLocalStorage();
 
   const apiKey = localStorage.getItem("apiKey") || "";
-  if(!apiKey){
+  if (!apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
@@ -268,25 +295,24 @@ async function generateScenarioSummary(){
     ];
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model:"gpt-4",
+        model: "gpt-4",
         messages,
-        temperature:0.7
+        temperature: 0.7
       }),
       signal
     });
     const data = await response.json();
-    if(data.error){
-      throw new Error(data.error.message);
-    }
+    if (data.error) throw new Error(data.error.message);
+
     wizardData.scenarioSummary = data.choices[0].message.content;
-  } catch(err){
-    if(err.name === "AbortError"){
+  } catch (err) {
+    if (err.name === "AbortError") {
       console.log("探索型シナリオ生成キャンセル");
     } else {
       console.error(err);
@@ -299,73 +325,56 @@ async function generateScenarioSummary(){
   }
 }
 
-
-/** ステップ3：シナリオ概要を表示 */
-function updateSummaryUI(){
+/* ---- 表示更新 ---- */
+function updateSummaryUI() {
   const summaryDiv = document.getElementById("scenario-summary");
   const scenario = wizardData.scenarioSummary || "（シナリオ概要なし）";
   summaryDiv.textContent = scenario;
 }
 
-
-/** 「このシナリオで始める」ボタン */
-function onStartScenario(){
-  saveWizardDataToLocalStorage();
-  window.location.href = "scenario.html?fromWizard=true";
+function updateSelectedGenreDisplay() {
+  const displayEl = document.getElementById("selected-genre-display");
+  if (!displayEl) return;
+  if (wizardData.genre) {
+    displayEl.textContent = wizardData.genre;
+  } else {
+    displayEl.textContent = "（未選択）";
+  }
 }
 
-
-/** LocalStorageへの保存 */
-function saveWizardDataToLocalStorage(){
-  localStorage.setItem("wizardData", JSON.stringify(wizardData));
-}
-
-/** LocalStorageから読み込み */
-function loadWizardDataFromLocalStorage(){
+/* ---- localStorage ---- */
+function loadWizardDataFromLocalStorage() {
   const dataStr = localStorage.getItem("wizardData");
-  if(!dataStr) return;
+  if (!dataStr) return;
   try {
     const obj = JSON.parse(dataStr);
     wizardData = obj;
-  } catch(e){
+  } catch (e) {
     console.warn("wizardData parse失敗", e);
   }
 }
 
+function saveWizardDataToLocalStorage() {
+  localStorage.setItem("wizardData", JSON.stringify(wizardData));
+}
 
-/** キャンセル処理 */
-function onCancelFetch(){
-  if(window.currentRequestController){
+/* ---- モーダル操作 ---- */
+function showLoadingModal(show) {
+  const modal = document.getElementById("loading-modal");
+  if (!modal) return;
+  modal.style.display = show ? "flex" : "none";
+}
+
+function onCancelFetch() {
+  if (window.currentRequestController) {
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
 }
 
-
-/** ローディングモーダルの表示/非表示 */
-function showLoadingModal(show){
-  const modal = document.getElementById("loading-modal");
-  if(!modal) return;
-  modal.style.display = show ? "flex" : "none";
-}
-
-
-/** 「ジャンル候補」ボタンのハイライト */
-function highlightSelectedButton(container, targetBtn){
+/** ハイライト */
+function highlightSelectedButton(container, targetBtn) {
   const allBtns = container.querySelectorAll(".candidate-button");
   allBtns.forEach(b => b.style.backgroundColor = "");
   targetBtn.style.backgroundColor = "#8BC34A";
-}
-
-
-/** ★ ステップ2で選択したジャンルを表示 */
-function updateSelectedGenreDisplay(){
-  const displayEl = document.getElementById("selected-genre-display");
-  if(!displayEl) return;
-
-  if(wizardData.genre){
-    displayEl.textContent = wizardData.genre;
-  } else {
-    displayEl.textContent = "（未選択）";
-  }
 }
