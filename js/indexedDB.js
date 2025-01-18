@@ -11,7 +11,7 @@ let db = null;
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 2);  // バージョンを 2 に更新
+    const request = indexedDB.open("trpgDB", 2);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
       // sceneHistory ストアが無ければ作成
@@ -69,7 +69,6 @@ function saveSceneHistoryToIndexedDB(sceneHistory) {
 
 /**
  * IndexedDBから sceneHistory をロード
- * 1レコード (id=1) に格納した配列データを取り出す
  */
 function loadSceneHistoryFromIndexedDB() {
   return new Promise((resolve) => {
@@ -96,13 +95,12 @@ function loadSceneHistoryFromIndexedDB() {
 
 /**
  * キャラクターデータを IndexedDB に保存する
- * ここでは、1レコード (id="characterData") にデータ全体を保存する
  */
 function saveCharacterDataToIndexedDB(characterData) {
   return new Promise((resolve, reject) => {
     if (!db) {
       console.warn("DBが未初期化です。");
-      resolve();  // DB が未初期化の場合はエラーではなく resolve する
+      resolve();
       return;
     }
     const tx = db.transaction("characterData", "readwrite");

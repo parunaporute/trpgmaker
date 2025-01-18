@@ -139,7 +139,7 @@ function createPartyCardElement(card){
   cardEl.className = "card";
   cardEl.setAttribute("data-id", card.id);
 
-  // クリック時の動作：選択モード中は .selected をトグル、そうでなければ反転のみ
+  // クリック時の動作
   cardEl.addEventListener("click", (e) => {
     if(window.partySelectionMode) {
       e.stopPropagation();
@@ -151,7 +151,6 @@ function createPartyCardElement(card){
     }
   });
 
-  // カードの中身
   const cardInner = document.createElement("div");
   cardInner.className = "card-inner";
 
@@ -243,7 +242,7 @@ function createWarehouseCardElement(card){
   cardEl.className = "card";
   cardEl.setAttribute("data-id", card.id);
 
-  // クリック時：選択モード中は .selected をトグル、それ以外は反転のみ
+  // クリック時
   cardEl.addEventListener("click", (e) => {
     if(window.warehouseSelectionMode) {
       e.stopPropagation();

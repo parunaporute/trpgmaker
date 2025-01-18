@@ -189,8 +189,6 @@ async function getNextScene(){
 
 /**
  * シーン履歴表示
- * - 通常は「最新シーン(末尾)」はメイン表示( showLastScene )に回すので除外するが、
- *   「APIキーが無いとき」は最新シーンも履歴に入れて表示する
  */
 function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
@@ -373,11 +371,9 @@ function showLastScene() {
 
   // シーンが存在する場合
   if (lastSceneEntry) {
-    // シーン本文
     const safeHTML = DOMPurify.sanitize(lastSceneEntry.content);
     storyDiv.innerHTML = safeHTML;
 
-    // 画像一覧クリア
     lastSceneImagesDiv.innerHTML = '';
 
     // 最新シーンに紐づく画像を表示
@@ -393,7 +389,7 @@ function showLastScene() {
       img.style.maxWidth = '100%';
       container.appendChild(img);
 
-      // 画像再生成
+      // 再生成
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
       regenBtn.addEventListener('click', () => {
@@ -423,7 +419,6 @@ function showLastScene() {
       lastSceneImagesDiv.appendChild(container);
     });
 
-    // APIキーがあるときのみボタン類を表示
     if (window.apiKey) {
       nextSceneBtn.style.display = 'inline-block';
       playerInput.style.display = 'inline-block';
@@ -442,19 +437,15 @@ function showLastScene() {
     playerActionLabel.textContent = '';
 
     // 「シーンを生成する」ボタンを追加
-    // 既に同じボタンが存在していないか確認し、あれば削除
     let generateBtn = document.getElementById('generate-scene-button');
     if (!generateBtn) {
       generateBtn = document.createElement('button');
       generateBtn.id = 'generate-scene-button';
       generateBtn.textContent = 'シーンを生成する';
-      // ボタン押下時に最初のシーン生成を実行
       generateBtn.addEventListener('click', () => {
-        // ボタンをクリックしたら自身を削除してからシーン取得を開始
         generateBtn.remove();
         getNextScene();
       });
-      // ボタンを storyDiv に追加（必要に応じ位置を調整）
       storyDiv.appendChild(generateBtn);
     }
   }

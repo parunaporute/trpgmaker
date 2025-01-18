@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
@@ -7,15 +8,29 @@
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
-<body>
 
-  <!-- 新たに戻るボタンを追加 -->
+<body>
+  <!-- メニューに戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
+  <!-- 目的達成型の場合のみ表示する「ネタバレ」ボタン -->
+  <button id="spoiler-button" style="display:none; background-color:#E91E63; margin-top:20px; float:right;">
+    ネタバレ
+  </button>
+
+  <!-- ネタバレ（クリア条件）表示モーダル -->
+  <div id="spoiler-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+      <h2>クリア条件</h2>
+      <p id="clear-condition-text" style="white-space:pre-wrap;"></p>
+      <button id="close-spoiler-modal">閉じる</button>
+    </div>
+  </div>
+
   <div class="container">
-    <!-- シーン履歴やその他のセクション -->
+    <!-- シーン履歴 -->
     <div id="scene-history" class="scene-history"></div>
-    
+
     <!-- シナリオ入力セクション -->
     <div class="input-section">
       <label for="scenario-input">シナリオを入力してください：</label>
@@ -34,10 +49,15 @@
       <div id="player-action" style="margin-top:20px;"></div>
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
+
+      <!-- 探索型なら表示する「カードを取得する」ボタン -->
+      <button id="get-card-button" style="display:none; margin-top:20px;">
+        カードを取得する
+      </button>
     </div>
   </div>
 
-  <!-- 応答待ちモーダル -->
+  <!-- ローディングモーダル -->
   <div id="loading-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <p>応答を待っています...</p>
@@ -57,17 +77,14 @@
     </div>
   </div>
 
-  <!-- スクリプトの読み込み -->
+  <!-- ---------- スクリプト群 ---------- -->
+  <!-- 各種共通JS -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
-
-  <!-- メニューに戻るボタン用のスクリプト -->
-  <script>
-    document.getElementById("back-to-menu").addEventListener("click", function() {
-      window.location.href = "index.html";
-    });
-  </script>
+  <script src="js/gachaCore.js"></script>
+  <script src="js/scenarioPage.js"></script>
 </body>
+
 </html>

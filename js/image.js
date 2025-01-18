@@ -81,7 +81,7 @@ async function generateImageFromCurrentScene() {
       console.warn("画像生成キャンセル");
     } else {
       console.error("画像生成失敗:", error);
-      alert("画像生成失敗:\n" + error.message);
+      alert("画像生成に失敗:\n" + error.message);
     }
   } finally {
     showLoadingModal(false);
@@ -181,6 +181,7 @@ async function onCustomImageGenerate() {
       const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
       if (!lastSceneEntry) {
         alert("シーンがありません。");
+        showLoadingModal(false);
         return;
       }
       window.sceneHistory.push({

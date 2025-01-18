@@ -5,55 +5,49 @@
   <title>エレメント作成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- DOMPurify等必要なライブラリがあればここに読み込み -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
 <body>
-    <!-- メニューボタン -->
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
-  <div class="container" style="max-width:800px;">
-    <h1>エレメント作成</h1>
-    <!-- ガチャボタン -->
-    <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
+    <div class="container" style="max-width:800px;">
+      <h1>エレメント作成</h1>
+      <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
+      <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
+      <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
+      <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
 
-    <!-- 「ガチャ箱のカードを倉庫に入れる」ボタン -->
-    <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
-
-    <!-- 選択モード切り替えボタン -->
-    <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
-
-    <!-- 選択したものを倉庫に送るボタン（選択中のみ表示） -->
-    <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
-
-    <!-- ガチャ実行前確認モーダル -->
-    <div id="gacha-confirm-modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
-        <button id="gacha-confirm-ok">OK</button>
-        <button id="gacha-confirm-cancel">キャンセル</button>
+      <div id="gacha-confirm-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
+          <button id="gacha-confirm-ok">OK</button>
+          <button id="gacha-confirm-cancel">キャンセル</button>
+        </div>
       </div>
+
+      <div id="gacha-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <p>生成中...</p>
+          <button id="cancel-gacha-btn">キャンセル</button>
+        </div>
+      </div>
+
+      <div id="card-container"></div>
     </div>
 
-    <!-- ガチャ実行中モーダル -->
-    <div id="gacha-modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <p>生成中...</p>
-        <button id="cancel-gacha-btn">キャンセル</button>
-      </div>
-    </div>
+    <!-- IndexedDBなどの共通スクリプト -->
+    <script src="js/indexedDB.js"></script>
 
-    <!-- 生成されたカード表示領域 -->
-    <div id="card-container"></div>
+    <!-- ★ ここで先にgachaCore.jsを読み込む -->
+    <script src="js/gachaCore.js"></script>
 
-  </div>
+    <!-- その後、characterCreate.jsを読み込む -->
+    <script src="js/characterCreate.js"></script>
 
-  <script src="js/indexedDB.js"></script>
-  <script src="js/characterCreate.js"></script>
-  <script>
-    // メニューに戻るボタン
-    document.getElementById("back-to-menu").addEventListener("click", function () {
-      window.location.href = "index.html";
-    });
-  </script>
+    <script>
+      // メニューに戻るボタン
+      document.getElementById("back-to-menu").addEventListener("click", function () {
+        window.location.href = "index.html";
+      });
+    </script>
 </body>
 </html>

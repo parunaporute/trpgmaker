@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>新しいシナリオ作成ウィザード</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- 戻るボタン -->
+  <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+
+  <div class="container">
+    <h1>シナリオ作成ウィザード</h1>
+
+    <!-- ステップ1：ジャンル選択 -->
+    <div id="wizard-step1" style="display:block;">
+      <h2>ステップ1：ジャンルを選択してください</h2>
+      <p>候補をChatGPTで生成します。</p>
+      <button id="generate-genre-button">ジャンル候補を生成</button>
+      <div id="genre-list" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ステップ2：目的達成型 or 探索型 -->
+    <div id="wizard-step2" style="display:none;">
+      <h2>ステップ2：シナリオタイプ</h2>
+      <button id="type-objective-btn">目的達成型</button>
+      <button id="type-exploration-btn">探索型</button>
+      <p style="margin-top:10px;">
+        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。  
+        ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
+      </p>
+    </div>
+
+    <!-- ステップ3：最終確認(シナリオ要約表示) -->
+    <div id="wizard-step3" style="display:none;">
+      <h2>ステップ3：シナリオ要約</h2>
+      <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+        <!-- 生成されたシナリオ概要を表示 -->
+      </div>
+      <button id="start-scenario-button" style="background-color:#4CAF50;">
+        このシナリオで始める
+      </button>
+    </div>
+  </div>
+
+  <!-- ChatGPT応答待ちモーダル -->
+  <div id="loading-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>応答を待っています...</p>
+      <button id="cancel-request-button">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/scenarioWizard.js"></script>
+
+  <!-- 戻るボタン用 -->
+  <script>
+    document.getElementById("back-to-menu").addEventListener("click", function() {
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>

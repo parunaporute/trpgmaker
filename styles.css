@@ -217,11 +217,8 @@ button:hover {
 }
 
 /* 画像エリア */
-/* ※画像はカード全体の横幅に合わせた高さ（1:1.618）ではなく画像領域は独自の高さ設定
-   必要に応じ、ここも調整してください。 */
 .card-front .card-image {
   width: 100%;
-  /* 高さはカード全体の高さのうち適切な割合（例：40%～50%）に調整する */
   height: 40%;
   background: linear-gradient(135deg, #cccccc70, #eeeeee70);
   display: flex;
@@ -238,7 +235,7 @@ button:hover {
   object-position: top;
 }
 
-/* 画像生成ボタンは画像エリアに配置（画像が無い場合のみ表示） */
+/* 画像生成ボタン（画像が無い場合のみ表示） */
 .card-front .gen-image-btn {
   position: absolute;
   bottom: 8px;
@@ -263,13 +260,11 @@ button:hover {
   background-color: rgba(255, 255, 255, 0.7);
 }
 
-/* 状態、特技、キャプションのスタイル */
 .card-front .card-info p {
   margin: 0;
   font-size: 0.85rem;
 }
 
-/* 状態、特技、キャプションのスタイル */
 .card-front .card-info p:last-child {
   padding: 0;
   height: 100%;
@@ -300,8 +295,7 @@ button:hover {
   text-align: center;
 }
 
-/* --- レスポンシブ（必要なら追加） --- */
-/* 例えば、より狭い画面では最小幅を220pxにするなど */
+/* レスポンシブ */
 @media (max-width: 600px) {
   #card-container {
     grid-template-columns: repeat(1, 1fr);
@@ -353,10 +347,9 @@ button:hover {
   background-clip: padding-box, border-box;
 }
 
-/* --- レアリティ4: プラチナ (ギラギラ＋パーティクルエフェクト) --- */
+/* レアリティ4: プラチナ */
 .bezel.rarity4 {
   position: absolute;
-  /* 疑似要素配置のため */
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
   background-size: 400% 400%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -366,8 +359,7 @@ button:hover {
   animation: platinum-shimmer 5s ease-in-out infinite;
 }
 
-
-/* --- レアリティ5: 宝石 --- */
+/* レアリティ5: 宝石 */
 .bezel.rarity5 {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
@@ -378,59 +370,51 @@ button:hover {
   animation: jewel-glow 5s ease-in-out infinite;
 }
 
-/* プラチナ用シマーアニメーション */
 @keyframes platinum-shimmer {
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
 }
 
-/* 宝石用輝き・色変化アニメーション */
 @keyframes jewel-glow {
   0% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
-
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
-
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
 }
 
-/* --- partyCreate.htmlのカードを3列に --- */
+/* partyCreate.htmlのカードを3列に */
 #party-card-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  /* PC等の広い画面では3列、
-     スマホ等狭い画面では1列になるようにメディアクエリを使う場合: */
 }
 
-/* --- 倉庫モーダル内のカードも3列に --- */
+/* 倉庫モーダル内のカードも3列に */
 #warehouse-card-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
-/* 選択状態を分かりやすくする */
+/* 選択状態 */
 .card.selected {
-  outline: 4px solid #f44336; /* 例: 赤色アウトライン */
+  outline: 4px solid #f44336;
   outline-offset: -4px;
-  transform: scale(1.05);     /* 少し拡大する */
-  box-shadow: 0 0 10px rgba(244,67,54,0.6); /* 赤色のややぼかし */
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(244,67,54,0.6);
 }

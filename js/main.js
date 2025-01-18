@@ -12,16 +12,38 @@ window.onload = async () => {
     window.apiKey = savedApiKey;
   }
 
-  const savedScenario = localStorage.getItem('scenario');
-  if (savedScenario) {
-    window.scenario = savedScenario;
-    if (window.scenario === '（シナリオは未入力です）') {
-      window.scenario = '';
-      localStorage.removeItem('scenario');
-    }
-    const scenarioInput = document.getElementById('scenario-input');
-    if (scenarioInput) {
-      scenarioInput.value = window.scenario;
+  // ▼ ウィザードデータがあるかどうかをチェック
+  let wizardData = null;
+  const wizardDataStr = localStorage.getItem("wizardData");
+  if(wizardDataStr){
+    try {
+      wizardData = JSON.parse(wizardDataStr);
+    } catch(e){}
+  }
+
+  // scenario(フリー入力) を優先するが、URLクエリにfromWizard=true ならウィザードデータを使う
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromWizard = urlParams.get("fromWizard") === "true";
+
+  if(fromWizard && wizardData){
+    // ウィザードのサマリを window.scenario に設定
+    window.scenario = wizardData.scenarioSummary || "";
+    // さらに scenarioType / clearCondition も持っておく
+    window.scenarioType = wizardData.scenarioType;  // "objective" or "exploration"
+    window.clearCondition = wizardData.clearCondition; // 目的達成型でのみ使う
+
+    // localStorageにも一応保存（リロードに備える）
+    localStorage.setItem('scenario', window.scenario);
+    // ただし クリア条件は表シナリオに含めない
+  } else {
+    // フリーシナリオ時と同じ扱い
+    const savedScenario = localStorage.getItem('scenario');
+    if (savedScenario) {
+      window.scenario = savedScenario;
+      if (window.scenario === '（シナリオは未入力です）') {
+        window.scenario = '';
+        localStorage.removeItem('scenario');
+      }
     }
   }
 
@@ -35,6 +57,18 @@ window.onload = async () => {
     window.currentScene = parseInt(savedCurrentScene, 10);
   } else {
     window.currentScene = 0;
+  }
+
+  // scenarioType をチェックして、目的達成型ならネタバレボタン表示、探索型なら「カードを取得する」ボタンを表示
+  if(window.scenarioType === "objective"){
+    document.getElementById("spoiler-button").style.display = "inline-block";
+    // クリア条件をモーダルに表示
+    const spoilerTextEl = document.getElementById("clear-condition-text");
+    if(spoilerTextEl){
+      spoilerTextEl.textContent = window.clearCondition || "（クリア条件なし）";
+    }
+  } else if(window.scenarioType === "exploration"){
+    document.getElementById("get-card-button").style.display = "inline-block";
   }
 
   // APIキーが無い場合 -> .input-section や .game-section を非表示
@@ -137,41 +171,6 @@ window.onload = async () => {
   }
 };
 
-/** APIキー設定 */
-function setApiKey() {
-  window.apiKey = document.getElementById('api-key-input').value.trim();
-  if (window.apiKey) {
-    localStorage.setItem('apiKey', window.apiKey);
-    alert('APIキーが設定されました。');
-    // ページをリロードして反映
-    location.reload();
-  } else {
-    alert('APIキーを入力してください。');
-  }
-}
-
-/** APIキークリア */
-function clearApiKey() {
-  const ok = confirm('APIキーをクリアすると操作ができなくなります。よろしいですか？');
-  if (!ok) return;
-  localStorage.removeItem('apiKey');
-  window.apiKey = '';
-  // ページをリロードして反映
-  location.reload();
-}
-
-/** キャンセルボタン押下時の処理 */
-function onCancelFetch() {
-  window.cancelRequested = true;
-  if (window.currentRequestController) {
-    window.currentRequestController.abort();
-  }
-  showLoadingModal(false);
-}
-
-/** ローディングモーダルの表示／非表示 */
-function showLoadingModal(show) {
-  const modal = document.getElementById('loading-modal');
-  if (!modal) return;
-  modal.style.display = show ? 'flex' : 'none';
-}
+/** もしプレイヤーに「クリア条件は？」など聞かれても答えないようにする場合は、scene.js の getNextScene()で
+ *  messagesに追加する前にフィルタする等の実装を行う。今回はサンプルとしてコメントで示すのみ。
+ */
