@@ -1,25 +1,25 @@
 @echo off
 
-REM o—Íƒtƒ@ƒCƒ‹–¼
+REM å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«å
 set OUTPUT_FILE=merged.txt
 
-REM ‚à‚µo—Íæ‚ªŠù‚É‘¶Ý‚µ‚Ä‚¢‚½‚çíœ‚·‚é
+REM ã‚‚ã—å‡ºåŠ›å…ˆãŒæ—¢ã«å­˜åœ¨ã—ã¦ã„ãŸã‚‰å‰Šé™¤ã™ã‚‹
 if exist %OUTPUT_FILE% del %OUTPUT_FILE%
 (
-echo ‹M•û‚Í‰ïŽÐ‚Ì’†‚Åˆê”Ô‚ÌƒGƒ“ƒWƒjƒA‚Å‚·B
-echo Å‰º•”‚ÉƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚Ìƒ\[ƒX‚ð“Y•t‚µ‚Ü‚µ‚½B
-echo E
-echo E
-echo E
-echo E
-echo E
-echo E
+echo è²´æ–¹ã¯ä¼šç¤¾ã®ä¸­ã§ä¸€ç•ªã®ã‚¨ãƒ³ã‚¸ãƒ‹ã‚¢ã§ã™ã€‚
+echo æœ€ä¸‹éƒ¨ã«ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã®ã‚½ãƒ¼ã‚¹ã‚’æ·»ä»˜ã—ã¾ã—ãŸã€‚
+echo ãƒ»
+echo ãƒ»
+echo ãƒ»
+echo ãƒ»
+echo ãƒ»
+echo ãƒ»
 echo 
-echo ˆÈã‚ðŽÀŽ{‚µA•ÒW‚µ‚È‚¢ƒtƒ@ƒCƒ‹‚ðœ‚«Š®‘S‚ÈƒR[ƒh‚ð‰º‚³‚¢B
+echo ä»¥ä¸Šã‚’å®Ÿæ–½ã—ã€ç·¨é›†ã—ãªã„ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é™¤ãå®Œå…¨ãªã‚³ãƒ¼ãƒ‰ã‚’ä¸‹ã•ã„ã€‚
 
 ) >> %OUTPUT_FILE%
 
-echo HTMLƒtƒ@ƒCƒ‹‚ÌŒ‹‡ˆ—’†...
+echo HTMLãƒ•ã‚¡ã‚¤ãƒ«ã®çµåˆå‡¦ç†ä¸­...
 
 for %%f in ("..\\*.html") do (
     echo %%~nxf >> %OUTPUT_FILE%
@@ -27,7 +27,7 @@ for %%f in ("..\\*.html") do (
     echo --- >> %OUTPUT_FILE%
 )
 
-echo CSSƒtƒ@ƒCƒ‹‚ÌŒ‹‡ˆ—’†...
+echo CSSãƒ•ã‚¡ã‚¤ãƒ«ã®çµåˆå‡¦ç†ä¸­...
 
 for %%f in ("..\\*.css") do (
     echo %%~nxf >> %OUTPUT_FILE%
@@ -35,7 +35,7 @@ for %%f in ("..\\*.css") do (
     echo --- >> %OUTPUT_FILE%
 )
 
-echo JSƒtƒ@ƒCƒ‹‚ÌŒ‹‡ˆ—’†...
+echo JSãƒ•ã‚¡ã‚¤ãƒ«ã®çµåˆå‡¦ç†ä¸­...
 
 for %%f in ("..\\js\\*.js") do (
     echo %%~nxf >> %OUTPUT_FILE%
@@ -43,5 +43,5 @@ for %%f in ("..\\js\\*.js") do (
     echo --- >> %OUTPUT_FILE%
 )
 
-echo ‚·‚×‚Ä‚Ìƒtƒ@ƒCƒ‹‚ðŒ‹‡‚µ‚Ü‚µ‚½I
+echo ã™ã¹ã¦ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’çµåˆã—ã¾ã—ãŸï¼
 pause
