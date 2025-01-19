@@ -205,21 +205,49 @@ async function getNextScene() {
 }
 
 /**
- * シーン履歴を画面に表示（最新1件を除いたものを「履歴」として表示）
+ * シーン履歴を画面に表示する。
+ * - 先頭に必ずシナリオ概要タイルを追加
+ * - 最後のシーン(および関連画像)は履歴に表示しない
+ * - それ以外のentryを古い順に表示
  */
 function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
   if (!historyContainer) return;
 
+  // 1) いったんクリア
   historyContainer.innerHTML = '';
 
-  // 最新シーンを除いた履歴を表示
-  if (window.sceneHistory.length <= 1) {
-    return;
+  // 2) シナリオ概要タイルを最初に表示
+  if (window.currentScenario && window.currentScenario.wizardData) {
+    const scenarioSummary = window.currentScenario.wizardData.scenarioSummary || '（シナリオ概要なし）';
+    const summaryTile = document.createElement('div');
+    summaryTile.className = 'history-tile';
+    summaryTile.innerHTML = DOMPurify.sanitize(scenarioSummary);
+    historyContainer.appendChild(summaryTile);
   }
-  const displayEntries = window.sceneHistory.slice(0, -1);
 
-  displayEntries.forEach((entry) => {
+  // 3) 「最後のシーン」を特定（履歴に出さない）
+  //    最後のシーン+画像は除外対象にする
+  const reversed = [...window.sceneHistory].reverse();
+  const lastSceneEntry = reversed.find(e => e.type === 'scene');
+  let skipEntryIds = [];
+  if (lastSceneEntry) {
+    skipEntryIds.push(lastSceneEntry.entryId);
+
+    // 最後のシーンに紐づく画像もスキップ
+    window.sceneHistory.forEach(e => {
+      if (e.type === 'image' && e.sceneId === lastSceneEntry.sceneId) {
+        skipEntryIds.push(e.entryId);
+      }
+    });
+  }
+
+  // 4) フィルタリングして「最後のシーン以外」を古い順で表示
+  const entriesToShow = window.sceneHistory
+    .filter(e => !skipEntryIds.includes(e.entryId))
+    .sort((a, b) => (a.entryId - b.entryId)); // entryId昇順(=古い順)
+
+  entriesToShow.forEach(entry => {
     if (entry.type === 'scene') {
       // シーン
       const tile = document.createElement('div');
@@ -350,6 +378,7 @@ function updateSceneHistory() {
     }
   });
 
+  // スクロール最下部へ
   historyContainer.scrollTop = historyContainer.scrollHeight;
 }
 
@@ -444,7 +473,7 @@ function showLastScene() {
       playerActionLabel.textContent = '';
     }
   } else {
-    // シーンが無い場合 => シナリオ概要を表示
+    // シーンが無い場合 => シナリオ概要のみ
     storyDiv.innerHTML = '';
     lastSceneImagesDiv.innerHTML = '';
 
