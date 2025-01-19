@@ -1851,14 +1851,15 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン3:
+ * バージョン4:
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
  *  - characterData ストア (keyPath: 'id')
+ *  - wizardState ストア (keyPath: 'id')   ←★追加
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 3);
+    const request = indexedDB.open("trpgDB", 4);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -1867,7 +1868,6 @@ function initIndexedDB() {
         db.createObjectStore("characterData", { keyPath: "id" });
       }
 
-      // 新設: scenarios ストア
       if (!db.objectStoreNames.contains("scenarios")) {
         const scenarioStore = db.createObjectStore("scenarios", {
           keyPath: "scenarioId",
@@ -1876,13 +1876,17 @@ function initIndexedDB() {
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
-      // 新設: sceneEntries ストア
       if (!db.objectStoreNames.contains("sceneEntries")) {
         const sceneStore = db.createObjectStore("sceneEntries", {
           keyPath: "entryId",
           autoIncrement: true
         });
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
+      }
+
+      // ★ 追加ストア: ウィザード内容の一時保存
+      if (!db.objectStoreNames.contains("wizardState")) {
+        db.createObjectStore("wizardState", { keyPath: "id" });
       }
     };
     request.onsuccess = (event) => {
@@ -1945,13 +1949,51 @@ function loadCharacterDataFromIndexedDB() {
   });
 }
 
+/**
+ * ★ wizardData をIndexedDBに保存する
+ */
+function saveWizardDataToIndexedDB(wizardData) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("wizardState", "readwrite");
+    const store = tx.objectStore("wizardState");
+    // id="wizardData" 固定で1件管理
+    const record = { id: "wizardData", data: wizardData };
+    const req = store.put(record);
+    req.onsuccess = () => resolve();
+    req.onerror = (err) => reject(err);
+  });
+}
+
+/**
+ * ★ wizardData をIndexedDBからロードする
+ */
+function loadWizardDataFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("wizardState", "readonly");
+    const store = tx.objectStore("wizardState");
+    const getReq = store.get("wizardData");
+    getReq.onsuccess = (evt) => {
+      if (evt.target.result) {
+        resolve(evt.target.result.data);
+      } else {
+        resolve(null);
+      }
+    };
+    getReq.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
 /* -------------------------------------------
     新しいシナリオの追加・読み込み用API
    -------------------------------------------*/
-
-/**
- * 新しいシナリオを scenarios ストアに追加
- */
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -1979,9 +2021,6 @@ function createNewScenario(wizardData, title = "新シナリオ") {
   });
 }
 
-/**
- * シナリオをID指定で取得
- */
 function getScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -1999,9 +2038,6 @@ function getScenarioById(scenarioId) {
   });
 }
 
-/**
- * 進行中のシナリオをすべて取得
- */
 function listAllScenarios() {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2021,9 +2057,6 @@ function listAllScenarios() {
   });
 }
 
-/**
- * シナリオを更新 (updatedAtを上書きなど)
- */
 function updateScenario(scenario) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2045,10 +2078,6 @@ function updateScenario(scenario) {
 /* -------------------------------------------
     シーン履歴 (sceneEntries) の操作
    -------------------------------------------*/
-
-/**
- * シーン履歴エントリを追加
- */
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2066,9 +2095,6 @@ function addSceneEntry(entry) {
   });
 }
 
-/**
- * 指定シナリオIDの全シーンエントリを取得
- */
 function getSceneEntriesByScenarioId(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2096,9 +2122,6 @@ function getSceneEntriesByScenarioId(scenarioId) {
   });
 }
 
-/**
- * シーンエントリを更新
- */
 function updateSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2116,9 +2139,6 @@ function updateSceneEntry(entry) {
   });
 }
 
-/**
- * シーンエントリを削除
- */
 function deleteSceneEntry(entryId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2136,9 +2156,7 @@ function deleteSceneEntry(entryId) {
   });
 }
 
-/* -------------------------------------------
-  ★シナリオ削除用(シナリオ本体 + シーン履歴)
--------------------------------------------*/
+/* ★シナリオ削除用 */
 function deleteScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2177,64 +2195,58 @@ function deleteScenarioById(scenarioId) {
   });
 }
 
-/* ==========================================
-   ★シナリオコピー用に追加した関数
-   ==========================================*/
-/**
- * 指定シナリオを丸ごとコピーする
- * 1) 元シナリオを取得
- * 2) 新シナリオを同じwizardDataで作成
- * 3) 元シナリオのシーンエントリを取得
- * 4) それぞれ新シナリオIDで追加
- * @param {number} originalScenarioId
- * @returns {Promise<number>} 新シナリオID
- */
-async function copyScenarioById(originalScenarioId) {
-  if (!db) {
-    throw new Error("DB未初期化");
-  }
-  // 1) 元シナリオ取得
-  const original = await getScenarioById(originalScenarioId);
-  if (!original) {
-    throw new Error("コピー元シナリオが存在しません");
-  }
+/* ★シナリオコピー用 */
+function copyScenarioById(originalScenarioId) {
+  return new Promise(async (resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    try {
+      // 1) 元シナリオ取得
+      const original = await getScenarioById(originalScenarioId);
+      if (!original) {
+        throw new Error("コピー元シナリオが存在しません");
+      }
 
-  // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
-  const newTitle = original.title + " (コピー)";
-  const newScenarioId = await createNewScenario(original.wizardData, newTitle);
+      // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
+      const newTitle = original.title + " (コピー)";
+      const newScenarioId = await createNewScenario(original.wizardData, newTitle);
 
-  // 3) 元シーンエントリをすべて取得
-  const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
+      // 3) 元シーンエントリをすべて取得
+      const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
 
-  // 4) 全部新シナリオIDで登録
-  const tx = db.transaction("sceneEntries", "readwrite");
-  const sceneStore = tx.objectStore("sceneEntries");
+      // 4) 全部新シナリオIDで登録
+      const tx = db.transaction("sceneEntries", "readwrite");
+      const sceneStore = tx.objectStore("sceneEntries");
 
-  for (const e of originalEntries) {
-    const copyEntry = {
-      scenarioId: newScenarioId,
-      type: e.type,
-      sceneId: e.sceneId,     // シーンIDは同じでも問題ない（シナリオIDが別なので衝突はしない）
-      content: e.content,
-      dataUrl: e.dataUrl || null,
-      prompt: e.prompt || null
-    };
-    sceneStore.add(copyEntry);
-  }
-  // トランザクション完了を待つ
-  await new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = (err) => reject(err);
+      for (const e of originalEntries) {
+        const copyEntry = {
+          scenarioId: newScenarioId,
+          type: e.type,
+          sceneId: e.sceneId,
+          content: e.content,
+          dataUrl: e.dataUrl || null,
+          prompt: e.prompt || null
+        };
+        sceneStore.add(copyEntry);
+      }
+      await new Promise((resolve2, reject2) => {
+        tx.oncomplete = () => resolve2();
+        tx.onerror = (err) => reject2(err);
+      });
+
+      // scenarios.updatedAtを更新しておく
+      const newScenario = await getScenarioById(newScenarioId);
+      if (newScenario) {
+        newScenario.updatedAt = new Date().toISOString();
+        await updateScenario(newScenario);
+      }
+
+      resolve(newScenarioId);
+    } catch (err) {
+      reject(err);
+    }
   });
-
-  // scenarios.updatedAtを更新しておく
-  const newScenario = await getScenarioById(newScenarioId);
-  if (newScenario) {
-    newScenario.updatedAt = new Date().toISOString();
-    await updateScenario(newScenario);
-  }
-
-  return newScenarioId;
 }
 
 /* -------------------------------------------
@@ -2244,6 +2256,9 @@ window.initIndexedDB = initIndexedDB;
 
 window.saveCharacterDataToIndexedDB = saveCharacterDataToIndexedDB;
 window.loadCharacterDataFromIndexedDB = loadCharacterDataFromIndexedDB;
+
+window.saveWizardDataToIndexedDB = saveWizardDataToIndexedDB;  // ★追加エクスポート
+window.loadWizardDataFromIndexedDB = loadWizardDataFromIndexedDB;  // ★追加エクスポート
 
 window.createNewScenario = createNewScenario;
 window.getScenarioById = getScenarioById;
@@ -3432,19 +3447,30 @@ function onCancelFetch(){
 scenarioWizard.js 
 /********************************
  * scenarioWizard.js
- * 新しいシナリオ作成ウィザード (複数シナリオ対応)
+ * 新しいシナリオ作成ウィザード
+ *  - ローカルストレージを廃止し、IndexedDBに保存
  ********************************/
 
 let wizardData = {
   genre: "",
   scenarioType: "",      // "objective" or "exploration"
   clearCondition: "",    // 目的達成型ならChatGPTから取得
-  scenarioSummary: ""    // 全体のシナリオ要約
+  scenarioSummary: "",   // 全体のシナリオ要約
+  party: []
 };
 
 window.addEventListener("load", async function () {
+  // 1) IndexedDB初期化
   await initIndexedDB();
-  loadWizardDataFromLocalStorage();
+
+  // 2) 可能なら既存のwizardDataをロード
+  const storedWizard = await loadWizardDataFromIndexedDB();
+  if (storedWizard) {
+    wizardData = storedWizard;
+  }
+
+  updateSelectedGenreDisplay();
+  updateSummaryUI();
 
   // イベント設定
   document.getElementById("generate-genre-button").addEventListener("click", onGenerateGenre);
@@ -3460,12 +3486,42 @@ window.addEventListener("load", async function () {
   document.getElementById("start-scenario-button").addEventListener("click", onStartScenario);
   document.getElementById("cancel-request-button").addEventListener("click", onCancelFetch);
 
-  // モーダルのOK/Cancel
   document.getElementById("confirm-scenario-ok").addEventListener("click", onConfirmScenarioModalOK);
   document.getElementById("confirm-scenario-cancel").addEventListener("click", onConfirmScenarioModalCancel);
-
-  updateSelectedGenreDisplay();
 });
+
+/* ---------------------------------------------
+   シナリオ作成時に、現在のパーティをwizardDataに保存
+   （ただしimageDataなど巨大データをそのまま持たない）
+---------------------------------------------*/
+async function storePartyInWizardData() {
+  // 1) IndexedDBから最新の characterData をロード
+  const charData = await loadCharacterDataFromIndexedDB();
+  if (!charData) return;
+
+  // 2) group === "Party" のエレメントを取得
+  const fullParty = charData.filter(e => e.group === "Party");
+
+  // 3) 容量肥大を防ぐため、imageData等は除去し、必要情報のみ保持
+  const strippedParty = fullParty.map(e => {
+    return {
+      id: e.id,
+      name: e.name,
+      type: e.type,
+      rarity: e.rarity,
+      state: e.state,
+      special: e.special,
+      caption: e.caption,
+      backgroundcss: e.backgroundcss
+      // imageDataは保持しない
+    };
+  });
+
+  wizardData.party = strippedParty;
+
+  // 4) wizardDataをDBに保存
+  await saveWizardDataToIndexedDB(wizardData);
+}
 
 /* ---- ステップ1 ---- */
 async function onGenerateGenre() {
@@ -3479,6 +3535,8 @@ async function onGenerateGenre() {
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
+
+  genreListDiv.innerHTML = "";
 
   try {
     const messages = [
@@ -3505,7 +3563,7 @@ async function onGenerateGenre() {
     const content = data.choices[0].message.content;
     const lines = content.split("\n").map(l => l.trim()).filter(l => l);
 
-    // appendでボタンを追加
+    // ボタンを追加
     lines.forEach(line => {
       const btn = document.createElement("button");
       btn.classList.add("candidate-button");
@@ -3513,10 +3571,11 @@ async function onGenerateGenre() {
       btn.style.display = "block";
       btn.style.margin = "5px 0";
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         wizardData.genre = btn.textContent;
-        saveWizardDataToLocalStorage();
+        await saveWizardDataToIndexedDB(wizardData);
         highlightSelectedButton(genreListDiv, btn);
+
         // ステップ1→ステップ2
         document.getElementById("wizard-step1").style.display = "none";
         document.getElementById("wizard-step2").style.display = "block";
@@ -3536,15 +3595,16 @@ async function onGenerateGenre() {
   }
 }
 
-function onClearGenre() {
+async function onClearGenre() {
   const genreListDiv = document.getElementById("genre-list");
   genreListDiv.innerHTML = "";
   wizardData.genre = "";
+  await saveWizardDataToIndexedDB(wizardData);
+
   document.getElementById("free-genre-input").value = "";
-  saveWizardDataToLocalStorage();
 }
 
-function onConfirmGenre() {
+async function onConfirmGenre() {
   const freeInput = document.getElementById("free-genre-input");
   const txt = (freeInput.value || "").trim();
   if (!txt) {
@@ -3552,7 +3612,7 @@ function onConfirmGenre() {
     return;
   }
   wizardData.genre = txt;
-  saveWizardDataToLocalStorage();
+  await saveWizardDataToIndexedDB(wizardData);
 
   // ステップ1→ステップ2
   document.getElementById("wizard-step1").style.display = "none";
@@ -3561,15 +3621,14 @@ function onConfirmGenre() {
 }
 
 /* ---- ステップ2 ---- */
-
-// シナリオタイプ選択時→いきなり生成せず、モーダルを出す
-function onSelectScenarioType(type) {
+async function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
-  saveWizardDataToLocalStorage();
+  await saveWizardDataToIndexedDB(wizardData);
 
   // モーダルのテキストを更新
   const textEl = document.getElementById("confirm-genre-type-text");
   textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type === "objective" ? "目的達成型" : "探索型"}`;
+
   // モーダル表示
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "flex";
@@ -3577,11 +3636,12 @@ function onSelectScenarioType(type) {
 
 // モーダル: OK
 async function onConfirmScenarioModalOK() {
-  // モーダルを閉じる
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "none";
 
-  // ここでシナリオ生成開始
+  // ★ シナリオ概要を生成する直前にパーティ情報を取り込む
+  await storePartyInWizardData();
+
   if (wizardData.scenarioType === "objective") {
     await generateScenarioSummaryAndClearCondition();
   } else {
@@ -3597,7 +3657,6 @@ async function onConfirmScenarioModalOK() {
 function onConfirmScenarioModalCancel() {
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "none";
-  // ステップ2に留まる
 }
 
 function onBackToStep1() {
@@ -3606,23 +3665,16 @@ function onBackToStep1() {
 }
 
 /* ---- ステップ3 ---- */
-
-// 「ステップ2に戻る」
 function onBackToStep2FromStep3() {
   document.getElementById("wizard-step3").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 }
 
-// 「このシナリオで始める」 => 新しいシナリオIDを発行し、scenario.html へ
 async function onStartScenario() {
   try {
-    // シナリオ名を何にするか？ ひとまずジャンルか、あるいは "新シナリオ"
     let title = wizardData.genre || "新シナリオ";
 
-    // シナリオをDBに追加
     const scenarioId = await createNewScenario(wizardData, title);
-
-    // scenario.html?scenarioId=xxx に飛ぶ
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
   } catch (err) {
     console.error("シナリオ作成失敗:", err);
@@ -3632,21 +3684,19 @@ async function onStartScenario() {
 
 /* ---- シナリオ生成 (GPT呼び出し) ---- */
 async function generateScenarioSummaryAndClearCondition() {
-  wizardData.scenarioSummary = "";
-  wizardData.clearCondition = "";
-  saveWizardDataToLocalStorage();
-
-  const apiKey = localStorage.getItem("apiKey") || "";
-  if (!apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
+    const apiKey = localStorage.getItem("apiKey") || "";
+    if (!apiKey) {
+      throw new Error("APIキーが未設定です。");
+    }
+
+    wizardData.scenarioSummary = "";
+    wizardData.clearCondition = "";
+
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンルは「${wizardData.genre}」、シナリオタイプは「目的達成型」です。
@@ -3673,6 +3723,7 @@ async function generateScenarioSummaryAndClearCondition() {
       }),
       signal
     });
+
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
@@ -3686,6 +3737,9 @@ async function generateScenarioSummaryAndClearCondition() {
     }
     wizardData.scenarioSummary = summaryPart;
     wizardData.clearCondition = clearConditionPart;
+
+    await saveWizardDataToIndexedDB(wizardData);
+    updateSummaryUI();
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("目的達成型シナリオ生成キャンセル");
@@ -3695,26 +3749,22 @@ async function generateScenarioSummaryAndClearCondition() {
     }
   } finally {
     showLoadingModal(false);
-    saveWizardDataToLocalStorage();
-    updateSummaryUI();
   }
 }
 
 async function generateScenarioSummary() {
-  wizardData.scenarioSummary = "";
-  saveWizardDataToLocalStorage();
-
-  const apiKey = localStorage.getItem("apiKey") || "";
-  if (!apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
+    const apiKey = localStorage.getItem("apiKey") || "";
+    if (!apiKey) {
+      throw new Error("APIキーが未設定です。");
+    }
+
+    wizardData.scenarioSummary = "";
+
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンルは「${wizardData.genre}」、シナリオタイプは「探索型」です。
@@ -3739,10 +3789,13 @@ async function generateScenarioSummary() {
       }),
       signal
     });
+
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
     wizardData.scenarioSummary = data.choices[0].message.content;
+    await saveWizardDataToIndexedDB(wizardData);
+    updateSummaryUI();
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("探索型シナリオ生成キャンセル");
@@ -3752,12 +3805,10 @@ async function generateScenarioSummary() {
     }
   } finally {
     showLoadingModal(false);
-    saveWizardDataToLocalStorage();
-    updateSummaryUI();
   }
 }
 
-/* ---- 表示更新 ---- */
+/* ---- UI更新 ---- */
 function updateSummaryUI() {
   const summaryDiv = document.getElementById("scenario-summary");
   const scenario = wizardData.scenarioSummary || "（シナリオ概要なし）";
@@ -3774,23 +3825,7 @@ function updateSelectedGenreDisplay() {
   }
 }
 
-/* ---- localStorage ---- */
-function loadWizardDataFromLocalStorage() {
-  const dataStr = localStorage.getItem("wizardData");
-  if (!dataStr) return;
-  try {
-    const obj = JSON.parse(dataStr);
-    wizardData = obj;
-  } catch (e) {
-    console.warn("wizardData parse失敗", e);
-  }
-}
-
-function saveWizardDataToLocalStorage() {
-  localStorage.setItem("wizardData", JSON.stringify(wizardData));
-}
-
-/* ---- モーダル操作 ---- */
+/* ---- 共通 ---- */
 function showLoadingModal(show) {
   const modal = document.getElementById("loading-modal");
   if (!modal) return;
@@ -3804,7 +3839,6 @@ function onCancelFetch() {
   showLoadingModal(false);
 }
 
-/** ハイライト */
 function highlightSelectedButton(container, targetBtn) {
   const allBtns = container.querySelectorAll(".candidate-button");
   allBtns.forEach(b => b.style.backgroundColor = "");
@@ -3831,6 +3865,49 @@ window.clearCondition = null;
 /** ユニークID生成 */
 function generateUniqueId() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+/* -------------------------------------------
+   パーティ情報を文章にまとめる補助関数
+   - "キャラクター"だけは会話できるよう促し、
+   - "アイテム"や"モンスター"などはストーリーに登場するが話さない
+-------------------------------------------*/
+function buildPartyInsertionText(party) {
+  console.log("party",party);
+  // タイプごとに仕分け
+  const characters = party.filter(e => e.type === "キャラクター");
+  const items = party.filter(e => e.type === "アイテム");
+  const monsters = party.filter(e => e.type === "モンスター");
+  let text = "なお、このシナリオでは下記のパーティが固定されています。\n";
+  text += "パーティの要素は、アイテム・モンスター・キャラクターの3種類が含まれます。\n";
+  text += "ただし、会話ができるのは『キャラクター』タイプのみです。\n";
+  text += "シーン中、時々パーティのキャラクターが会話する描写を加えてください。\n\n";
+  // 各種リスト
+  if (characters.length > 0) {
+    text += "◆【キャラクター】\n";
+    characters.forEach(ch => {
+      text += `- ${ch.name}\n`;
+    });
+    text += "\n";
+  }
+  if (items.length > 0) {
+    text += "◆【アイテム】\n";
+    items.forEach(it => {
+      text += `- ${it.name}\n`;
+    });
+    text += "\n";
+  }
+  if (monsters.length > 0) {
+    text += "◆【モンスター】\n";
+    monsters.forEach(mo => {
+      text += `- ${mo.name}\n`;
+    });
+    text += "\n";
+  }
+
+  text += "これらを、シーンのストーリーに混ぜて表現してください。";
+
+  return text;
 }
 
 /**
@@ -3905,8 +3982,11 @@ async function getNextScene() {
   showLoadingModal(true);
 
   // プロンプト用メッセージを積み上げ
+  // -----------------------------------------
+  // まずシステムプロンプト
+  let systemText = "あなたはTRPGのゲームマスターです。HTMLタグOK。";
   const messages = [
-    { role: 'system', content: 'あなたはTRPGのゲームマスターです。HTMLタグOK。' },
+    { role: 'system', content: systemText },
   ];
 
   // シナリオ概要（複数シナリオ対応）
@@ -3914,6 +3994,16 @@ async function getNextScene() {
     const wizardData = window.currentScenario.wizardData || {};
     const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
+
+    // ★ 追加: シナリオに紐づいた「固定パーティ」を反映
+    const party = wizardData.party || [];
+    if (party.length > 0) {
+      const partyText = buildPartyInsertionText(party);
+      // 「system」ロールの末尾に追加したいので、ちょっと工夫
+      // ここでは「user」ロールで渡してもOKですが、まとまりを考えてsystemに追記する方法もあり。
+      // シンプルに追加ロールで渡す:
+      messages.push({ role: 'user', content: partyText });
+    }
   }
 
   // 過去のシーン履歴をChatGPTに渡す
@@ -3930,6 +4020,8 @@ async function getNextScene() {
     messages.push({ role: 'user', content: `プレイヤーの行動:${playerInput}` });
   }
 
+  // -----------------------------------------
+  // GPTに投げる
   try {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
@@ -4217,7 +4309,6 @@ function showLastScene() {
     // メインストーリー編集用の <p> 要素
     const sceneText = document.createElement('p');
     sceneText.className = 'scene-text';
-    // APIキーがあるときだけ編集可能 (履歴編集と同様)
     sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
     sceneText.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
     storyDiv.appendChild(sceneText);

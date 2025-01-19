@@ -27,6 +27,9 @@
   </div>
 
   <div class="container">
+    <!-- ★ 追加: パーティーを確認ボタン (scene-historyより上に配置) -->
+    <button id="show-party-button">パーティーを確認</button>
+
     <!-- シーン履歴 -->
     <div id="scene-history" class="scene-history"></div>
 
@@ -86,12 +89,22 @@
     </div>
   </div>
 
+  <!-- ★ 追加: パーティ表示用モーダル -->
+  <div id="party-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+      <h2>パーティ確認</h2>
+      <button id="close-party-modal" style="margin:10px;">閉じる</button>
+      <div id="party-modal-card-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px;"></div>
+    </div>
+  </div>
+
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
+  <!-- ★ 修正：scenarioPage.js を最後に読み込む（改変版） -->
   <script src="js/scenarioPage.js"></script>
 </body>
 
