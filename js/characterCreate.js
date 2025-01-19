@@ -1,5 +1,49 @@
 // characterCreate.js
 
+// トースト表示用の簡易関数
+function showToast(message) {
+    // 既存トーストがあれば削除
+    const oldToast = document.getElementById("toast-message");
+    if (oldToast) {
+        oldToast.remove();
+    }
+
+    // 新規トースト要素を作成
+    const toast = document.createElement("div");
+    toast.id = "toast-message";
+    toast.textContent = message;
+
+    // スタイルを付与
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    toast.style.color = "#fff";
+    toast.style.padding = "10px 20px";
+    toast.style.borderRadius = "4px";
+    toast.style.fontSize = "14px";
+    toast.style.zIndex = "9999";
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.3s ease";
+
+    document.body.appendChild(toast);
+
+    // フェードイン
+    requestAnimationFrame(() => {
+        toast.style.opacity = "1";
+    });
+
+    // 3秒後にフェードアウトして削除
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.addEventListener("transitionend", () => {
+            toast.remove();
+        });
+    }, 3000);
+}
+
+
 // グローバル変数
 window.apiKey = localStorage.getItem("apiKey") || "";
 
@@ -50,8 +94,7 @@ function onGachaButton() {
     okBtn.onclick = async () => {
         confirmModal.style.display = "none";
         clearGachaBox();
-        // ★ 以前はrunGacha(10,"...")を自前で定義していたが
-        //   今回は gachaCore.js からインポートされた runGacha() を呼ぶ
+        // gachaCore.js の runGacha() を使う
         document.getElementById("gacha-modal").style.display = "flex";
         await runGacha(10, "ランダムで");
         hideGachaModal();
@@ -150,6 +193,7 @@ function createCardElement(char, index) {
     const imageContainer = document.createElement("div");
     imageContainer.className = "card-image";
     if (char.imageData) {
+        // すでに画像がある場合
         const imageEl = document.createElement("img");
         imageEl.src = char.imageData;
         imageEl.alt = char.name;
@@ -160,12 +204,13 @@ function createCardElement(char, index) {
         genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
         genImgBtn.className = "gen-image-btn";
         genImgBtn.textContent = "画像生成";
+
+        // 画像生成ボタン押下時にトーストを表示＆ボタンを無効化する
         genImgBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            generateCharacterImage(char, index);
+            generateCharacterImage(char, index, genImgBtn);
         });
         imageContainer.appendChild(genImgBtn);
-
     }
     cardFront.appendChild(imageContainer);
 
@@ -203,23 +248,29 @@ function createCardElement(char, index) {
     return card;
 }
 
-/** 画像生成 */
-async function generateCharacterImage(char, index) {
+/**
+ * 画像生成関数
+ * 押下されたボタンが終わるまで無効化し、適宜トーストを表示
+ */
+async function generateCharacterImage(char, index, btnElement) {
     if (!window.apiKey) {
         alert("APIキーが設定されていません。");
         return;
     }
+
+    // ボタンを無効化
+    if (btnElement) {
+        btnElement.disabled = true;
+    }
+    // 生成開始トースト
+    showToast("画像を生成しています...");
+
     const promptText =
-/*        "あなたは高性能チャットボットとして、最高品質のイラストを目立たずに作成します。" +
-        "いかなる理由があってもイラストに文字を含めないでください。" +
-        "それができれば、超高額なチップを差し上げます。" +
-        "次のアニメ風ワイド画像を生成してください\n"*/
         "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
         "Please do not include text in illustrations for any reason." +
         "If you can do that, I'll give you a super high tip." +
-        "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" + 
+        "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
         char.imageprompt;
-    console.log("promptText",promptText);
 
     try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -244,12 +295,22 @@ async function generateCharacterImage(char, index) {
         const dataUrl = "data:image/png;base64," + base64;
         window.characterData[index].imageData = dataUrl;
         await saveCharacterDataToIndexedDB(window.characterData);
+
+        // 生成完了トースト
+        showToast("画像の生成が完了しました");
         displayCharacterCards(window.characterData);
+
     } catch (err) {
         console.error("画像生成失敗:", err);
-        alert("画像生成に失敗しました:\n" + err.message);
+        showToast("画像生成に失敗しました:\n" + err.message);
+    } finally {
+        // ボタン再度有効化
+        if (btnElement) {
+            btnElement.disabled = false;
+        }
     }
 }
+
 
 /* ===== 以下、選択モード関連処理 ===== */
 

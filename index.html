@@ -6,6 +6,9 @@
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- 追加：カード表示などでDOMPurifyを使用するため -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
 
 <body>
@@ -25,6 +28,8 @@
       <button id="party-create">パーティ作成</button>
       <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
+      <!-- ★ 追加：倉庫確認ボタン -->
+      <button id="show-warehouse-btn" style="margin-left:10px;">倉庫確認</button>
     </div>
 
     <!-- 新しいシナリオを始めるボタン -->
@@ -53,6 +58,20 @@
       <p>このシナリオを削除します。よろしいですか？</p>
       <button id="delete-scenario-ok">OK</button>
       <button id="delete-scenario-cancel">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ★ 倉庫モーダル（新規追加） -->
+  <div id="warehouse-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2>倉庫</h2>
+      <!-- 倉庫側の選択モードボタン -->
+      <button id="toggle-warehouse-selection-mode-btn">選択モード</button>
+      <!-- 倉庫選択カードを削除するボタン -->
+      <button id="delete-selected-warehouse-btn" style="display:none; margin:10px;">選択したカードを削除</button>
+      <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
+
+      <div id="warehouse-card-container" style="margin:10px 0;"></div>
     </div>
   </div>
 
