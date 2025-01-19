@@ -4168,7 +4168,7 @@ function updateSceneHistory() {
 }
 
 /**
- * 最新シーン(末尾1件)をメイン表示
+ * 最新シーン(末尾1件)をメイン表示し、ここも編集できるようにする
  */
 function showLastScene() {
   const storyDiv = document.getElementById('story');
@@ -4182,11 +4182,33 @@ function showLastScene() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
 
   if (lastSceneEntry) {
-    // テキスト部分
-    storyDiv.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
-    lastSceneImagesDiv.innerHTML = '';
+    // ここを編集可能にする
+    storyDiv.innerHTML = '';
 
-    // 同じ sceneId の画像を下に並べる
+    // メインストーリー編集用の <p> 要素
+    const sceneText = document.createElement('p');
+    sceneText.className = 'scene-text';
+    // APIキーがあるときだけ編集可能 (履歴編集と同様)
+    sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
+    sceneText.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
+    storyDiv.appendChild(sceneText);
+
+    // blurでDBに保存
+    sceneText.addEventListener('blur', async () => {
+      if (!window.apiKey) return;
+      lastSceneEntry.content = sceneText.innerText.trim();
+      const updated = {
+        entryId: lastSceneEntry.entryId,
+        scenarioId: window.currentScenarioId || 0,
+        type: 'scene',
+        sceneId: lastSceneEntry.sceneId,
+        content: lastSceneEntry.content
+      };
+      await updateSceneEntry(updated);
+    });
+
+    // シーンに紐づく画像を表示
+    lastSceneImagesDiv.innerHTML = '';
     const images = window.sceneHistory.filter(e => e.type === 'image' && e.sceneId === lastSceneEntry.sceneId);
     images.forEach(imgEntry => {
       const container = document.createElement('div');
