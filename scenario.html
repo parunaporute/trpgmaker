@@ -30,13 +30,6 @@
     <!-- シーン履歴 -->
     <div id="scene-history" class="scene-history"></div>
 
-    <!-- シナリオ入力セクション (旧フリーシナリオ) -->
-    <div class="input-section">
-      <label for="scenario-input">シナリオを入力してください：</label>
-      <textarea id="scenario-input" rows="6" placeholder="シナリオを入力..."></textarea>
-      <button id="start-button">ゲーム開始</button>
-    </div>
-
     <!-- ゲーム画面セクション -->
     <div class="game-section" style="display:none;">
       <div id="story" style="margin-bottom:20px;"></div>
@@ -80,11 +73,10 @@
     </div>
   </div>
 
-  <!-- ▼ 新しく追加したいカードプレビューモーダル -->
+  <!-- カードプレビューモーダル -->
   <div id="card-preview-modal" class="modal" style="display:none;">
     <div class="modal-content" style="max-width:400px;">
       <h2>新しいカード</h2>
-      <!-- ここにカードのプレビュー要素を動的に組み立てて表示 -->
       <div id="preview-card-container"></div>
 
       <div style="margin-top:10px;">
@@ -94,14 +86,12 @@
     </div>
   </div>
 
-  <!-- ---------- スクリプト群 ---------- -->
+  <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
-
-  <!-- ▼ scenarioPage.js は最後に読み込む -->
   <script src="js/scenarioPage.js"></script>
 </body>
 

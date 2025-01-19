@@ -2,7 +2,6 @@
  * main.js
  * - ページ全体の初期化・イベント登録
  * - 複数シナリオ対応
- * - 旧フリーシナリオモードの残存ロジックも保持
  ********************************/
 
 window.onload = async () => {
@@ -22,69 +21,22 @@ window.onload = async () => {
 
   window.currentScenarioId = scenarioId || null;
 
-  // 4) もし scenarioId があれば => loadScenarioData => sceneHistory 表示
+  // 4) シナリオIDがあれば、DBから読み込んで画面を構築
   if (window.currentScenarioId) {
-    // シナリオIDがある => 新しい複数シナリオ方式
-
-    // 画面の構成: シナリオ入力セクションを隠して、ゲーム画面セクションを表示
+    // 旧の「入力セクション」は非表示、ゲーム画面のみ表示
     const inputSec = document.querySelector('.input-section');
     if (inputSec) inputSec.style.display = 'none';
+
     const gameSec = document.querySelector('.game-section');
     if (gameSec) gameSec.style.display = 'block';
 
-    // scene.js 側の「loadScenarioData」で DBからシナリオと履歴を取得し、window.sceneHistoryに格納
+    // scene.js 側の「loadScenarioData」でシナリオ＆履歴を取得して表示
     await loadScenarioData(window.currentScenarioId);
-
-    // 取得した sceneHistory を一覧表示
     updateSceneHistory();
-    // 最新シーンをメイン表示
     showLastScene();
   }
-  else {
-    // シナリオIDが無い => 旧フリーシナリオモード
 
-    // LocalStorageからシナリオを読み込み
-    const savedScenario = localStorage.getItem('scenario');
-    if (savedScenario) {
-      window.scenario = savedScenario;
-    } else {
-      window.scenario = '';
-    }
-    const savedCurrentScene = localStorage.getItem('currentScene');
-    if (savedCurrentScene) {
-      window.currentScene = parseInt(savedCurrentScene, 10);
-    } else {
-      window.currentScene = 0;
-    }
-
-    // APIキーが無い場合 => 入力やゲーム画面を隠す
-    if (!window.apiKey) {
-      const inputSec = document.querySelector('.input-section');
-      const gameSec = document.querySelector('.game-section');
-      if (inputSec) inputSec.style.display = 'none';
-      if (gameSec) gameSec.style.display = 'none';
-    }
-    else {
-      // シナリオがある場合 => ゲーム画面を表示
-      if (window.scenario.trim() !== '') {
-        const inputSec = document.querySelector('.input-section');
-        if (inputSec) inputSec.style.display = 'none';
-        const gameSec = document.querySelector('.game-section');
-        if (gameSec) gameSec.style.display = 'block';
-      } else {
-        // まだシナリオが無い => 入力画面を表示
-        const inputSec = document.querySelector('.input-section');
-        if (inputSec) inputSec.style.display = 'block';
-        const gameSec = document.querySelector('.game-section');
-        if (gameSec) gameSec.style.display = 'none';
-      }
-    }
-
-    // 旧フリーシナリオでは sceneHistory はIndexedDBに保存していなかった想定 => 空のまま
-    window.sceneHistory = [];
-  }
-
-  // ---------- ネタバレ（目的達成型）用 ----------
+  // ---------- ネタバレ（目的達成型）関連 ----------
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
@@ -99,36 +51,13 @@ window.onload = async () => {
     });
   }
 
-  // ---------- 「カードを取得する」ボタン（探索型向け） ----------
+  // ---------- 探索型「カードを取得する」ボタン ----------
   const getCardButton = document.getElementById("get-card-button");
   if (getCardButton) {
-    // ※「scenarioPage.js」でリスナーを付ける実装でも可
-    // ここでは何もしない or scenarioPage.jsで付与
+    // ※ 実際の処理は scenarioPage.js で定義
   }
 
-  // ---------- 各種ボタンイベント ----------
-
-  // 旧フリーシナリオ: ゲーム開始ボタン
-  const startBtn = document.getElementById('start-button');
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      // フリーシナリオ用に localStorage へ保存
-      window.scenario = (document.getElementById('scenario-input')?.value || "").trim();
-      if (!window.scenario) {
-        alert("シナリオを入力してください");
-        return;
-      }
-      localStorage.setItem('scenario', window.scenario);
-
-      // 入力画面を隠してゲーム画面を表示
-      const inputSec = document.querySelector('.input-section');
-      if (inputSec) inputSec.style.display = 'none';
-      const gameSec = document.querySelector('.game-section');
-      if (gameSec) gameSec.style.display = 'block';
-    });
-  }
-
-  // 次のシーン
+  // ---------- シーン遷移ボタン ----------
   const nextSceneBtn = document.getElementById('next-scene');
   if (nextSceneBtn) {
     nextSceneBtn.addEventListener('click', () => {
@@ -152,7 +81,7 @@ window.onload = async () => {
     });
   }
 
-  // カスタム画像生成決定
+  // カスタム画像生成 決定
   const customGenBtn = document.getElementById('image-custom-generate-button');
   if (customGenBtn) {
     customGenBtn.addEventListener('click', () => {
@@ -160,7 +89,7 @@ window.onload = async () => {
     });
   }
 
-  // カスタム画像生成キャンセル
+  // カスタム画像生成 キャンセル
   const customCancelBtn = document.getElementById('image-custom-cancel-button');
   if (customCancelBtn) {
     customCancelBtn.addEventListener('click', () => {
@@ -174,7 +103,7 @@ window.onload = async () => {
     cancelRequestBtn.addEventListener('click', onCancelFetch);
   }
 
-  // メニューに戻るボタン
+  // メニューに戻る
   const backMenuBtn = document.getElementById('back-to-menu');
   if (backMenuBtn) {
     backMenuBtn.addEventListener('click', () => {

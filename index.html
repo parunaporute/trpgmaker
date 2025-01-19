@@ -17,19 +17,14 @@
       <button id="set-api-key-button">APIキー設定</button>
       <button id="clear-api-key-button" style="background-color:#f44336;">APIキーをクリア</button>
     </div>
+
     <div class="element-section">
-      <!-- キャラクタ作成ボタン -->
+      <!-- エレメント作成ボタン -->
       <button id="character-create">エレメント作成</button>
       <!-- パーティ作成ボタン -->
       <button id="party-create">パーティ作成</button>
       <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
-    </div>
-    <div class="scenario-section">
-      <!-- 旧フリーシナリオボタン(単一)は残しておく場合 -->
-      <button id="scenario">フリーシナリオ</button>
-      <!-- 履歴クリアボタン(フリーシナリオ用) -->
-      <button id="clear-history-button" style="background-color:#f44336">シナリオをクリア</button>
     </div>
 
     <!-- 新しいシナリオを始めるボタン -->
@@ -39,7 +34,7 @@
       </button>
     </div>
 
-    <!-- ★ 進行中のシナリオ一覧 -->
+    <!-- 進行中のシナリオ一覧 -->
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
       <div id="active-scenarios-container">
@@ -64,11 +59,10 @@
   <!-- 外部JavaScript -->
   <script src="js/indexedDB.js"></script>
   <script>
-    // ページ読み込み完了後にDB初期化 -> menu.js を動的に読み込むパターン
+    // ページ読み込み完了後にDB初期化 -> menu.js を動的に読み込む
     window.addEventListener("load", async () => {
       await initIndexedDB();
 
-      // このタイミングで menu.js を動的に読み込む
       const scriptEl = document.createElement("script");
       scriptEl.src = "js/menu.js";
       document.head.appendChild(scriptEl);
@@ -76,20 +70,21 @@
   </script>
 
   <script>
-    // キャラクタ作成ボタン押下時、characterCreate.htmlへ遷移
+    // エレメント作成ボタン押下時
     document.getElementById("character-create").addEventListener("click", function () {
       window.location.href = "characterCreate.html";
     });
-    // パーティ作成ボタン押下時、partyCreate.htmlへ遷移
+    // パーティ作成ボタン押下時
     document.getElementById("party-create").addEventListener("click", function () {
       window.location.href = "partyCreate.html";
     });
-
-    // 新しいシナリオを始める
+    // 新しいシナリオを始めるボタン押下時
     document.getElementById("start-new-scenario-button").addEventListener("click", function () {
       window.location.href = "scenarioWizard.html";
     });
   </script>
+
+  <!-- サンプルのテストボタン（任意） -->
   <button id="sample-btn">hoge</button>
 </body>
 
