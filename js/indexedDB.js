@@ -7,14 +7,15 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン3:
+ * バージョン4:
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
  *  - characterData ストア (keyPath: 'id')
+ *  - wizardState ストア (keyPath: 'id')   ←★追加
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 3);
+    const request = indexedDB.open("trpgDB", 4);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -23,7 +24,6 @@ function initIndexedDB() {
         db.createObjectStore("characterData", { keyPath: "id" });
       }
 
-      // 新設: scenarios ストア
       if (!db.objectStoreNames.contains("scenarios")) {
         const scenarioStore = db.createObjectStore("scenarios", {
           keyPath: "scenarioId",
@@ -32,13 +32,17 @@ function initIndexedDB() {
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
-      // 新設: sceneEntries ストア
       if (!db.objectStoreNames.contains("sceneEntries")) {
         const sceneStore = db.createObjectStore("sceneEntries", {
           keyPath: "entryId",
           autoIncrement: true
         });
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
+      }
+
+      // ★ 追加ストア: ウィザード内容の一時保存
+      if (!db.objectStoreNames.contains("wizardState")) {
+        db.createObjectStore("wizardState", { keyPath: "id" });
       }
     };
     request.onsuccess = (event) => {
@@ -101,13 +105,51 @@ function loadCharacterDataFromIndexedDB() {
   });
 }
 
+/**
+ * ★ wizardData をIndexedDBに保存する
+ */
+function saveWizardDataToIndexedDB(wizardData) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("wizardState", "readwrite");
+    const store = tx.objectStore("wizardState");
+    // id="wizardData" 固定で1件管理
+    const record = { id: "wizardData", data: wizardData };
+    const req = store.put(record);
+    req.onsuccess = () => resolve();
+    req.onerror = (err) => reject(err);
+  });
+}
+
+/**
+ * ★ wizardData をIndexedDBからロードする
+ */
+function loadWizardDataFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("wizardState", "readonly");
+    const store = tx.objectStore("wizardState");
+    const getReq = store.get("wizardData");
+    getReq.onsuccess = (evt) => {
+      if (evt.target.result) {
+        resolve(evt.target.result.data);
+      } else {
+        resolve(null);
+      }
+    };
+    getReq.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
 /* -------------------------------------------
     新しいシナリオの追加・読み込み用API
    -------------------------------------------*/
-
-/**
- * 新しいシナリオを scenarios ストアに追加
- */
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -135,9 +177,6 @@ function createNewScenario(wizardData, title = "新シナリオ") {
   });
 }
 
-/**
- * シナリオをID指定で取得
- */
 function getScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -155,9 +194,6 @@ function getScenarioById(scenarioId) {
   });
 }
 
-/**
- * 進行中のシナリオをすべて取得
- */
 function listAllScenarios() {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -177,9 +213,6 @@ function listAllScenarios() {
   });
 }
 
-/**
- * シナリオを更新 (updatedAtを上書きなど)
- */
 function updateScenario(scenario) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -201,10 +234,6 @@ function updateScenario(scenario) {
 /* -------------------------------------------
     シーン履歴 (sceneEntries) の操作
    -------------------------------------------*/
-
-/**
- * シーン履歴エントリを追加
- */
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -222,9 +251,6 @@ function addSceneEntry(entry) {
   });
 }
 
-/**
- * 指定シナリオIDの全シーンエントリを取得
- */
 function getSceneEntriesByScenarioId(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -252,9 +278,6 @@ function getSceneEntriesByScenarioId(scenarioId) {
   });
 }
 
-/**
- * シーンエントリを更新
- */
 function updateSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -272,9 +295,6 @@ function updateSceneEntry(entry) {
   });
 }
 
-/**
- * シーンエントリを削除
- */
 function deleteSceneEntry(entryId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -292,9 +312,7 @@ function deleteSceneEntry(entryId) {
   });
 }
 
-/* -------------------------------------------
-  ★シナリオ削除用(シナリオ本体 + シーン履歴)
--------------------------------------------*/
+/* ★シナリオ削除用 */
 function deleteScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -333,64 +351,58 @@ function deleteScenarioById(scenarioId) {
   });
 }
 
-/* ==========================================
-   ★シナリオコピー用に追加した関数
-   ==========================================*/
-/**
- * 指定シナリオを丸ごとコピーする
- * 1) 元シナリオを取得
- * 2) 新シナリオを同じwizardDataで作成
- * 3) 元シナリオのシーンエントリを取得
- * 4) それぞれ新シナリオIDで追加
- * @param {number} originalScenarioId
- * @returns {Promise<number>} 新シナリオID
- */
-async function copyScenarioById(originalScenarioId) {
-  if (!db) {
-    throw new Error("DB未初期化");
-  }
-  // 1) 元シナリオ取得
-  const original = await getScenarioById(originalScenarioId);
-  if (!original) {
-    throw new Error("コピー元シナリオが存在しません");
-  }
+/* ★シナリオコピー用 */
+function copyScenarioById(originalScenarioId) {
+  return new Promise(async (resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    try {
+      // 1) 元シナリオ取得
+      const original = await getScenarioById(originalScenarioId);
+      if (!original) {
+        throw new Error("コピー元シナリオが存在しません");
+      }
 
-  // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
-  const newTitle = original.title + " (コピー)";
-  const newScenarioId = await createNewScenario(original.wizardData, newTitle);
+      // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
+      const newTitle = original.title + " (コピー)";
+      const newScenarioId = await createNewScenario(original.wizardData, newTitle);
 
-  // 3) 元シーンエントリをすべて取得
-  const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
+      // 3) 元シーンエントリをすべて取得
+      const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
 
-  // 4) 全部新シナリオIDで登録
-  const tx = db.transaction("sceneEntries", "readwrite");
-  const sceneStore = tx.objectStore("sceneEntries");
+      // 4) 全部新シナリオIDで登録
+      const tx = db.transaction("sceneEntries", "readwrite");
+      const sceneStore = tx.objectStore("sceneEntries");
 
-  for (const e of originalEntries) {
-    const copyEntry = {
-      scenarioId: newScenarioId,
-      type: e.type,
-      sceneId: e.sceneId,     // シーンIDは同じでも問題ない（シナリオIDが別なので衝突はしない）
-      content: e.content,
-      dataUrl: e.dataUrl || null,
-      prompt: e.prompt || null
-    };
-    sceneStore.add(copyEntry);
-  }
-  // トランザクション完了を待つ
-  await new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = (err) => reject(err);
+      for (const e of originalEntries) {
+        const copyEntry = {
+          scenarioId: newScenarioId,
+          type: e.type,
+          sceneId: e.sceneId,
+          content: e.content,
+          dataUrl: e.dataUrl || null,
+          prompt: e.prompt || null
+        };
+        sceneStore.add(copyEntry);
+      }
+      await new Promise((resolve2, reject2) => {
+        tx.oncomplete = () => resolve2();
+        tx.onerror = (err) => reject2(err);
+      });
+
+      // scenarios.updatedAtを更新しておく
+      const newScenario = await getScenarioById(newScenarioId);
+      if (newScenario) {
+        newScenario.updatedAt = new Date().toISOString();
+        await updateScenario(newScenario);
+      }
+
+      resolve(newScenarioId);
+    } catch (err) {
+      reject(err);
+    }
   });
-
-  // scenarios.updatedAtを更新しておく
-  const newScenario = await getScenarioById(newScenarioId);
-  if (newScenario) {
-    newScenario.updatedAt = new Date().toISOString();
-    await updateScenario(newScenario);
-  }
-
-  return newScenarioId;
 }
 
 /* -------------------------------------------
@@ -400,6 +412,9 @@ window.initIndexedDB = initIndexedDB;
 
 window.saveCharacterDataToIndexedDB = saveCharacterDataToIndexedDB;
 window.loadCharacterDataFromIndexedDB = loadCharacterDataFromIndexedDB;
+
+window.saveWizardDataToIndexedDB = saveWizardDataToIndexedDB;  // ★追加エクスポート
+window.loadWizardDataFromIndexedDB = loadWizardDataFromIndexedDB;  // ★追加エクスポート
 
 window.createNewScenario = createNewScenario;
 window.getScenarioById = getScenarioById;

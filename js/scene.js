@@ -19,6 +19,49 @@ function generateUniqueId() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 }
 
+/* -------------------------------------------
+   パーティ情報を文章にまとめる補助関数
+   - "キャラクター"だけは会話できるよう促し、
+   - "アイテム"や"モンスター"などはストーリーに登場するが話さない
+-------------------------------------------*/
+function buildPartyInsertionText(party) {
+  console.log("party",party);
+  // タイプごとに仕分け
+  const characters = party.filter(e => e.type === "キャラクター");
+  const items = party.filter(e => e.type === "アイテム");
+  const monsters = party.filter(e => e.type === "モンスター");
+  let text = "なお、このシナリオでは下記のパーティが固定されています。\n";
+  text += "パーティの要素は、アイテム・モンスター・キャラクターの3種類が含まれます。\n";
+  text += "ただし、会話ができるのは『キャラクター』タイプのみです。\n";
+  text += "シーン中、時々パーティのキャラクターが会話する描写を加えてください。\n\n";
+  // 各種リスト
+  if (characters.length > 0) {
+    text += "◆【キャラクター】\n";
+    characters.forEach(ch => {
+      text += `- ${ch.name}\n`;
+    });
+    text += "\n";
+  }
+  if (items.length > 0) {
+    text += "◆【アイテム】\n";
+    items.forEach(it => {
+      text += `- ${it.name}\n`;
+    });
+    text += "\n";
+  }
+  if (monsters.length > 0) {
+    text += "◆【モンスター】\n";
+    monsters.forEach(mo => {
+      text += `- ${mo.name}\n`;
+    });
+    text += "\n";
+  }
+
+  text += "これらを、シーンのストーリーに混ぜて表現してください。";
+
+  return text;
+}
+
 /**
  * 指定シナリオIDをDBからロードして sceneHistory を構築
  */
@@ -91,8 +134,11 @@ async function getNextScene() {
   showLoadingModal(true);
 
   // プロンプト用メッセージを積み上げ
+  // -----------------------------------------
+  // まずシステムプロンプト
+  let systemText = "あなたはTRPGのゲームマスターです。HTMLタグOK。";
   const messages = [
-    { role: 'system', content: 'あなたはTRPGのゲームマスターです。HTMLタグOK。' },
+    { role: 'system', content: systemText },
   ];
 
   // シナリオ概要（複数シナリオ対応）
@@ -100,6 +146,16 @@ async function getNextScene() {
     const wizardData = window.currentScenario.wizardData || {};
     const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
+
+    // ★ 追加: シナリオに紐づいた「固定パーティ」を反映
+    const party = wizardData.party || [];
+    if (party.length > 0) {
+      const partyText = buildPartyInsertionText(party);
+      // 「system」ロールの末尾に追加したいので、ちょっと工夫
+      // ここでは「user」ロールで渡してもOKですが、まとまりを考えてsystemに追記する方法もあり。
+      // シンプルに追加ロールで渡す:
+      messages.push({ role: 'user', content: partyText });
+    }
   }
 
   // 過去のシーン履歴をChatGPTに渡す
@@ -116,6 +172,8 @@ async function getNextScene() {
     messages.push({ role: 'user', content: `プレイヤーの行動:${playerInput}` });
   }
 
+  // -----------------------------------------
+  // GPTに投げる
   try {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
@@ -403,7 +461,6 @@ function showLastScene() {
     // メインストーリー編集用の <p> 要素
     const sceneText = document.createElement('p');
     sceneText.className = 'scene-text';
-    // APIキーがあるときだけ編集可能 (履歴編集と同様)
     sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
     sceneText.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
     storyDiv.appendChild(sceneText);

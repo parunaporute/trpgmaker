@@ -1,18 +1,29 @@
 /********************************
  * scenarioWizard.js
- * 新しいシナリオ作成ウィザード (複数シナリオ対応)
+ * 新しいシナリオ作成ウィザード
+ *  - ローカルストレージを廃止し、IndexedDBに保存
  ********************************/
 
 let wizardData = {
   genre: "",
   scenarioType: "",      // "objective" or "exploration"
   clearCondition: "",    // 目的達成型ならChatGPTから取得
-  scenarioSummary: ""    // 全体のシナリオ要約
+  scenarioSummary: "",   // 全体のシナリオ要約
+  party: []
 };
 
 window.addEventListener("load", async function () {
+  // 1) IndexedDB初期化
   await initIndexedDB();
-  loadWizardDataFromLocalStorage();
+
+  // 2) 可能なら既存のwizardDataをロード
+  const storedWizard = await loadWizardDataFromIndexedDB();
+  if (storedWizard) {
+    wizardData = storedWizard;
+  }
+
+  updateSelectedGenreDisplay();
+  updateSummaryUI();
 
   // イベント設定
   document.getElementById("generate-genre-button").addEventListener("click", onGenerateGenre);
@@ -28,12 +39,42 @@ window.addEventListener("load", async function () {
   document.getElementById("start-scenario-button").addEventListener("click", onStartScenario);
   document.getElementById("cancel-request-button").addEventListener("click", onCancelFetch);
 
-  // モーダルのOK/Cancel
   document.getElementById("confirm-scenario-ok").addEventListener("click", onConfirmScenarioModalOK);
   document.getElementById("confirm-scenario-cancel").addEventListener("click", onConfirmScenarioModalCancel);
-
-  updateSelectedGenreDisplay();
 });
+
+/* ---------------------------------------------
+   シナリオ作成時に、現在のパーティをwizardDataに保存
+   （ただしimageDataなど巨大データをそのまま持たない）
+---------------------------------------------*/
+async function storePartyInWizardData() {
+  // 1) IndexedDBから最新の characterData をロード
+  const charData = await loadCharacterDataFromIndexedDB();
+  if (!charData) return;
+
+  // 2) group === "Party" のエレメントを取得
+  const fullParty = charData.filter(e => e.group === "Party");
+
+  // 3) 容量肥大を防ぐため、imageData等は除去し、必要情報のみ保持
+  const strippedParty = fullParty.map(e => {
+    return {
+      id: e.id,
+      name: e.name,
+      type: e.type,
+      rarity: e.rarity,
+      state: e.state,
+      special: e.special,
+      caption: e.caption,
+      backgroundcss: e.backgroundcss
+      // imageDataは保持しない
+    };
+  });
+
+  wizardData.party = strippedParty;
+
+  // 4) wizardDataをDBに保存
+  await saveWizardDataToIndexedDB(wizardData);
+}
 
 /* ---- ステップ1 ---- */
 async function onGenerateGenre() {
@@ -47,6 +88,8 @@ async function onGenerateGenre() {
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
+
+  genreListDiv.innerHTML = "";
 
   try {
     const messages = [
@@ -73,7 +116,7 @@ async function onGenerateGenre() {
     const content = data.choices[0].message.content;
     const lines = content.split("\n").map(l => l.trim()).filter(l => l);
 
-    // appendでボタンを追加
+    // ボタンを追加
     lines.forEach(line => {
       const btn = document.createElement("button");
       btn.classList.add("candidate-button");
@@ -81,10 +124,11 @@ async function onGenerateGenre() {
       btn.style.display = "block";
       btn.style.margin = "5px 0";
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         wizardData.genre = btn.textContent;
-        saveWizardDataToLocalStorage();
+        await saveWizardDataToIndexedDB(wizardData);
         highlightSelectedButton(genreListDiv, btn);
+
         // ステップ1→ステップ2
         document.getElementById("wizard-step1").style.display = "none";
         document.getElementById("wizard-step2").style.display = "block";
@@ -104,15 +148,16 @@ async function onGenerateGenre() {
   }
 }
 
-function onClearGenre() {
+async function onClearGenre() {
   const genreListDiv = document.getElementById("genre-list");
   genreListDiv.innerHTML = "";
   wizardData.genre = "";
+  await saveWizardDataToIndexedDB(wizardData);
+
   document.getElementById("free-genre-input").value = "";
-  saveWizardDataToLocalStorage();
 }
 
-function onConfirmGenre() {
+async function onConfirmGenre() {
   const freeInput = document.getElementById("free-genre-input");
   const txt = (freeInput.value || "").trim();
   if (!txt) {
@@ -120,7 +165,7 @@ function onConfirmGenre() {
     return;
   }
   wizardData.genre = txt;
-  saveWizardDataToLocalStorage();
+  await saveWizardDataToIndexedDB(wizardData);
 
   // ステップ1→ステップ2
   document.getElementById("wizard-step1").style.display = "none";
@@ -129,15 +174,14 @@ function onConfirmGenre() {
 }
 
 /* ---- ステップ2 ---- */
-
-// シナリオタイプ選択時→いきなり生成せず、モーダルを出す
-function onSelectScenarioType(type) {
+async function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
-  saveWizardDataToLocalStorage();
+  await saveWizardDataToIndexedDB(wizardData);
 
   // モーダルのテキストを更新
   const textEl = document.getElementById("confirm-genre-type-text");
   textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type === "objective" ? "目的達成型" : "探索型"}`;
+
   // モーダル表示
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "flex";
@@ -145,11 +189,12 @@ function onSelectScenarioType(type) {
 
 // モーダル: OK
 async function onConfirmScenarioModalOK() {
-  // モーダルを閉じる
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "none";
 
-  // ここでシナリオ生成開始
+  // ★ シナリオ概要を生成する直前にパーティ情報を取り込む
+  await storePartyInWizardData();
+
   if (wizardData.scenarioType === "objective") {
     await generateScenarioSummaryAndClearCondition();
   } else {
@@ -165,7 +210,6 @@ async function onConfirmScenarioModalOK() {
 function onConfirmScenarioModalCancel() {
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "none";
-  // ステップ2に留まる
 }
 
 function onBackToStep1() {
@@ -174,23 +218,16 @@ function onBackToStep1() {
 }
 
 /* ---- ステップ3 ---- */
-
-// 「ステップ2に戻る」
 function onBackToStep2FromStep3() {
   document.getElementById("wizard-step3").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 }
 
-// 「このシナリオで始める」 => 新しいシナリオIDを発行し、scenario.html へ
 async function onStartScenario() {
   try {
-    // シナリオ名を何にするか？ ひとまずジャンルか、あるいは "新シナリオ"
     let title = wizardData.genre || "新シナリオ";
 
-    // シナリオをDBに追加
     const scenarioId = await createNewScenario(wizardData, title);
-
-    // scenario.html?scenarioId=xxx に飛ぶ
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
   } catch (err) {
     console.error("シナリオ作成失敗:", err);
@@ -200,21 +237,19 @@ async function onStartScenario() {
 
 /* ---- シナリオ生成 (GPT呼び出し) ---- */
 async function generateScenarioSummaryAndClearCondition() {
-  wizardData.scenarioSummary = "";
-  wizardData.clearCondition = "";
-  saveWizardDataToLocalStorage();
-
-  const apiKey = localStorage.getItem("apiKey") || "";
-  if (!apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
+    const apiKey = localStorage.getItem("apiKey") || "";
+    if (!apiKey) {
+      throw new Error("APIキーが未設定です。");
+    }
+
+    wizardData.scenarioSummary = "";
+    wizardData.clearCondition = "";
+
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンルは「${wizardData.genre}」、シナリオタイプは「目的達成型」です。
@@ -241,6 +276,7 @@ async function generateScenarioSummaryAndClearCondition() {
       }),
       signal
     });
+
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
@@ -254,6 +290,9 @@ async function generateScenarioSummaryAndClearCondition() {
     }
     wizardData.scenarioSummary = summaryPart;
     wizardData.clearCondition = clearConditionPart;
+
+    await saveWizardDataToIndexedDB(wizardData);
+    updateSummaryUI();
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("目的達成型シナリオ生成キャンセル");
@@ -263,26 +302,22 @@ async function generateScenarioSummaryAndClearCondition() {
     }
   } finally {
     showLoadingModal(false);
-    saveWizardDataToLocalStorage();
-    updateSummaryUI();
   }
 }
 
 async function generateScenarioSummary() {
-  wizardData.scenarioSummary = "";
-  saveWizardDataToLocalStorage();
-
-  const apiKey = localStorage.getItem("apiKey") || "";
-  if (!apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
+    const apiKey = localStorage.getItem("apiKey") || "";
+    if (!apiKey) {
+      throw new Error("APIキーが未設定です。");
+    }
+
+    wizardData.scenarioSummary = "";
+
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンルは「${wizardData.genre}」、シナリオタイプは「探索型」です。
@@ -307,10 +342,13 @@ async function generateScenarioSummary() {
       }),
       signal
     });
+
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
     wizardData.scenarioSummary = data.choices[0].message.content;
+    await saveWizardDataToIndexedDB(wizardData);
+    updateSummaryUI();
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("探索型シナリオ生成キャンセル");
@@ -320,12 +358,10 @@ async function generateScenarioSummary() {
     }
   } finally {
     showLoadingModal(false);
-    saveWizardDataToLocalStorage();
-    updateSummaryUI();
   }
 }
 
-/* ---- 表示更新 ---- */
+/* ---- UI更新 ---- */
 function updateSummaryUI() {
   const summaryDiv = document.getElementById("scenario-summary");
   const scenario = wizardData.scenarioSummary || "（シナリオ概要なし）";
@@ -342,23 +378,7 @@ function updateSelectedGenreDisplay() {
   }
 }
 
-/* ---- localStorage ---- */
-function loadWizardDataFromLocalStorage() {
-  const dataStr = localStorage.getItem("wizardData");
-  if (!dataStr) return;
-  try {
-    const obj = JSON.parse(dataStr);
-    wizardData = obj;
-  } catch (e) {
-    console.warn("wizardData parse失敗", e);
-  }
-}
-
-function saveWizardDataToLocalStorage() {
-  localStorage.setItem("wizardData", JSON.stringify(wizardData));
-}
-
-/* ---- モーダル操作 ---- */
+/* ---- 共通 ---- */
 function showLoadingModal(show) {
   const modal = document.getElementById("loading-modal");
   if (!modal) return;
@@ -372,7 +392,6 @@ function onCancelFetch() {
   showLoadingModal(false);
 }
 
-/** ハイライト */
 function highlightSelectedButton(container, targetBtn) {
   const allBtns = container.querySelectorAll(".candidate-button");
   allBtns.forEach(b => b.style.backgroundColor = "");
