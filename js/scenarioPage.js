@@ -2,7 +2,7 @@
  * scenarioPage.js
  * シナリオページ固有のUI操作
  * - 「回答候補を生成」機能
- * - 「カードを取得する」ボタンでシーン→アイテム化
+ * - 「カードを取得する」ボタンでプレビューモーダルを表示
  ********************************/
 
 window.addEventListener("load", async () => {
@@ -25,81 +25,128 @@ window.addEventListener("load", async () => {
     window.characterData.length
   );
 
-  // メニューに戻るボタン
+  // メニューに戻るボタン（シナリオ画面 → index.html）
   const backToMenuBtn = document.getElementById("back-to-menu");
-  if(backToMenuBtn){
+  if (backToMenuBtn) {
     backToMenuBtn.addEventListener("click", () => {
       window.location.href = "index.html";
     });
   }
 
-  // ネタバレ（クリア条件）
+  // ネタバレ（目的達成型）
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
-
-  if(spoilerButton){
+  if (spoilerButton) {
     spoilerButton.addEventListener("click", () => {
       spoilerModal.style.display = "flex";
     });
   }
-  if(closeSpoilerModalBtn){
+  if (closeSpoilerModalBtn) {
     closeSpoilerModalBtn.addEventListener("click", () => {
       spoilerModal.style.display = "none";
     });
   }
 
-  // 「カードを取得する」ボタン（探索型シナリオ用）
+  // -----------------------------
+  // 「カードを取得する」ボタン押下 → プレビューモーダル
+  // -----------------------------
   const getCardButton = document.getElementById("get-card-button");
-  if(getCardButton){
+  if (getCardButton) {
     getCardButton.addEventListener("click", async () => {
-      // シーン全文を要約
+      // 1) 最新シーンからカード化に使えそうな情報を要約
       const sceneSummary = await getLastSceneSummary();
 
-      // GPTから取得したテキストをパース
+      // シーン要約中から【名前】や【タイプ】【外見】等を抜き出す（サンプル実装）
       const lines = sceneSummary.split("\n");
       let onlyTitle = "", onlyType = "", addPrompt = "";
       lines.forEach((line) => {
-        line = line.trim();
-        if (line.startsWith("【名前】")) {
-          onlyTitle = line.replace("【名前】", "").replace("：", "").trim();
-        } else if (line.startsWith("【タイプ】")) {
-          onlyType = line.replace("【タイプ】", "").replace("：", "").trim();
-        } else if (line.startsWith("【外見】")) {
-          addPrompt = line.replace("【外見】", "").replace("：", "").trim();
+        const trimLine = line.trim();
+        if (trimLine.startsWith("【名前】")) {
+          onlyTitle = trimLine.replace("【名前】", "").replace("：", "").trim();
+        } else if (trimLine.startsWith("【タイプ】")) {
+          onlyType = trimLine.replace("【タイプ】", "").replace("：", "").trim();
+        } else if (trimLine.startsWith("【外見】")) {
+          addPrompt = trimLine.replace("【外見】", "").replace("：", "").trim();
         }
       });
 
-      alert("要約結果:\n" + sceneSummary);
+      // 2) プレビューモーダルを表示（テキストでの説明）
+      const previewModal = document.getElementById("card-preview-modal");
+      const previewContainer = document.getElementById("preview-card-container");
+      if (!previewModal || !previewContainer) return;
 
-      // 実際には下記を有効にして倉庫へ送る:
-      await runGacha(1, addPrompt, onlyTitle, onlyType);
+      // いったん内部をクリア
+      previewContainer.innerHTML = "";
 
-      alert("シーンで新たなカードを取得しました。\n『エレメント作成』画面のガチャBOXに追加されます。");
+      // ここでは仮に「このカードの概要」をテキストで表示するサンプル
+      const preText = document.createElement("p");
+      preText.textContent = 
+        `【名前】：${onlyTitle || "(未取得)"}\n` +
+        `【タイプ】：${onlyType || "(未取得)"}\n` +
+        `【外見(生成プロンプト)】：${addPrompt || "(未取得)"}\n\n` +
+        "この内容でカードを生成しますか？"
+      ;
+      preText.style.whiteSpace = "pre-wrap";
+      previewContainer.appendChild(preText);
+
+      // モーダルを表示
+      previewModal.style.display = "flex";
+
+      // 「ガチャ箱に追加」ボタン
+      const addBtn = document.getElementById("add-to-gachabox-button");
+      if (addBtn) {
+        addBtn.onclick = async () => {
+          previewModal.style.display = "none";
+          // 実際にカードを生成（1枚）してガチャ箱へ
+          const gachaModal = document.getElementById("gacha-modal");
+          if (gachaModal) {
+            gachaModal.style.display = "flex";
+          }
+          try {
+            await runGacha(1, addPrompt, onlyTitle, onlyType);
+            alert("新しいカードをガチャ箱に追加しました。\n「エレメント作成」画面で確認できます。");
+          } catch (err) {
+            console.error(err);
+            alert("カード生成に失敗しました:\n" + err.message);
+          } finally {
+            if (gachaModal) {
+              gachaModal.style.display = "none";
+            }
+          }
+        };
+      }
+
+      // 「キャンセル」ボタン
+      const cancelBtn = document.getElementById("cancel-card-preview-button");
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          previewModal.style.display = "none";
+        };
+      }
     });
   }
 
-  // 「回答候補を生成」ボタン（プレイヤー行動の候補）
+  // -----------------------------
+  // 「回答候補を生成」ボタン
+  // -----------------------------
   const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
-  if(generateActionCandidatesBtn){
+  if (generateActionCandidatesBtn) {
     generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
   }
 });
 
 /**
- * 「回答候補を生成」ボタン押下
- * - 直近のシーンを踏まえ、プレイヤー行動の候補を5つ提案してもらう
- * - 結果をボタンとして表示し、クリックすると player-input に反映
+ * 回答候補（プレイヤー行動案）を生成
  */
-async function onGenerateActionCandidates(){
-  if(!window.apiKey){
+async function onGenerateActionCandidates() {
+  if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
-
-  // 最新シーンのテキストを取得
+  // 最新シーンを取得
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
-  const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(まだシーンがありません)";
+  const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(シーンがありません)";
 
   window.cancelRequested = false;
   showLoadingModal(true);
@@ -127,8 +174,8 @@ async function onGenerateActionCandidates(){
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          {role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
-          {role:"user", content: prompt}
+          { role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
+          { role:"user", content: prompt }
         ],
         temperature:0.7
       }),
@@ -141,7 +188,7 @@ async function onGenerateActionCandidates(){
     }
 
     const content = data.choices[0].message.content.trim();
-    // 例: 「1. ドアを調べる\n2. NPCに話しかける\n...」
+    // 「1. ～」のような形式で来るので行ごとにボタン生成
     const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
 
     const container = document.getElementById("action-candidates-container");
@@ -150,11 +197,11 @@ async function onGenerateActionCandidates(){
 
     lines.forEach(line => {
       const btn = document.createElement("button");
-      btn.textContent = line.replace(/^\d+\.\s*/, "");
+      btn.textContent = line.replace(/^\d+\.\s*/, "");  // 行頭の "1. "などを削除
       btn.style.display = "block";
       btn.style.margin = "5px 0";
 
-      // クリックで #player-input にセット
+      // クリックで #player-input に反映
       btn.addEventListener("click", ()=>{
         const playerInput = document.getElementById("player-input");
         if(playerInput){
@@ -178,8 +225,7 @@ async function onGenerateActionCandidates(){
 }
 
 /**
- * 最新のシーン内容を要約し、【名前】【タイプ】【外見】形式で返す。
- * カード取得時に利用する。
+ * 最新シーンの内容を ChatGPT で要約し、カード用の【名前】【タイプ】【外見】を抽出する。
  */
 async function getLastSceneSummary() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
@@ -189,16 +235,12 @@ async function getLastSceneSummary() {
 
   const systemPrompt = `あなたは優秀なカード作成用プロンプト製造者です。以下のフォーマットでプロンプトを製造してください。
 【名前】：...
-【タイプ】：キャラクター、モンスター、アイテム、のいずれか
+【タイプ】：キャラクター、モンスター、アイテムのいずれか
 【外見】：...
 `;
   const userPrompt = `
-以下のシナリオの1シーンから関連がありそうで見栄えがしそうなエレメントを1件だけ抜き出してください。
-エレメントは
-・シーンに出現するキャラクター
-・シーンに出現する武器
-・シーンに出現するアイテム
-のいずれかです。
+以下のシナリオの1シーンから、エレメントにできそうな対象を1つだけ取り出し、
+カード用の【名前】【タイプ】【外見】を生成してください。
 ---
 ${fullText}
 ---
@@ -230,15 +272,14 @@ ${fullText}
   }
 }
 
-
-/** ローディングモーダル表示/非表示 */
+/** ローディングモーダルの表示/非表示 */
 function showLoadingModal(show){
   const modal = document.getElementById("loading-modal");
   if(!modal) return;
   modal.style.display = show ? "flex" : "none";
 }
 
-/** リクエストキャンセル */
+/** リクエストを中断 */
 function onCancelFetch(){
   if(window.currentRequestController){
     window.currentRequestController.abort();

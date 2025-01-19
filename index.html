@@ -43,11 +43,21 @@
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
       <div id="active-scenarios-container">
-        <!-- 進行中シナリオのリンクがここに表示されます -->
+        <!-- 進行中シナリオのリンクがここに表示されます（現在未使用） -->
       </div>
       <div id="scenario-list-container">
-        <!-- JavaScriptで一覧表示 -->
+        <!-- JavaScriptで一覧表示 & 削除ボタンを付与 -->
       </div>
+    </div>
+  </div>
+
+  <!-- ▼ シナリオ削除用の確認モーダル -->
+  <div id="delete-scenario-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>シナリオ削除の確認</h3>
+      <p>このシナリオを削除します。よろしいですか？</p>
+      <button id="delete-scenario-ok">OK</button>
+      <button id="delete-scenario-cancel">キャンセル</button>
     </div>
   </div>
 
@@ -80,6 +90,7 @@
       window.location.href = "scenarioWizard.html";
     });
   </script>
+  <button id="sample-btn">hoge</button>
 </body>
 
 </html>

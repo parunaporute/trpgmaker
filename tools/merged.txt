@@ -98,9 +98,22 @@ index.html
     <!-- ★ 進行中のシナリオ一覧 -->
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
-      <div id="scenario-list-container">
-        <!-- JavaScriptで一覧表示 -->
+      <div id="active-scenarios-container">
+        <!-- 進行中シナリオのリンクがここに表示されます（現在未使用） -->
       </div>
+      <div id="scenario-list-container">
+        <!-- JavaScriptで一覧表示 & 削除ボタンを付与 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ▼ シナリオ削除用の確認モーダル -->
+  <div id="delete-scenario-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>シナリオ削除の確認</h3>
+      <p>このシナリオを削除します。よろしいですか？</p>
+      <button id="delete-scenario-ok">OK</button>
+      <button id="delete-scenario-cancel">キャンセル</button>
     </div>
   </div>
 
@@ -133,9 +146,11 @@ index.html
       window.location.href = "scenarioWizard.html";
     });
   </script>
+  <button id="sample-btn">hoge</button>
 </body>
 
-</html>--- 
+</html>
+--- 
 partyCreate.html 
 <!DOCTYPE html>
 <html lang="ja">
@@ -194,6 +209,7 @@ scenario.html
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
+
 <body>
   <!-- メニューに戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
@@ -231,17 +247,12 @@ scenario.html
         <button id="image-auto-generate-button">自動生成(現シーンから)</button>
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
-
       <div id="player-action" style="margin-top:20px;">プレイヤーの行動を入力してください</div>
-      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
-
-      <!-- ★ ここに「回答候補を生成」ボタンと表示領域を追加 -->
       <div style="margin-top:10px;">
         <button id="generate-action-candidates-button">回答候補を生成</button>
       </div>
       <div id="action-candidates-container" style="margin-top:10px;"></div>
-      <!-- ★ ここまで追加 -->
-
+      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
 
       <!-- 探索型なら表示する「カードを取得する」ボタン -->
@@ -271,14 +282,31 @@ scenario.html
     </div>
   </div>
 
+  <!-- ▼ 新しく追加したいカードプレビューモーダル -->
+  <div id="card-preview-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>新しいカード</h2>
+      <!-- ここにカードのプレビュー要素を動的に組み立てて表示 -->
+      <div id="preview-card-container"></div>
+
+      <div style="margin-top:10px;">
+        <button id="add-to-gachabox-button">ガチャ箱に追加</button>
+        <button id="cancel-card-preview-button">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ---------- スクリプト群 ---------- -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
+
+  <!-- ▼ scenarioPage.js は最後に読み込む -->
   <script src="js/scenarioPage.js"></script>
 </body>
+
 </html>
 --- 
 scenarioWizard.html 
@@ -1752,13 +1780,11 @@ let db = null;
  * バージョン3:
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
- *  - characterData ストア (keyPath: 'id') →既存のまま
- *
- * 旧 sceneHistory ストアは使用せず。必要なら削除または放置。
+ *  - characterData ストア (keyPath: 'id')
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 3); // バージョンを3へ
+    const request = indexedDB.open("trpgDB", 3);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -1773,7 +1799,6 @@ function initIndexedDB() {
           keyPath: "scenarioId",
           autoIncrement: true
         });
-        // シナリオ一覧を名前や更新日時でソートしたい場合はindex追加
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
@@ -1783,14 +1808,8 @@ function initIndexedDB() {
           keyPath: "entryId",
           autoIncrement: true
         });
-        // シナリオIDで検索できるようにindex
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
-
-      // 旧 sceneHistory ストアがあれば放置 or 削除
-      // if(db.objectStoreNames.contains("sceneHistory")){
-      //   db.deleteObjectStore("sceneHistory");
-      // }
     };
     request.onsuccess = (event) => {
       db = event.target.result;
@@ -1804,7 +1823,7 @@ function initIndexedDB() {
 }
 
 /**
- * characterData を保存 (旧APIのまま)
+ * characterData を保存
  */
 function saveCharacterDataToIndexedDB(characterData) {
   return new Promise((resolve, reject) => {
@@ -1857,9 +1876,7 @@ function loadCharacterDataFromIndexedDB() {
    -------------------------------------------*/
 
 /**
- * 新しいシナリオを scenarios ストアに追加し、その scenarioId を返す
- *  - wizardData: { genre, scenarioType, clearCondition, scenarioSummary }
- *  - title: 一覧表示などに使う簡易タイトル
+ * 新しいシナリオを scenarios ストアに追加
  */
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
@@ -1871,7 +1888,6 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 
     const now = new Date();
     const record = {
-      // scenarioId はautoIncrement
       title: title,
       wizardData: wizardData,
       createdAt: now.toISOString(),
@@ -1880,7 +1896,7 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 
     const addReq = store.add(record);
     addReq.onsuccess = (evt) => {
-      const newId = evt.target.result; // autoIncrement された scenarioId
+      const newId = evt.target.result;
       resolve(newId);
     };
     addReq.onerror = (err) => {
@@ -1890,9 +1906,7 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 }
 
 /**
- * 指定のシナリオを読み込む
- * @param {number} scenarioId
- * @returns Promise<{ scenarioId, title, wizardData, createdAt, updatedAt } | null>
+ * シナリオをID指定で取得
  */
 function getScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
@@ -1912,8 +1926,7 @@ function getScenarioById(scenarioId) {
 }
 
 /**
- * 進行中のシナリオをすべて取得する
- * シンプルに全件読む
+ * 進行中のシナリオをすべて取得
  */
 function listAllScenarios() {
   return new Promise((resolve, reject) => {
@@ -1925,7 +1938,6 @@ function listAllScenarios() {
     const req = store.getAll();
     req.onsuccess = (evt) => {
       const result = evt.target.result || [];
-      // ここでは updatedAt 降順などにソートして返す
       result.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
       resolve(result);
     };
@@ -1936,7 +1948,7 @@ function listAllScenarios() {
 }
 
 /**
- * シナリオを更新 (updatedAt更新など)
+ * シナリオを更新 (updatedAtを上書きなど)
  */
 function updateScenario(scenario) {
   return new Promise((resolve, reject) => {
@@ -1962,9 +1974,6 @@ function updateScenario(scenario) {
 
 /**
  * シーン履歴エントリを追加
- * entryオブジェクトは
- *   { scenarioId, type, content, sceneId, dataUrl, prompt, ... }
- * など。
  */
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
@@ -1975,7 +1984,7 @@ function addSceneEntry(entry) {
     const store = tx.objectStore("sceneEntries");
     const addReq = store.add(entry);
     addReq.onsuccess = (evt) => {
-      resolve(evt.target.result); // entryId
+      resolve(evt.target.result);
     };
     addReq.onerror = (err) => {
       reject(err);
@@ -1984,7 +1993,7 @@ function addSceneEntry(entry) {
 }
 
 /**
- * シナリオIDを指定して、そのシナリオの全シーンエントリを取得
+ * 指定シナリオIDの全シーンエントリを取得
  */
 function getSceneEntriesByScenarioId(scenarioId) {
   return new Promise((resolve, reject) => {
@@ -2003,9 +2012,6 @@ function getSceneEntriesByScenarioId(scenarioId) {
         results.push(cursor.value);
         cursor.continue();
       } else {
-        // 取得完了
-        // ここでtype:'action'や'scene'などの順番を並べ替えて返してもよい
-        // とりあえずentryId昇順にしておく
         results.sort((a, b) => (a.entryId - b.entryId));
         resolve(results);
       }
@@ -2057,6 +2063,47 @@ function deleteSceneEntry(entryId) {
 }
 
 /* -------------------------------------------
+  ★シナリオ削除用(シナリオ本体 + シーン履歴)
+-------------------------------------------*/
+function deleteScenarioById(scenarioId) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    // scenarios, sceneEntries両方をreadwrite
+    const tx = db.transaction(["scenarios", "sceneEntries"], "readwrite");
+    const scenarioStore = tx.objectStore("scenarios");
+    const sceneEntriesStore = tx.objectStore("sceneEntries");
+
+    // 1) シナリオ本体を削除
+    const deleteReq = scenarioStore.delete(scenarioId);
+    deleteReq.onsuccess = () => {
+      // 2) さらにsceneEntriesで scenarioId が一致するものを全削除
+      const idx = sceneEntriesStore.index("scenarioId");
+      const range = IDBKeyRange.only(scenarioId);
+
+      idx.openCursor(range).onsuccess = (evt) => {
+        const cursor = evt.target.result;
+        if (cursor) {
+          sceneEntriesStore.delete(cursor.primaryKey);
+          cursor.continue();
+        }
+      };
+
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = (err) => {
+        reject(err);
+      };
+    };
+    deleteReq.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
+/* -------------------------------------------
   エクスポート
 -------------------------------------------*/
 window.initIndexedDB = initIndexedDB;
@@ -2064,7 +2111,6 @@ window.initIndexedDB = initIndexedDB;
 window.saveCharacterDataToIndexedDB = saveCharacterDataToIndexedDB;
 window.loadCharacterDataFromIndexedDB = loadCharacterDataFromIndexedDB;
 
-// 新API
 window.createNewScenario = createNewScenario;
 window.getScenarioById = getScenarioById;
 window.listAllScenarios = listAllScenarios;
@@ -2074,6 +2120,9 @@ window.addSceneEntry = addSceneEntry;
 window.getSceneEntriesByScenarioId = getSceneEntriesByScenarioId;
 window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
+
+/* ★シナリオ削除用 */
+window.deleteScenarioById = deleteScenarioById;
 --- 
 main.js 
 /********************************
@@ -2264,41 +2313,65 @@ window.onload = async () => {
 menu.js 
 // menu.js
 
-// 「シナリオ」ボタン押下で scenario.html へ（←従来のフリーシナリオ用）
-document.getElementById("scenario").addEventListener("click", function () {
-    window.location.href = "scenario.html";
-});
+// ▼ シナリオ削除用：選択中のscenarioIdを一時的に保存する変数
+let scenarioIdToDelete = null;
 
-// APIキー設定
-document.getElementById("set-api-key-button").addEventListener("click", function () {
-    const apiKey = document.getElementById("api-key-input").value.trim();
-    if (apiKey) {
-        localStorage.setItem("apiKey", apiKey);
-        alert("APIキーが設定されました。");
-    } else {
-        alert("APIキーを入力してください。");
-    }
-});
+// -----------------------------------------
+// トースト表示用のユーティリティ関数
+// -----------------------------------------
+function showToast(message) {
+  // 既に表示中のトーストがあれば削除する
+  const oldToast = document.getElementById("toast-message");
+  if (oldToast) {
+    oldToast.remove();
+  }
+  
+  // トースト用の要素を生成
+  const toast = document.createElement("div");
+  toast.id = "toast-message";
+  toast.textContent = message;
 
-// APIキークリア
-document.getElementById("clear-api-key-button").addEventListener("click", function () {
-    const confirmClear = confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？");
-    if (confirmClear) {
-        localStorage.removeItem("apiKey");
-        alert("APIキーがクリアされました。");
-    }
-});
+  // スタイル（シンプルな例）
+  toast.style.position = "fixed";
+  toast.style.bottom = "20px";
+  toast.style.left = "50%";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 20px";
+  toast.style.borderRadius = "4px";
+  toast.style.fontSize = "14px";
+  toast.style.zIndex = "9999";
+  toast.style.opacity = "0";
+  toast.style.transition = "opacity 0.3s ease";
 
-// ページ読み込み時にAPIキーを入力欄に表示
-window.addEventListener("load", async function () {
+  document.body.appendChild(toast);
+
+  // 少し待ってからフェードイン
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+  });
+
+  // 3秒後にフェードアウトして消す
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.addEventListener("transitionend", () => {
+      toast.remove();
+    });
+  }, 3000);
+}
+
+// （A）スクリプトのトップレベルで即時実行してしまうパターン
+(async function initMenuPage() {
+    // 1) APIキーを入力欄に表示
     const savedApiKey = localStorage.getItem("apiKey");
     if (savedApiKey) {
         document.getElementById("api-key-input").value = savedApiKey;
     }
 
-    // scenarios一覧を取得して表示（indexedDB.js側のlistAllScenariosを呼び出し）
+    // 2) シナリオ一覧を取得して表示
     try {
-        const scenarioList = await listAllScenarios();
+        const scenarioList = await listAllScenarios();  // indexedDB.js の関数
         const container = document.getElementById("scenario-list-container");
         container.innerHTML = "";
 
@@ -2309,18 +2382,30 @@ window.addEventListener("load", async function () {
                 const div = document.createElement("div");
                 div.style.margin = "10px 0";
 
-                // シナリオ情報を表示
+                // シナリオ情報
                 const infoText = document.createElement("span");
                 infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
                 div.appendChild(infoText);
 
                 // 「続きへ」ボタン
-                const btn = document.createElement("button");
-                btn.textContent = "続きへ";
-                btn.addEventListener("click", () => {
+                const btnContinue = document.createElement("button");
+                btnContinue.textContent = "続きへ";
+                btnContinue.style.marginRight = "6px";
+                btnContinue.addEventListener("click", () => {
                     window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
                 });
-                div.appendChild(btn);
+                div.appendChild(btnContinue);
+
+                // 「削除」ボタン
+                const btnDelete = document.createElement("button");
+                btnDelete.textContent = "削除";
+                btnDelete.style.backgroundColor = "#f44336";
+                btnDelete.addEventListener("click", () => {
+                    // 削除確認モーダルを表示し、削除対象IDを保持
+                    scenarioIdToDelete = scenario.scenarioId;
+                    showDeleteScenarioModal(true);
+                });
+                div.appendChild(btnDelete);
 
                 container.appendChild(div);
             });
@@ -2330,21 +2415,48 @@ window.addEventListener("load", async function () {
         const container = document.getElementById("scenario-list-container");
         container.textContent = "シナリオ一覧の取得に失敗しました。再読み込みしてください。";
     }
+})();
+
+// -------------------------------------------------------
+// 以下はボタンなどのイベント登録
+// -------------------------------------------------------
+
+// 「フリーシナリオ」ボタン
+document.getElementById("scenario").addEventListener("click", function () {
+    window.location.href = "scenario.html";
 });
 
-// パーティ作成ボタン押下時、partyCreate.htmlへ（index.html側で既に設定済み）
+// APIキー設定
+document.getElementById("set-api-key-button").addEventListener("click", function () {
+    const apiKey = document.getElementById("api-key-input").value.trim();
+    if (apiKey) {
+        localStorage.setItem("apiKey", apiKey);
+        showToast("APIキーが設定されました。");
+    } else {
+        showToast("APIキーを入力してください。");
+    }
+});
 
-// エレメントクリアボタン
+// APIキークリア
+document.getElementById("clear-api-key-button").addEventListener("click", function () {
+    const confirmClear = confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？");
+    if (confirmClear) {
+        localStorage.removeItem("apiKey");
+        showToast("APIキーがクリアされました。");
+    }
+});
+
+// 全エレメントをクリア
 document.getElementById("clear-character-btn").addEventListener("click", async () => {
     const confirmClear = confirm("エレメント情報をクリアします。よろしいですか？");
     if (confirmClear) {
         window.characterData = [];
         await saveCharacterDataToIndexedDB(window.characterData);
-        alert("エレメント情報をクリアしました。");
+        showToast("エレメント情報をクリアしました。");
     }
 });
 
-// 履歴クリアボタン（※これは旧フリーシナリオ用）
+// 旧フリーシナリオ用の履歴クリア
 const clearHistoryBtn = document.getElementById('clear-history-button');
 if (clearHistoryBtn) {
     clearHistoryBtn.addEventListener('click', async () => {
@@ -2354,11 +2466,48 @@ if (clearHistoryBtn) {
         // 旧フリーシナリオの localStorage を削除
         localStorage.removeItem('scenario');
         localStorage.removeItem('currentScene');
-        // 旧 sceneHistory ストアを消す対応などが必要なら実装
-
-        alert("旧フリーシナリオ情報をクリアしました。");
+        showToast("旧フリーシナリオ情報をクリアしました。");
     });
 }
+
+/* ----------------------------------------------------
+   シナリオ削除用モーダルの制御 (index.html 内に実装)
+---------------------------------------------------- */
+function showDeleteScenarioModal(show) {
+    const modal = document.getElementById("delete-scenario-modal");
+    if (!modal) return;
+    modal.style.display = show ? "flex" : "none";
+}
+
+// モーダル内「OK」ボタン
+document.getElementById("delete-scenario-ok").addEventListener("click", async () => {
+    if (scenarioIdToDelete == null) {
+        showDeleteScenarioModal(false);
+        return;
+    }
+    try {
+        await deleteScenarioById(scenarioIdToDelete);  // indexedDB.js の関数
+        showToast(`シナリオ(ID:${scenarioIdToDelete})を削除しました。`);
+    } catch (err) {
+        console.error(err);
+        showToast("シナリオ削除に失敗:\n" + err.message);
+    }
+    scenarioIdToDelete = null;
+    showDeleteScenarioModal(false);
+
+    // 一覧を再描画するためページをリロード
+    location.reload();
+});
+
+// モーダル内「キャンセル」ボタン
+document.getElementById("delete-scenario-cancel").addEventListener("click", () => {
+    scenarioIdToDelete = null;
+    showDeleteScenarioModal(false);
+});
+
+document.getElementById("sample-btn").addEventListener("click", () => {
+    showToast("ほげ");
+});
 --- 
 partyCreate.js 
 // partyCreate.js
@@ -2715,7 +2864,7 @@ scenarioPage.js
  * scenarioPage.js
  * シナリオページ固有のUI操作
  * - 「回答候補を生成」機能
- * - 「カードを取得する」ボタンでシーン→アイテム化
+ * - 「カードを取得する」ボタンでプレビューモーダルを表示
  ********************************/
 
 window.addEventListener("load", async () => {
@@ -2738,81 +2887,128 @@ window.addEventListener("load", async () => {
     window.characterData.length
   );
 
-  // メニューに戻るボタン
+  // メニューに戻るボタン（シナリオ画面 → index.html）
   const backToMenuBtn = document.getElementById("back-to-menu");
-  if(backToMenuBtn){
+  if (backToMenuBtn) {
     backToMenuBtn.addEventListener("click", () => {
       window.location.href = "index.html";
     });
   }
 
-  // ネタバレ（クリア条件）
+  // ネタバレ（目的達成型）
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
-
-  if(spoilerButton){
+  if (spoilerButton) {
     spoilerButton.addEventListener("click", () => {
       spoilerModal.style.display = "flex";
     });
   }
-  if(closeSpoilerModalBtn){
+  if (closeSpoilerModalBtn) {
     closeSpoilerModalBtn.addEventListener("click", () => {
       spoilerModal.style.display = "none";
     });
   }
 
-  // 「カードを取得する」ボタン（探索型シナリオ用）
+  // -----------------------------
+  // 「カードを取得する」ボタン押下 → プレビューモーダル
+  // -----------------------------
   const getCardButton = document.getElementById("get-card-button");
-  if(getCardButton){
+  if (getCardButton) {
     getCardButton.addEventListener("click", async () => {
-      // シーン全文を要約
+      // 1) 最新シーンからカード化に使えそうな情報を要約
       const sceneSummary = await getLastSceneSummary();
 
-      // GPTから取得したテキストをパース
+      // シーン要約中から【名前】や【タイプ】【外見】等を抜き出す（サンプル実装）
       const lines = sceneSummary.split("\n");
       let onlyTitle = "", onlyType = "", addPrompt = "";
       lines.forEach((line) => {
-        line = line.trim();
-        if (line.startsWith("【名前】")) {
-          onlyTitle = line.replace("【名前】", "").replace("：", "").trim();
-        } else if (line.startsWith("【タイプ】")) {
-          onlyType = line.replace("【タイプ】", "").replace("：", "").trim();
-        } else if (line.startsWith("【外見】")) {
-          addPrompt = line.replace("【外見】", "").replace("：", "").trim();
+        const trimLine = line.trim();
+        if (trimLine.startsWith("【名前】")) {
+          onlyTitle = trimLine.replace("【名前】", "").replace("：", "").trim();
+        } else if (trimLine.startsWith("【タイプ】")) {
+          onlyType = trimLine.replace("【タイプ】", "").replace("：", "").trim();
+        } else if (trimLine.startsWith("【外見】")) {
+          addPrompt = trimLine.replace("【外見】", "").replace("：", "").trim();
         }
       });
 
-      alert("要約結果:\n" + sceneSummary);
+      // 2) プレビューモーダルを表示（テキストでの説明）
+      const previewModal = document.getElementById("card-preview-modal");
+      const previewContainer = document.getElementById("preview-card-container");
+      if (!previewModal || !previewContainer) return;
 
-      // 実際には下記を有効にして倉庫へ送る:
-      await runGacha(1, addPrompt, onlyTitle, onlyType);
+      // いったん内部をクリア
+      previewContainer.innerHTML = "";
 
-      alert("シーンで新たなカードを取得しました。\n『エレメント作成』画面のガチャBOXに追加されます。");
+      // ここでは仮に「このカードの概要」をテキストで表示するサンプル
+      const preText = document.createElement("p");
+      preText.textContent = 
+        `【名前】：${onlyTitle || "(未取得)"}\n` +
+        `【タイプ】：${onlyType || "(未取得)"}\n` +
+        `【外見(生成プロンプト)】：${addPrompt || "(未取得)"}\n\n` +
+        "この内容でカードを生成しますか？"
+      ;
+      preText.style.whiteSpace = "pre-wrap";
+      previewContainer.appendChild(preText);
+
+      // モーダルを表示
+      previewModal.style.display = "flex";
+
+      // 「ガチャ箱に追加」ボタン
+      const addBtn = document.getElementById("add-to-gachabox-button");
+      if (addBtn) {
+        addBtn.onclick = async () => {
+          previewModal.style.display = "none";
+          // 実際にカードを生成（1枚）してガチャ箱へ
+          const gachaModal = document.getElementById("gacha-modal");
+          if (gachaModal) {
+            gachaModal.style.display = "flex";
+          }
+          try {
+            await runGacha(1, addPrompt, onlyTitle, onlyType);
+            alert("新しいカードをガチャ箱に追加しました。\n「エレメント作成」画面で確認できます。");
+          } catch (err) {
+            console.error(err);
+            alert("カード生成に失敗しました:\n" + err.message);
+          } finally {
+            if (gachaModal) {
+              gachaModal.style.display = "none";
+            }
+          }
+        };
+      }
+
+      // 「キャンセル」ボタン
+      const cancelBtn = document.getElementById("cancel-card-preview-button");
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          previewModal.style.display = "none";
+        };
+      }
     });
   }
 
-  // 「回答候補を生成」ボタン（プレイヤー行動の候補）
+  // -----------------------------
+  // 「回答候補を生成」ボタン
+  // -----------------------------
   const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
-  if(generateActionCandidatesBtn){
+  if (generateActionCandidatesBtn) {
     generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
   }
 });
 
 /**
- * 「回答候補を生成」ボタン押下
- * - 直近のシーンを踏まえ、プレイヤー行動の候補を5つ提案してもらう
- * - 結果をボタンとして表示し、クリックすると player-input に反映
+ * 回答候補（プレイヤー行動案）を生成
  */
-async function onGenerateActionCandidates(){
-  if(!window.apiKey){
+async function onGenerateActionCandidates() {
+  if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
-
-  // 最新シーンのテキストを取得
+  // 最新シーンを取得
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
-  const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(まだシーンがありません)";
+  const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(シーンがありません)";
 
   window.cancelRequested = false;
   showLoadingModal(true);
@@ -2840,8 +3036,8 @@ async function onGenerateActionCandidates(){
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          {role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
-          {role:"user", content: prompt}
+          { role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
+          { role:"user", content: prompt }
         ],
         temperature:0.7
       }),
@@ -2854,7 +3050,7 @@ async function onGenerateActionCandidates(){
     }
 
     const content = data.choices[0].message.content.trim();
-    // 例: 「1. ドアを調べる\n2. NPCに話しかける\n...」
+    // 「1. ～」のような形式で来るので行ごとにボタン生成
     const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
 
     const container = document.getElementById("action-candidates-container");
@@ -2863,11 +3059,11 @@ async function onGenerateActionCandidates(){
 
     lines.forEach(line => {
       const btn = document.createElement("button");
-      btn.textContent = line.replace(/^\d+\.\s*/, "");
+      btn.textContent = line.replace(/^\d+\.\s*/, "");  // 行頭の "1. "などを削除
       btn.style.display = "block";
       btn.style.margin = "5px 0";
 
-      // クリックで #player-input にセット
+      // クリックで #player-input に反映
       btn.addEventListener("click", ()=>{
         const playerInput = document.getElementById("player-input");
         if(playerInput){
@@ -2891,8 +3087,7 @@ async function onGenerateActionCandidates(){
 }
 
 /**
- * 最新のシーン内容を要約し、【名前】【タイプ】【外見】形式で返す。
- * カード取得時に利用する。
+ * 最新シーンの内容を ChatGPT で要約し、カード用の【名前】【タイプ】【外見】を抽出する。
  */
 async function getLastSceneSummary() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
@@ -2902,16 +3097,12 @@ async function getLastSceneSummary() {
 
   const systemPrompt = `あなたは優秀なカード作成用プロンプト製造者です。以下のフォーマットでプロンプトを製造してください。
 【名前】：...
-【タイプ】：キャラクター、モンスター、アイテム、のいずれか
+【タイプ】：キャラクター、モンスター、アイテムのいずれか
 【外見】：...
 `;
   const userPrompt = `
-以下のシナリオの1シーンから関連がありそうで見栄えがしそうなエレメントを1件だけ抜き出してください。
-エレメントは
-・シーンに出現するキャラクター
-・シーンに出現する武器
-・シーンに出現するアイテム
-のいずれかです。
+以下のシナリオの1シーンから、エレメントにできそうな対象を1つだけ取り出し、
+カード用の【名前】【タイプ】【外見】を生成してください。
 ---
 ${fullText}
 ---
@@ -2943,15 +3134,14 @@ ${fullText}
   }
 }
 
-
-/** ローディングモーダル表示/非表示 */
+/** ローディングモーダルの表示/非表示 */
 function showLoadingModal(show){
   const modal = document.getElementById("loading-modal");
   if(!modal) return;
   modal.style.display = show ? "flex" : "none";
 }
 
-/** リクエストキャンセル */
+/** リクエストを中断 */
 function onCancelFetch(){
   if(window.currentRequestController){
     window.currentRequestController.abort();

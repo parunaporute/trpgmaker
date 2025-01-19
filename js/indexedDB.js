@@ -10,13 +10,11 @@ let db = null;
  * バージョン3:
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
- *  - characterData ストア (keyPath: 'id') →既存のまま
- *
- * 旧 sceneHistory ストアは使用せず。必要なら削除または放置。
+ *  - characterData ストア (keyPath: 'id')
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 3); // バージョンを3へ
+    const request = indexedDB.open("trpgDB", 3);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -31,7 +29,6 @@ function initIndexedDB() {
           keyPath: "scenarioId",
           autoIncrement: true
         });
-        // シナリオ一覧を名前や更新日時でソートしたい場合はindex追加
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
@@ -41,14 +38,8 @@ function initIndexedDB() {
           keyPath: "entryId",
           autoIncrement: true
         });
-        // シナリオIDで検索できるようにindex
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
-
-      // 旧 sceneHistory ストアがあれば放置 or 削除
-      // if(db.objectStoreNames.contains("sceneHistory")){
-      //   db.deleteObjectStore("sceneHistory");
-      // }
     };
     request.onsuccess = (event) => {
       db = event.target.result;
@@ -62,7 +53,7 @@ function initIndexedDB() {
 }
 
 /**
- * characterData を保存 (旧APIのまま)
+ * characterData を保存
  */
 function saveCharacterDataToIndexedDB(characterData) {
   return new Promise((resolve, reject) => {
@@ -115,9 +106,7 @@ function loadCharacterDataFromIndexedDB() {
    -------------------------------------------*/
 
 /**
- * 新しいシナリオを scenarios ストアに追加し、その scenarioId を返す
- *  - wizardData: { genre, scenarioType, clearCondition, scenarioSummary }
- *  - title: 一覧表示などに使う簡易タイトル
+ * 新しいシナリオを scenarios ストアに追加
  */
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
@@ -129,7 +118,6 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 
     const now = new Date();
     const record = {
-      // scenarioId はautoIncrement
       title: title,
       wizardData: wizardData,
       createdAt: now.toISOString(),
@@ -138,7 +126,7 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 
     const addReq = store.add(record);
     addReq.onsuccess = (evt) => {
-      const newId = evt.target.result; // autoIncrement された scenarioId
+      const newId = evt.target.result;
       resolve(newId);
     };
     addReq.onerror = (err) => {
@@ -148,9 +136,7 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 }
 
 /**
- * 指定のシナリオを読み込む
- * @param {number} scenarioId
- * @returns Promise<{ scenarioId, title, wizardData, createdAt, updatedAt } | null>
+ * シナリオをID指定で取得
  */
 function getScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
@@ -170,8 +156,7 @@ function getScenarioById(scenarioId) {
 }
 
 /**
- * 進行中のシナリオをすべて取得する
- * シンプルに全件読む
+ * 進行中のシナリオをすべて取得
  */
 function listAllScenarios() {
   return new Promise((resolve, reject) => {
@@ -183,7 +168,6 @@ function listAllScenarios() {
     const req = store.getAll();
     req.onsuccess = (evt) => {
       const result = evt.target.result || [];
-      // ここでは updatedAt 降順などにソートして返す
       result.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
       resolve(result);
     };
@@ -194,7 +178,7 @@ function listAllScenarios() {
 }
 
 /**
- * シナリオを更新 (updatedAt更新など)
+ * シナリオを更新 (updatedAtを上書きなど)
  */
 function updateScenario(scenario) {
   return new Promise((resolve, reject) => {
@@ -220,9 +204,6 @@ function updateScenario(scenario) {
 
 /**
  * シーン履歴エントリを追加
- * entryオブジェクトは
- *   { scenarioId, type, content, sceneId, dataUrl, prompt, ... }
- * など。
  */
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
@@ -233,7 +214,7 @@ function addSceneEntry(entry) {
     const store = tx.objectStore("sceneEntries");
     const addReq = store.add(entry);
     addReq.onsuccess = (evt) => {
-      resolve(evt.target.result); // entryId
+      resolve(evt.target.result);
     };
     addReq.onerror = (err) => {
       reject(err);
@@ -242,7 +223,7 @@ function addSceneEntry(entry) {
 }
 
 /**
- * シナリオIDを指定して、そのシナリオの全シーンエントリを取得
+ * 指定シナリオIDの全シーンエントリを取得
  */
 function getSceneEntriesByScenarioId(scenarioId) {
   return new Promise((resolve, reject) => {
@@ -261,9 +242,6 @@ function getSceneEntriesByScenarioId(scenarioId) {
         results.push(cursor.value);
         cursor.continue();
       } else {
-        // 取得完了
-        // ここでtype:'action'や'scene'などの順番を並べ替えて返してもよい
-        // とりあえずentryId昇順にしておく
         results.sort((a, b) => (a.entryId - b.entryId));
         resolve(results);
       }
@@ -315,6 +293,47 @@ function deleteSceneEntry(entryId) {
 }
 
 /* -------------------------------------------
+  ★シナリオ削除用(シナリオ本体 + シーン履歴)
+-------------------------------------------*/
+function deleteScenarioById(scenarioId) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB未初期化");
+    }
+    // scenarios, sceneEntries両方をreadwrite
+    const tx = db.transaction(["scenarios", "sceneEntries"], "readwrite");
+    const scenarioStore = tx.objectStore("scenarios");
+    const sceneEntriesStore = tx.objectStore("sceneEntries");
+
+    // 1) シナリオ本体を削除
+    const deleteReq = scenarioStore.delete(scenarioId);
+    deleteReq.onsuccess = () => {
+      // 2) さらにsceneEntriesで scenarioId が一致するものを全削除
+      const idx = sceneEntriesStore.index("scenarioId");
+      const range = IDBKeyRange.only(scenarioId);
+
+      idx.openCursor(range).onsuccess = (evt) => {
+        const cursor = evt.target.result;
+        if (cursor) {
+          sceneEntriesStore.delete(cursor.primaryKey);
+          cursor.continue();
+        }
+      };
+
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = (err) => {
+        reject(err);
+      };
+    };
+    deleteReq.onerror = (err) => {
+      reject(err);
+    };
+  });
+}
+
+/* -------------------------------------------
   エクスポート
 -------------------------------------------*/
 window.initIndexedDB = initIndexedDB;
@@ -322,7 +341,6 @@ window.initIndexedDB = initIndexedDB;
 window.saveCharacterDataToIndexedDB = saveCharacterDataToIndexedDB;
 window.loadCharacterDataFromIndexedDB = loadCharacterDataFromIndexedDB;
 
-// 新API
 window.createNewScenario = createNewScenario;
 window.getScenarioById = getScenarioById;
 window.listAllScenarios = listAllScenarios;
@@ -332,3 +350,6 @@ window.addSceneEntry = addSceneEntry;
 window.getSceneEntriesByScenarioId = getSceneEntriesByScenarioId;
 window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
+
+/* ★シナリオ削除用 */
+window.deleteScenarioById = deleteScenarioById;

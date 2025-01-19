@@ -46,11 +46,11 @@
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
       <div id="player-action" style="margin-top:20px;">プレイヤーの行動を入力してください</div>
-      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <div style="margin-top:10px;">
         <button id="generate-action-candidates-button">回答候補を生成</button>
       </div>
       <div id="action-candidates-container" style="margin-top:10px;"></div>
+      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
 
       <!-- 探索型なら表示する「カードを取得する」ボタン -->
@@ -80,12 +80,28 @@
     </div>
   </div>
 
+  <!-- ▼ 新しく追加したいカードプレビューモーダル -->
+  <div id="card-preview-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>新しいカード</h2>
+      <!-- ここにカードのプレビュー要素を動的に組み立てて表示 -->
+      <div id="preview-card-container"></div>
+
+      <div style="margin-top:10px;">
+        <button id="add-to-gachabox-button">ガチャ箱に追加</button>
+        <button id="cancel-card-preview-button">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ---------- スクリプト群 ---------- -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
+
+  <!-- ▼ scenarioPage.js は最後に読み込む -->
   <script src="js/scenarioPage.js"></script>
 </body>
 
