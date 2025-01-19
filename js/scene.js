@@ -19,48 +19,71 @@ function generateUniqueId() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 }
 
-/* -------------------------------------------
-   パーティ情報を文章にまとめる補助関数
-   - "キャラクター"だけは会話できるよう促し、
-   - "アイテム"や"モンスター"などはストーリーに登場するが話さない
--------------------------------------------*/
+/**
+ * パーティ情報を文章にまとめる。
+ * 「プレイヤーの分身(role='avatar')」「パートナー(role='partner')」
+ * それ以外（roleがnone）は、従来どおりtype(キャラクター/モンスター/アイテム)により区別。
+ */
 function buildPartyInsertionText(party) {
-  console.log("party",party);
-  // タイプごとに仕分け
-  const characters = party.filter(e => e.type === "キャラクター");
-  const items = party.filter(e => e.type === "アイテム");
-  const monsters = party.filter(e => e.type === "モンスター");
-  let text = "なお、このシナリオでは下記のパーティが固定されています。\n";
-  text += "パーティの要素は、アイテム・モンスター・キャラクターの3種類が含まれます。\n";
-  text += "ただし、会話ができるのは『キャラクター』タイプのみです。\n";
-  text += "シーン中、時々パーティのキャラクターが会話する描写を加えてください。\n\n";
-  // 各種リスト
-  if (characters.length > 0) {
-    text += "◆【キャラクター】\n";
-    characters.forEach(ch => {
-      text += `- ${ch.name}\n`;
-    });
-    text += "\n";
-  }
-  if (items.length > 0) {
-    text += "◆【アイテム】\n";
-    items.forEach(it => {
-      text += `- ${it.name}\n`;
-    });
-    text += "\n";
-  }
-  if (monsters.length > 0) {
-    text += "◆【モンスター】\n";
-    monsters.forEach(mo => {
-      text += `- ${mo.name}\n`;
-    });
-    text += "\n";
+  let text = "【パーティ編成情報】\n";
+
+  // 1) プレイヤーの分身(アバター)
+  const avatar = party.find(e => e.role === "avatar");
+  if (avatar) {
+    text += `プレイヤーの分身(アバター): ${avatar.name}\n`;
+    text += "このアバターは、TRPGでコマンドを入力している実プレイヤーとして扱います。\n\n";
   }
 
-  text += "これらを、シーンのストーリーに混ぜて表現してください。";
+  // 2) パートナー(フレンドリーNPC)
+  const partners = party.filter(e => e.role === "partner");
+  if (partners.length > 0) {
+    text += "パートナー(フレンドリーNPC):\n";
+    partners.forEach((p) => {
+      text += ` - ${p.name}\n`;
+    });
+    text += "これらのパートナーは、コマンドを入力しているTRPGプレイヤーにとって友好的なNPCとして扱います。\n\n";
+  }
+
+  // 3) 上記以外(role==="none")のカードを、従来の type で仕分け
+  //    → キャラクター / モンスター / アイテム
+  const others = party.filter(e => !e.role || e.role === "none");
+  if (others.length > 0) {
+    // ここから従来通り type="キャラクター" "モンスター" "アイテム" などをまとめる
+    const charList = others.filter(e => e.type === "キャラクター");
+    const monsterList = others.filter(e => e.type === "モンスター");
+    const itemList = others.filter(e => e.type === "アイテム");
+
+    if (charList.length > 0) {
+      text += "◆【キャラクター】\n";
+      charList.forEach(ch => {
+        text += ` - ${ch.name}\n`;
+      });
+      text += "\n";
+    }
+
+    if (monsterList.length > 0) {
+      text += "◆【モンスター】\n";
+      monsterList.forEach(m => {
+        text += ` - ${m.name}\n`;
+      });
+      text += "\n";
+    }
+
+    if (itemList.length > 0) {
+      text += "◆【アイテム】\n";
+      itemList.forEach(it => {
+        text += ` - ${it.name}\n`;
+      });
+      text += "\n";
+    }
+  }
+
+  text += "以上を踏まえて、シーン描写の中でアバターやパートナーが絡む場合は、" +
+          "指定の通りに扱ってください。アバターは実プレイヤー、パートナーは味方NPCとなります。";
 
   return text;
 }
+
 
 /**
  * 指定シナリオIDをDBからロードして sceneHistory を構築
@@ -141,21 +164,18 @@ async function getNextScene() {
     { role: 'system', content: systemText },
   ];
 
-  // シナリオ概要（複数シナリオ対応）
+  // シナリオ概要
   if (window.currentScenario) {
     const wizardData = window.currentScenario.wizardData || {};
     const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
 
-    // ★ 追加: シナリオに紐づいた「固定パーティ」を反映
-    const party = wizardData.party || [];
-    if (party.length > 0) {
-      const partyText = buildPartyInsertionText(party);
-      // 「system」ロールの末尾に追加したいので、ちょっと工夫
-      // ここでは「user」ロールで渡してもOKですが、まとまりを考えてsystemに追記する方法もあり。
-      // シンプルに追加ロールで渡す:
-      messages.push({ role: 'user', content: partyText });
-    }
+    // ★ パーティ情報（avatar / partner 含む）を挿入
+    //   group==="Party" の要素を抽出して buildPartyInsertionText
+    const charData = await loadCharacterDataFromIndexedDB();
+    const party = charData.filter(e => e.group === "Party");
+    const partyText = buildPartyInsertionText(party);
+    messages.push({ role: 'user', content: partyText });
   }
 
   // 過去のシーン履歴をChatGPTに渡す
@@ -285,7 +305,6 @@ function updateSceneHistory() {
   }
 
   // 3) 「最後のシーン」を特定（履歴に出さない）
-  //    最後のシーン+画像は除外対象にする
   const reversed = [...window.sceneHistory].reverse();
   const lastSceneEntry = reversed.find(e => e.type === 'scene');
   let skipEntryIds = [];
@@ -366,6 +385,7 @@ function updateSceneHistory() {
 
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '削除';
+      deleteBtn.style.backgroundColor = '#f44336';
       deleteBtn.style.marginBottom = '5px';
       deleteBtn.addEventListener('click', async () => {
         if (!window.apiKey) return;

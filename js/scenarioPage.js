@@ -2,9 +2,9 @@
  * scenarioPage.js
  * シナリオページ固有のUI操作
  * - 「回答候補を生成」機能
- * - 「カードを取得する」ボタンでプレビューモーダルを表示
- * - ★ 追加: 「パーティーを確認」ボタン＆モーダル表示
- * - ★ 追加: 時々パーティ内キャラクターの画像をシーンとして追加
+ * - 「カードを取得する」ボタンでプレビューモーダル表示
+ * - 「パーティを確認」ボタンとモーダル表示
+ * - 画像再生成機能など
  ********************************/
 
 window.addEventListener("load", async () => {
@@ -27,9 +27,7 @@ window.addEventListener("load", async () => {
     window.characterData.length
   );
 
-  // メニューに戻るボタン（シナリオ画面 → index.html）は scenario.html 内で定義済み
-
-  // ネタバレ（目的達成型）
+  // ネタバレ（目的達成型）の処理
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
@@ -44,9 +42,7 @@ window.addEventListener("load", async () => {
     });
   }
 
-  // -----------------------------
-  // 「カードを取得する」ボタン押下 → プレビューモーダル
-  // -----------------------------
+  // 「カードを取得する」ボタン
   const getCardButton = document.getElementById("get-card-button");
   if (getCardButton) {
     getCardButton.addEventListener("click", async () => {
@@ -119,17 +115,13 @@ window.addEventListener("load", async () => {
     });
   }
 
-  // -----------------------------
   // 「回答候補を生成」ボタン
-  // -----------------------------
   const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
   if (generateActionCandidatesBtn) {
     generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
   }
 
-  // -----------------------------
-  // ★ 追加: 「パーティーを確認」ボタン・モーダル
-  // -----------------------------
+  // 「パーティーを確認」ボタン → モーダル
   const showPartyBtn = document.getElementById("show-party-button");
   if (showPartyBtn) {
     showPartyBtn.addEventListener("click", () => {
@@ -178,32 +170,32 @@ async function onGenerateActionCandidates() {
     `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${window.apiKey}`
       },
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          { role: "system", content: "あなたは優秀なTRPGのアシスタントです。" },
-          { role: "user", content: prompt }
+          { role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
+          { role:"user", content: prompt }
         ],
-        temperature: 0.7
+        temperature:0.7
       }),
       signal
     });
 
     const data = await response.json();
-    if (data.error) {
+    if(data.error){
       throw new Error(data.error.message);
     }
 
     const content = data.choices[0].message.content.trim();
-    const lines = content.split("\n").map(l => l.trim()).filter(l => l);
+    const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
 
     const container = document.getElementById("action-candidates-container");
-    if (!container) return;
+    if(!container) return;
     container.innerHTML = "";
 
     lines.forEach(line => {
@@ -213,9 +205,9 @@ async function onGenerateActionCandidates() {
       btn.style.margin = "5px 0";
 
       // クリックしたら #player-input に反映
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", ()=>{
         const playerInput = document.getElementById("player-input");
-        if (playerInput) {
+        if(playerInput){
           playerInput.value = btn.textContent;
         }
       });
@@ -223,8 +215,8 @@ async function onGenerateActionCandidates() {
       container.appendChild(btn);
     });
 
-  } catch (err) {
-    if (err.name === "AbortError") {
+  } catch(err){
+    if(err.name === "AbortError"){
       console.log("回答候補生成キャンセル");
     } else {
       console.error(err);
@@ -236,7 +228,7 @@ async function onGenerateActionCandidates() {
 }
 
 /**
- * 直近のシーン内容を ChatGPT で要約し、カード用の【名前】【タイプ】【外見】を抽出する
+ * 直近シーンをChatGPTで要約し、カード向け【名前】【タイプ】【外見】を抽出
  */
 async function getLastSceneSummary() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
@@ -284,42 +276,42 @@ ${fullText}
 }
 
 /** ローディングモーダルの表示/非表示 */
-function showLoadingModal(show) {
+function showLoadingModal(show){
   const modal = document.getElementById("loading-modal");
-  if (!modal) return;
+  if(!modal) return;
   modal.style.display = show ? "flex" : "none";
 }
 
 /** リクエストを中断 */
-function onCancelFetch() {
-  if (window.currentRequestController) {
+function onCancelFetch(){
+  if(window.currentRequestController){
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
 }
 
 /* -------------------------------------------
- * ★ 追加: 「パーティーを確認」モーダル表示
- * ------------------------------------------*/
-function showPartyModal() {
+ * 「パーティーを確認」モーダル表示
+ -------------------------------------------*/
+function showPartyModal(){
   const modal = document.getElementById("party-modal");
-  if (!modal) return;
+  if(!modal) return;
   modal.style.display = "flex";
 
   // モーダル内にカードを表示
   renderPartyCardsInModal();
 }
 
-/** モーダル内にパーティのカードを表示（読み取り専用） */
-function renderPartyCardsInModal() {
+/** モーダル内にパーティのカードを表示（読み取り専用, roleを表示） */
+function renderPartyCardsInModal(){
   const container = document.getElementById("party-modal-card-container");
-  if (!container) return;
+  if(!container) return;
 
   container.innerHTML = "";
 
   // 最新のcharacterDataから、group==="Party" を抽出
   const partyCards = window.characterData.filter(c => c.group === "Party");
-  if (partyCards.length === 0) {
+  if(partyCards.length === 0){
     container.textContent = "パーティにはカードがありません。";
     return;
   }
@@ -330,13 +322,13 @@ function renderPartyCardsInModal() {
   });
 }
 
-/** パーティ用カードDOMを生成 */
-function createPartyCardElement(card) {
+/** パーティ用カードDOMを生成（role表示のため若干カスタム） */
+function createPartyCardElement(card){
   const cardEl = document.createElement("div");
   cardEl.className = "card";
   cardEl.setAttribute("data-id", card.id);
 
-  // クリックで反転（選択モードなし）
+  // クリックで反転
   cardEl.addEventListener("click", () => {
     cardEl.classList.toggle("flipped");
   });
@@ -361,13 +353,20 @@ function createPartyCardElement(card) {
   // タイプ
   const typeEl = document.createElement("div");
   typeEl.className = "card-type";
-  typeEl.textContent = card.type || "不明";
+  // roleをわかりやすく表示
+  let roleLabel = "";
+  if(card.role === "avatar") {
+    roleLabel = "（アバター）";
+  } else if(card.role === "partner") {
+    roleLabel = "（パートナー）";
+  }
+  typeEl.textContent = (card.type || "不明") + roleLabel;
   cardFront.appendChild(typeEl);
 
   // 画像
   const imageContainer = document.createElement("div");
   imageContainer.className = "card-image";
-  if (card.imageData) {
+  if(card.imageData){
     const imageEl = document.createElement("img");
     imageEl.src = card.imageData;
     imageEl.alt = card.name;
@@ -409,92 +408,3 @@ function createPartyCardElement(card) {
 
   return cardEl;
 }
-
-/* -------------------------------------------
- * ★ 追加: 時々パーティ内「キャラクタータイプ」の画像を
- *         新たなシーンとして追加する処理 (ランダム発火)
- *
- *   - getNextScene() 完了後などに呼び出す
- *   - 20%の確率で発動
- *   - パーティ内の type==="キャラクター" で imageData があるものから1枚選ぶ
- *   - <img>を埋め込んだHTMLを content として「scene」エントリを追加
--------------------------------------------*/
-
-async function maybeAddPartyCharacterScene() {
-  // 20%の確率で発火
-  if (Math.random() >= 0.2) {
-    return;
-  }
-
-  // パーティ情報を取得
-  const partyCharacters = window.characterData.filter(c =>
-    c.group === "Party" &&
-    (c.type === "キャラクター" || c.type === "character") && // 念のため英語表記もチェック
-    c.imageData
-  );
-
-  if (partyCharacters.length === 0) {
-    return;
-  }
-
-  // ランダムに1枚ピック
-  const randomIndex = Math.floor(Math.random() * partyCharacters.length);
-  const ch = partyCharacters[randomIndex];
-
-  // 新しいシーンID
-  const newSceneIdStr = generateUniqueId();
-  const contentHtml = `
-    <p><strong>パーティメンバー「${DOMPurify.sanitize(ch.name)}」のイメージ</strong></p>
-    <img src="${ch.imageData}" alt="${DOMPurify.sanitize(ch.name)}" style="max-width:100%;">
-  `;
-
-  const newSceneEntry = {
-    scenarioId: window.currentScenarioId || 0,
-    type: 'scene',
-    sceneId: newSceneIdStr,
-    content: contentHtml
-  };
-  try {
-    const newSceneEntryId = await addSceneEntry(newSceneEntry);
-    window.sceneHistory.push({
-      entryId: newSceneEntryId,
-      type: 'scene',
-      sceneId: newSceneIdStr,
-      content: contentHtml
-    });
-  } catch (err) {
-    console.error("パーティキャラクターシーン追加失敗:", err);
-  }
-}
-
-/* -------------------------------------------
-   以降は既存の scenario.js 内で定義している
-   getNextScene 等と組み合わせる想定。
-   シーン生成完了後のフックに maybeAddPartyCharacterScene() を追加する。
--------------------------------------------*/
-
-/**
- * シーン取得 → 成功後にパーティ画像シーンを追加する
- *   （scene.js 側で定義されている getNextScene を
- *    こちら側で上書き or 差し替えするイメージ）
- *
- * ここでは、scene.js で書かれている実装を "wrap" した例を提示します。
- * 実際には scene.js 内の getNextScene を直接修正してもOKです。
- */
-
-// --- scene.js で getNextScene が定義済みと仮定 ---
-const originalGetNextScene = window.getNextScene; // 既存を退避
-
-window.getNextScene = async function () {
-  // まず元の処理を実行
-  await originalGetNextScene();
-
-  // 処理が成功(キャンセルされていなければ)したら
-  if (!window.cancelRequested) {
-    // パーティ画像を追加する
-    await maybeAddPartyCharacterScene();
-    // シーン履歴の再描画
-    updateSceneHistory();
-    showLastScene();
-  }
-};

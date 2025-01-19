@@ -13,13 +13,31 @@
     <!-- 倉庫ボタン -->
     <button id="show-warehouse-btn">倉庫</button>
 
-    <!-- 選択モードボタン（パーティ側） -->
+    <!-- パーティ側の選択モードボタン -->
     <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
     <!-- 選択したカードを倉庫に戻すボタン -->
     <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">選択したカードを倉庫に戻す</button>
 
-    <!-- パーティ枠（group="Party" のカードを表示）-->
-    <div id="party-card-container" style="margin-top:20px;"></div>
+    <!-- ▼ プレイヤーの分身（1つだけ選べる） -->
+    <section style="margin-top:20px;">
+      <h2>プレイヤーの分身（アバター）</h2>
+      <p style="color:#555; font-size:14px;">
+        ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
+      </p>
+      <div id="avatar-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+    </section>
+
+    <!-- ▼ パートナー（複数選べる） -->
+    <section style="margin-top:20px;">
+      <h2>パートナー（複数可）</h2>
+      <div id="partner-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+    </section>
+
+    <!-- ▼ その他パーティ枠（アバターでもパートナーでもないもの） -->
+    <section style="margin-top:20px;">
+      <h2>その他パーティ枠</h2>
+      <div id="party-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+    </section>
 
     <!-- 倉庫モーダル -->
     <div id="warehouse-modal" class="modal" style="display:none;">
@@ -31,7 +49,7 @@
         <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
         
-        <div id="warehouse-card-container" style="margin:10px 0;"></div>
+        <div id="warehouse-card-container" style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
       </div>
     </div>
 

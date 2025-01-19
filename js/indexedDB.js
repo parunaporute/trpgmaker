@@ -11,7 +11,7 @@ let db = null;
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
  *  - characterData ストア (keyPath: 'id')
- *  - wizardState ストア (keyPath: 'id')   ←★追加
+ *  - wizardState ストア (keyPath: 'id')
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
@@ -40,7 +40,6 @@ function initIndexedDB() {
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
 
-      // ★ 追加ストア: ウィザード内容の一時保存
       if (!db.objectStoreNames.contains("wizardState")) {
         db.createObjectStore("wizardState", { keyPath: "id" });
       }
@@ -106,7 +105,7 @@ function loadCharacterDataFromIndexedDB() {
 }
 
 /**
- * ★ wizardData をIndexedDBに保存する
+ * wizardData を保存
  */
 function saveWizardDataToIndexedDB(wizardData) {
   return new Promise((resolve, reject) => {
@@ -115,7 +114,6 @@ function saveWizardDataToIndexedDB(wizardData) {
     }
     const tx = db.transaction("wizardState", "readwrite");
     const store = tx.objectStore("wizardState");
-    // id="wizardData" 固定で1件管理
     const record = { id: "wizardData", data: wizardData };
     const req = store.put(record);
     req.onsuccess = () => resolve();
@@ -124,7 +122,7 @@ function saveWizardDataToIndexedDB(wizardData) {
 }
 
 /**
- * ★ wizardData をIndexedDBからロードする
+ * wizardData をロード
  */
 function loadWizardDataFromIndexedDB() {
   return new Promise((resolve, reject) => {
@@ -351,58 +349,82 @@ function deleteScenarioById(scenarioId) {
   });
 }
 
-/* ★シナリオコピー用 */
-function copyScenarioById(originalScenarioId) {
-  return new Promise(async (resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
+/* ★ユニークID生成ヘルパ */
+function generateUniqueId() {
+  return Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+}
+
+/* ★シナリオコピー用（画像含む） */
+async function copyScenarioById(originalScenarioId) {
+  if (!db) {
+    throw new Error("DB未初期化");
+  }
+  try {
+    // 1) 元シナリオ取得
+    const original = await getScenarioById(originalScenarioId);
+    if (!original) {
+      throw new Error("コピー元シナリオが存在しません");
     }
-    try {
-      // 1) 元シナリオ取得
-      const original = await getScenarioById(originalScenarioId);
-      if (!original) {
-        throw new Error("コピー元シナリオが存在しません");
+
+    // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける）
+    const newTitle = original.title + " (コピー)";
+    const newScenarioId = await createNewScenario(original.wizardData, newTitle);
+
+    // 3) 元シーンエントリをすべて取得
+    const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
+
+    // 3.5) シーンIDのマッピングを作る (元シーンID → 新シーンID)
+    const sceneIdMap = {};
+    // まず sceneEntries のうち type==='scene' のものに対して、新しい sceneId を割り当てる
+    originalEntries.forEach(e => {
+      if (e.type === "scene") {
+        sceneIdMap[e.sceneId] = generateUniqueId();
+      }
+    });
+
+    // 4) すべて新シナリオIDに合わせて複製
+    const tx = db.transaction("sceneEntries", "readwrite");
+    const sceneStore = tx.objectStore("sceneEntries");
+
+    for (const e of originalEntries) {
+      // シーンまたは画像に紐づくsceneIdがあれば置き換える
+      let newSceneId = e.sceneId;
+      if (sceneIdMap[e.sceneId]) {
+        newSceneId = sceneIdMap[e.sceneId];
       }
 
-      // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
-      const newTitle = original.title + " (コピー)";
-      const newScenarioId = await createNewScenario(original.wizardData, newTitle);
-
-      // 3) 元シーンエントリをすべて取得
-      const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
-
-      // 4) 全部新シナリオIDで登録
-      const tx = db.transaction("sceneEntries", "readwrite");
-      const sceneStore = tx.objectStore("sceneEntries");
-
-      for (const e of originalEntries) {
-        const copyEntry = {
-          scenarioId: newScenarioId,
-          type: e.type,
-          sceneId: e.sceneId,
-          content: e.content,
-          dataUrl: e.dataUrl || null,
-          prompt: e.prompt || null
-        };
-        sceneStore.add(copyEntry);
-      }
-      await new Promise((resolve2, reject2) => {
-        tx.oncomplete = () => resolve2();
-        tx.onerror = (err) => reject2(err);
-      });
-
-      // scenarios.updatedAtを更新しておく
-      const newScenario = await getScenarioById(newScenarioId);
-      if (newScenario) {
-        newScenario.updatedAt = new Date().toISOString();
-        await updateScenario(newScenario);
-      }
-
-      resolve(newScenarioId);
-    } catch (err) {
-      reject(err);
+      const copyEntry = {
+        scenarioId: newScenarioId,
+        type: e.type,
+        sceneId: newSceneId,
+        content: e.content,
+        dataUrl: e.dataUrl || null,
+        prompt: e.prompt || null
+      };
+      sceneStore.add(copyEntry);
     }
-  });
+
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = (err) => {
+        reject(err);
+      };
+    });
+
+    // 5) 最後に scenarios.updatedAt を更新
+    const newScenario = await getScenarioById(newScenarioId);
+    if (newScenario) {
+      newScenario.updatedAt = new Date().toISOString();
+      await updateScenario(newScenario);
+    }
+
+    return newScenarioId;
+  } catch (err) {
+    console.error("copyScenarioById失敗:", err);
+    throw err;
+  }
 }
 
 /* -------------------------------------------
@@ -413,8 +435,8 @@ window.initIndexedDB = initIndexedDB;
 window.saveCharacterDataToIndexedDB = saveCharacterDataToIndexedDB;
 window.loadCharacterDataFromIndexedDB = loadCharacterDataFromIndexedDB;
 
-window.saveWizardDataToIndexedDB = saveWizardDataToIndexedDB;  // ★追加エクスポート
-window.loadWizardDataFromIndexedDB = loadWizardDataFromIndexedDB;  // ★追加エクスポート
+window.saveWizardDataToIndexedDB = saveWizardDataToIndexedDB;
+window.loadWizardDataFromIndexedDB = loadWizardDataFromIndexedDB;
 
 window.createNewScenario = createNewScenario;
 window.getScenarioById = getScenarioById;
@@ -426,8 +448,5 @@ window.getSceneEntriesByScenarioId = getSceneEntriesByScenarioId;
 window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
 
-/* ★シナリオ削除用 */
 window.deleteScenarioById = deleteScenarioById;
-
-/* ★シナリオコピー用 */
-window.copyScenarioById = copyScenarioById;
+window.copyScenarioById = copyScenarioById;  // 修正後エクスポート
