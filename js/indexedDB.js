@@ -333,6 +333,66 @@ function deleteScenarioById(scenarioId) {
   });
 }
 
+/* ==========================================
+   ★シナリオコピー用に追加した関数
+   ==========================================*/
+/**
+ * 指定シナリオを丸ごとコピーする
+ * 1) 元シナリオを取得
+ * 2) 新シナリオを同じwizardDataで作成
+ * 3) 元シナリオのシーンエントリを取得
+ * 4) それぞれ新シナリオIDで追加
+ * @param {number} originalScenarioId
+ * @returns {Promise<number>} 新シナリオID
+ */
+async function copyScenarioById(originalScenarioId) {
+  if (!db) {
+    throw new Error("DB未初期化");
+  }
+  // 1) 元シナリオ取得
+  const original = await getScenarioById(originalScenarioId);
+  if (!original) {
+    throw new Error("コピー元シナリオが存在しません");
+  }
+
+  // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける例）
+  const newTitle = original.title + " (コピー)";
+  const newScenarioId = await createNewScenario(original.wizardData, newTitle);
+
+  // 3) 元シーンエントリをすべて取得
+  const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
+
+  // 4) 全部新シナリオIDで登録
+  const tx = db.transaction("sceneEntries", "readwrite");
+  const sceneStore = tx.objectStore("sceneEntries");
+
+  for (const e of originalEntries) {
+    const copyEntry = {
+      scenarioId: newScenarioId,
+      type: e.type,
+      sceneId: e.sceneId,     // シーンIDは同じでも問題ない（シナリオIDが別なので衝突はしない）
+      content: e.content,
+      dataUrl: e.dataUrl || null,
+      prompt: e.prompt || null
+    };
+    sceneStore.add(copyEntry);
+  }
+  // トランザクション完了を待つ
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = (err) => reject(err);
+  });
+
+  // scenarios.updatedAtを更新しておく
+  const newScenario = await getScenarioById(newScenarioId);
+  if (newScenario) {
+    newScenario.updatedAt = new Date().toISOString();
+    await updateScenario(newScenario);
+  }
+
+  return newScenarioId;
+}
+
 /* -------------------------------------------
   エクスポート
 -------------------------------------------*/
@@ -353,3 +413,6 @@ window.deleteSceneEntry = deleteSceneEntry;
 
 /* ★シナリオ削除用 */
 window.deleteScenarioById = deleteScenarioById;
+
+/* ★シナリオコピー用 */
+window.copyScenarioById = copyScenarioById;

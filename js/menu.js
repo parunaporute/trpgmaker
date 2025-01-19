@@ -82,6 +82,23 @@ function showToast(message) {
         });
         div.appendChild(btnContinue);
 
+        // ★ 追加: 「コピーする」ボタン
+        const btnCopy = document.createElement("button");
+        btnCopy.textContent = "コピーする";
+        btnCopy.style.marginRight = "6px";
+        btnCopy.addEventListener("click", async () => {
+          try {
+            const newScenarioId = await copyScenarioById(scenario.scenarioId);
+            showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
+            // リスト更新のためリロードするか、あるいは手動で再取得する
+            location.reload();
+          } catch (err) {
+            console.error(err);
+            showToast("シナリオのコピーに失敗:\n" + err.message);
+          }
+        });
+        div.appendChild(btnCopy);
+
         // 「削除」ボタン
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "削除";
