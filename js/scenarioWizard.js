@@ -346,7 +346,10 @@ async function generateSections(){
   const userPrompt = `
 ジャンル:${wizardData.genre}, シナリオタイプ:${wizardData.scenarioType} 用のセクション達成条件:
 - 例：「封印を解く」「古文書を読む」「ボスを倒す」etc
-必ず動詞～で書いてください。${count}個分、箇条書きで。`;
+必ず動詞～で書いてください。${count}個分、箇条書きで。
+それぞれの達成条件は独立させてください。連続性を持たせないでください。
+「相手から反応を引き出す」のような曖昧な達成条件は望ましくありません。
+`;
 
   try {
     const apiKey = localStorage.getItem("apiKey")||"";
