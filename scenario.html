@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+  <!-- 追加：内部的にZIP圧縮するためのpakoライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </head>
 
 <body>
@@ -53,6 +55,18 @@
       <button id="get-card-button" style="display:none; margin-top:20px;">
         カードを取得する
       </button>
+    </div>
+  </div>
+
+  <!-- ▼ 追加: 全セクションを閲覧ボタン -->
+  <button id="view-all-sections-button" style="margin-top:20px;">全セクションを閲覧する</button>
+
+  <!-- ▼ 追加: 全セクション表示モーダル -->
+  <div id="all-sections-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+      <h2>全セクション一覧</h2>
+      <div id="all-sections-content" style="white-space:pre-wrap; text-align:left;"></div>
+      <button id="close-all-sections-modal" style="margin-top:10px;">閉じる</button>
     </div>
   </div>
 

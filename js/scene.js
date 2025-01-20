@@ -1,5 +1,8 @@
 /********************************
  * scene.js - シナリオ/シーン管理関連 (複数シナリオ対応)
+ *   セクション管理のため、従来の「シナリオ要約」を履歴先頭に表示する方式を廃止
+ *   → 代わりに「まだクリアしていない最小セクション」をシーン履歴の最上部に表示する
+ *   セクションをクリアすると次のセクションを追加表示、最後は「シナリオ達成」を履歴に表示
  ********************************/
 
 window.apiKey = '';
@@ -10,87 +13,17 @@ window.currentRequestController = null;
 window.cancelRequested = false;
 window.editingImageEntry = null;
 
-// シナリオタイプやクリア条件（目的達成型/探索型の区別）
 window.scenarioType = null;
 window.clearCondition = null;
 
-/** ユニークID生成 */
-function generateUniqueId() {
-  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-}
+// ▼ シナリオに紐づくセクション配列（ZIP圧縮済み）
+window.sections = [];  // [ {number, conditionZipped, cleared}, ... ]
 
 /**
- * パーティ情報を文章にまとめる。
- * 「プレイヤーの分身(role='avatar')」「パートナー(role='partner')」
- * それ以外（roleがnone）は、従来どおりtype(キャラクター/モンスター/アイテム)により区別。
- */
-function buildPartyInsertionText(party) {
-  let text = "【パーティ編成情報】\n";
-
-  // 1) プレイヤーの分身(アバター)
-  const avatar = party.find(e => e.role === "avatar");
-  if (avatar) {
-    text += `プレイヤーの分身(アバター): ${avatar.name}\n`;
-    text += "このアバターは、TRPGでコマンドを入力している実プレイヤーとして扱います。\n\n";
-  }
-
-  // 2) パートナー(フレンドリーNPC)
-  const partners = party.filter(e => e.role === "partner");
-  if (partners.length > 0) {
-    text += "パートナー(フレンドリーNPC):\n";
-    partners.forEach((p) => {
-      text += ` - ${p.name}\n`;
-    });
-    text += "これらのパートナーは、コマンドを入力しているTRPGプレイヤーにとって友好的なNPCとして扱います。\n\n";
-  }
-
-  // 3) 上記以外(role==="none")のカードを、従来の type で仕分け
-  //    → キャラクター / モンスター / アイテム
-  const others = party.filter(e => !e.role || e.role === "none");
-  if (others.length > 0) {
-    // ここから従来通り type="キャラクター" "モンスター" "アイテム" などをまとめる
-    const charList = others.filter(e => e.type === "キャラクター");
-    const monsterList = others.filter(e => e.type === "モンスター");
-    const itemList = others.filter(e => e.type === "アイテム");
-
-    if (charList.length > 0) {
-      text += "◆【キャラクター】\n";
-      charList.forEach(ch => {
-        text += ` - ${ch.name}\n`;
-      });
-      text += "\n";
-    }
-
-    if (monsterList.length > 0) {
-      text += "◆【モンスター】\n";
-      monsterList.forEach(m => {
-        text += ` - ${m.name}\n`;
-      });
-      text += "\n";
-    }
-
-    if (itemList.length > 0) {
-      text += "◆【アイテム】\n";
-      itemList.forEach(it => {
-        text += ` - ${it.name}\n`;
-      });
-      text += "\n";
-    }
-  }
-
-  text += "以上を踏まえて、シーン描写の中でアバターやパートナーが絡む場合は、" +
-          "指定の通りに扱ってください。アバターは実プレイヤー、パートナーは味方NPCとなります。";
-
-  return text;
-}
-
-
-/**
- * 指定シナリオIDをDBからロードして sceneHistory を構築
+ * DBからシナリオ情報をロードし、シーン履歴とセクションを復元
  */
 async function loadScenarioData(scenarioId) {
   try {
-    // シナリオ情報
     const scenario = await getScenarioById(scenarioId);
     if (!scenario) {
       alert("指定されたシナリオIDが存在しません。");
@@ -102,6 +35,8 @@ async function loadScenarioData(scenarioId) {
     const wd = scenario.wizardData || {};
     window.scenarioType = wd.scenarioType;
     window.clearCondition = wd.clearCondition || "";
+    // セクション配列
+    window.sections = wd.sections || [];
 
     // シーン履歴を取得
     const entries = await getSceneEntriesByScenarioId(scenarioId);
@@ -114,11 +49,10 @@ async function loadScenarioData(scenarioId) {
       prompt: e.prompt
     }));
 
-    // 目的達成型ならネタバレボタン表示
+    // ネタバレボタン
     if (window.scenarioType === "objective") {
       const sb = document.getElementById("spoiler-button");
       if (sb) sb.style.display = "inline-block";
-
       const spTxt = document.getElementById("clear-condition-text");
       if (spTxt) {
         spTxt.textContent = window.clearCondition || "（クリア条件なし）";
@@ -137,7 +71,7 @@ async function loadScenarioData(scenarioId) {
 }
 
 /**
- * プレイヤー行動をもとに次のシーンをChatGPTから取得
+ * シーン生成
  */
 async function getNextScene() {
   if (!window.apiKey) {
@@ -146,7 +80,7 @@ async function getNextScene() {
   }
   const playerInput = (document.getElementById('player-input')?.value || "").trim();
 
-  // 既にシーンがある場合は行動必須
+  // シーンがある場合は行動必須
   const hasScene = window.sceneHistory.some(e => e.type === 'scene');
   if (hasScene && !playerInput) {
     alert('プレイヤーの行動を入力してください');
@@ -156,29 +90,27 @@ async function getNextScene() {
   window.cancelRequested = false;
   showLoadingModal(true);
 
-  // プロンプト用メッセージを積み上げ
-  // -----------------------------------------
-  // まずシステムプロンプト
+  // システムプロンプト
   let systemText = "あなたはTRPGのゲームマスターです。HTMLタグOK。";
   const messages = [
     { role: 'system', content: systemText },
   ];
 
-  // シナリオ概要
+  // シナリオ概要（実際には使わず）
   if (window.currentScenario) {
     const wizardData = window.currentScenario.wizardData || {};
-    const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
+    // ここではパーティ情報を埋め込み
+    const scenarioSummary = wizardData.scenarioSummary || "(概要)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
 
-    // ★ パーティ情報（avatar / partner 含む）を挿入
-    //   group==="Party" の要素を抽出して buildPartyInsertionText
+    // パーティ情報
     const charData = await loadCharacterDataFromIndexedDB();
     const party = charData.filter(e => e.group === "Party");
     const partyText = buildPartyInsertionText(party);
     messages.push({ role: 'user', content: partyText });
   }
 
-  // 過去のシーン履歴をChatGPTに渡す
+  // 過去のシーン履歴
   window.sceneHistory.forEach(e => {
     if (e.type === 'scene') {
       messages.push({ role: 'assistant', content: e.content });
@@ -192,8 +124,6 @@ async function getNextScene() {
     messages.push({ role: 'user', content: `プレイヤーの行動:${playerInput}` });
   }
 
-  // -----------------------------------------
-  // GPTに投げる
   try {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
@@ -210,10 +140,12 @@ async function getNextScene() {
       }),
       signal
     });
+
     if (window.cancelRequested) {
       showLoadingModal(false);
       return;
     }
+
     const data = await response.json();
     if (window.cancelRequested) {
       showLoadingModal(false);
@@ -225,7 +157,7 @@ async function getNextScene() {
 
     const nextScene = data.choices[0].message.content;
 
-    // 1) 行動を履歴に追加
+    // 1) 行動履歴
     if (playerInput) {
       const actionEntry = {
         scenarioId: window.currentScenarioId || 0,
@@ -242,7 +174,7 @@ async function getNextScene() {
       document.getElementById('player-input').value = '';
     }
 
-    // 2) 次のシーンを履歴に追加
+    // 2) 新しいシーン
     const newSceneIdStr = generateUniqueId();
     const sceneEntry = {
       scenarioId: window.currentScenarioId || 0,
@@ -258,11 +190,7 @@ async function getNextScene() {
       content: nextScene
     });
 
-    // 画面更新
-    updateSceneHistory();
-    showLastScene();
-
-    // シナリオ更新日時
+    // シナリオ更新
     if (window.currentScenario) {
       await updateScenario({
         ...window.currentScenario,
@@ -270,6 +198,8 @@ async function getNextScene() {
       });
     }
 
+    updateSceneHistory();
+    showLastScene();
   } catch (error) {
     if (error.name === 'AbortError') {
       console.warn('シーン取得キャンセル');
@@ -283,88 +213,107 @@ async function getNextScene() {
 }
 
 /**
- * シーン履歴を画面に表示する。
- * - 先頭に必ずシナリオ概要タイルを追加
- * - 最後のシーン(および関連画像)は履歴に表示しない
- * - それ以外のentryを古い順に表示
+ * シーン履歴を再構築する
+ * 仕様:
+ *  - ゲーム開始時 → 未クリアセクションの最小番号が1なら、それのみを履歴に表示
+ *  - セクション1クリア後 → 履歴にセクション1が残り、かつセクション2が追加表示
+ *  - セクション2クリア後 → 履歴にセクション1&2が残り、セクション3を表示
+ *  - ...
+ *  - 最後のセクションがクリアされた時点で「シナリオ達成」を履歴に追加表示
+ * 
+ * “セクションの表示” は「シナリオ概要の代わり」に先頭に配置
  */
 function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
   if (!historyContainer) return;
 
-  // 1) いったんクリア
   historyContainer.innerHTML = '';
 
-  // 2) シナリオ概要タイルを最初に表示
-  if (window.currentScenario && window.currentScenario.wizardData) {
-    const scenarioSummary = window.currentScenario.wizardData.scenarioSummary || '（シナリオ概要なし）';
-    const summaryTile = document.createElement('div');
-    summaryTile.className = 'history-tile';
-    summaryTile.innerHTML = DOMPurify.sanitize(scenarioSummary);
-    historyContainer.appendChild(summaryTile);
+  // 1) まず、最小の未クリアセクション番号を判定
+  const sorted = [...window.sections].sort((a,b) => a.number - b.number);
+  const firstUncleared = sorted.find(s => !s.cleared);
+  if (!firstUncleared) {
+    // すべてクリア済み → 履歴の最上部に「シナリオ達成」のみ表示
+    const tile = document.createElement('div');
+    tile.className = 'history-tile';
+    tile.textContent = "シナリオ達成";
+    historyContainer.appendChild(tile);
+  } else {
+    // 未クリアセクションがある → そこまでのセクションは履歴に表示
+    // つまり section.number <= firstUncleared.number をすべて
+    for(const sec of sorted) {
+      if(sec.number < firstUncleared.number) {
+        // 過去にクリア済みセクションとして履歴に残す
+        const t = document.createElement('div');
+        t.className = 'history-tile';
+        t.textContent = `セクション${sec.number} (クリア済み)`;
+        historyContainer.appendChild(t);
+      } else if(sec.number === firstUncleared.number) {
+        // 今まさに取り組むセクション
+        const t = document.createElement('div');
+        t.className = 'history-tile';
+        t.textContent = `セクション${sec.number} (未クリア)`;
+        historyContainer.appendChild(t);
+      } else {
+        // それより先のセクションはまだ非表示
+      }
+    }
   }
 
-  // 3) 「最後のシーン」を特定（履歴に出さない）
-  const reversed = [...window.sceneHistory].reverse();
-  const lastSceneEntry = reversed.find(e => e.type === 'scene');
-  let skipEntryIds = [];
+  // 2) その下に、「行動/シーン/画像」などを順番に表示
+  //  ただし、最後のシーン(現状)は showLastScene() で別枠に表示するため
+  //  “最後のシーン+画像” はスキップする
+  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
+  const skipEntryIds = [];
   if (lastSceneEntry) {
     skipEntryIds.push(lastSceneEntry.entryId);
-
-    // 最後のシーンに紐づく画像もスキップ
+    // そのsceneIdの画像もスキップ
     window.sceneHistory.forEach(e => {
-      if (e.type === 'image' && e.sceneId === lastSceneEntry.sceneId) {
+      if(e.type==='image' && e.sceneId===lastSceneEntry.sceneId){
         skipEntryIds.push(e.entryId);
       }
     });
   }
 
-  // 4) フィルタリングして「最後のシーン以外」を古い順で表示
+  // フィルタして古い順に
   const entriesToShow = window.sceneHistory
     .filter(e => !skipEntryIds.includes(e.entryId))
-    .sort((a, b) => (a.entryId - b.entryId)); // entryId昇順(=古い順)
+    .sort((a, b) => (a.entryId - b.entryId));
 
-  entriesToShow.forEach(entry => {
-    if (entry.type === 'scene') {
-      // シーン
+  for(const entry of entriesToShow) {
+    // scene / action / image
+    if(entry.type === 'scene'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
       // 削除ボタン
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '削除';
-      deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
-
-        const delSceneId = entry.sceneId;
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.style.marginBottom = '5px';
+      delBtn.addEventListener('click', async () => {
         const toRemoveIds = [entry.entryId];
-        // 同じsceneIdの画像も削除
         window.sceneHistory.forEach(e => {
-          if (e.type === 'image' && e.sceneId === delSceneId) {
+          if(e.type==='image' && e.sceneId===entry.sceneId){
             toRemoveIds.push(e.entryId);
           }
         });
-        // DB削除
-        for (const rid of toRemoveIds) {
+        for(const rid of toRemoveIds) {
           await deleteSceneEntry(rid);
         }
-        // メモリ削除
         window.sceneHistory = window.sceneHistory.filter(e => !toRemoveIds.includes(e.entryId));
-
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(deleteBtn);
+      tile.appendChild(delBtn);
 
-      // テキスト可変
-      const sceneText = document.createElement('p');
-      sceneText.className = 'scene-text';
-      sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
-      sceneText.innerHTML = DOMPurify.sanitize(entry.content);
-      sceneText.addEventListener('blur', async () => {
-        if (!window.apiKey) return;
-        entry.content = sceneText.textContent.trim();
+      // テキスト
+      const p = document.createElement('p');
+      p.className = 'scene-text';
+      p.setAttribute('contenteditable', window.apiKey ? 'true':'false');
+      p.innerHTML = DOMPurify.sanitize(entry.content);
+      p.addEventListener('blur', async() => {
+        if(!window.apiKey) return;
+        entry.content = p.innerText.trim();
         const updated = {
           entryId: entry.entryId,
           scenarioId: window.currentScenarioId || 0,
@@ -374,51 +323,46 @@ function updateSceneHistory() {
         };
         await updateSceneEntry(updated);
       });
-      tile.appendChild(sceneText);
+      tile.appendChild(p);
 
       historyContainer.appendChild(tile);
 
-    } else if (entry.type === 'action') {
-      // 行動
+    } else if(entry.type==='action'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '削除';
-      deleteBtn.style.backgroundColor = '#f44336';
-      deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
-
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.style.backgroundColor = '#f44336';
+      delBtn.style.marginBottom = '5px';
+      delBtn.addEventListener('click', async () => {
         await deleteSceneEntry(entry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
-
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(deleteBtn);
+      tile.appendChild(delBtn);
 
-      const actionText = document.createElement('p');
-      actionText.className = 'action-text';
-      actionText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
-      actionText.innerHTML = DOMPurify.sanitize(entry.content);
-      actionText.addEventListener('blur', async () => {
-        if (!window.apiKey) return;
-        entry.content = actionText.textContent.trim();
+      const a = document.createElement('p');
+      a.className = 'action-text';
+      a.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
+      a.innerHTML = DOMPurify.sanitize(entry.content);
+      a.addEventListener('blur', async() => {
+        if(!window.apiKey) return;
+        entry.content = a.innerText.trim();
         const updated = {
           entryId: entry.entryId,
-          scenarioId: window.currentScenarioId || 0,
-          type: 'action',
+          scenarioId: window.currentScenarioId||0,
+          type:'action',
           content: entry.content
         };
         await updateSceneEntry(updated);
       });
-      tile.appendChild(actionText);
+      tile.appendChild(a);
 
       historyContainer.appendChild(tile);
 
-    } else if (entry.type === 'image') {
-      // 画像
+    } else if(entry.type==='image'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
@@ -432,36 +376,36 @@ function updateSceneHistory() {
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
       regenBtn.addEventListener('click', () => {
-        if (!window.apiKey) return;
+        if(!window.apiKey) return;
         const idx = window.sceneHistory.indexOf(entry);
-        if (idx >= 0) {
+        if(idx >= 0){
           openImagePromptModal(entry.prompt, idx);
         }
       });
       tile.appendChild(regenBtn);
 
-      // 画像削除
-      const imgDeleteBtn = document.createElement('button');
-      imgDeleteBtn.textContent = '画像だけ削除';
-      imgDeleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
+      // 削除
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '画像だけ削除';
+      delBtn.addEventListener('click', async() => {
+        if(!window.apiKey) return;
         await deleteSceneEntry(entry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(imgDeleteBtn);
+      tile.appendChild(delBtn);
 
       historyContainer.appendChild(tile);
     }
-  });
+  }
 
   // スクロール最下部へ
   historyContainer.scrollTop = historyContainer.scrollHeight;
 }
 
 /**
- * 最新シーン(末尾1件)をメイン表示し、ここも編集できるようにする
+ * 最新シーンをメイン表示
  */
 function showLastScene() {
   const storyDiv = document.getElementById('story');
@@ -475,19 +419,14 @@ function showLastScene() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
 
   if (lastSceneEntry) {
-    // ここを編集可能にする
     storyDiv.innerHTML = '';
 
-    // メインストーリー編集用の <p> 要素
     const sceneText = document.createElement('p');
     sceneText.className = 'scene-text';
-    sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
+    sceneText.setAttribute('contenteditable', window.apiKey ? 'true':'false');
     sceneText.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
-    storyDiv.appendChild(sceneText);
-
-    // blurでDBに保存
-    sceneText.addEventListener('blur', async () => {
-      if (!window.apiKey) return;
+    sceneText.addEventListener('blur', async() => {
+      if(!window.apiKey) return;
       lastSceneEntry.content = sceneText.innerText.trim();
       const updated = {
         entryId: lastSceneEntry.entryId,
@@ -498,10 +437,11 @@ function showLastScene() {
       };
       await updateSceneEntry(updated);
     });
+    storyDiv.appendChild(sceneText);
 
-    // シーンに紐づく画像を表示
+    // そのシーンに紐づく画像
     lastSceneImagesDiv.innerHTML = '';
-    const images = window.sceneHistory.filter(e => e.type === 'image' && e.sceneId === lastSceneEntry.sceneId);
+    const images = window.sceneHistory.filter(e => e.type==='image' && e.sceneId===lastSceneEntry.sceneId);
     images.forEach(imgEntry => {
       const container = document.createElement('div');
       container.style.marginBottom = '10px';
@@ -516,9 +456,9 @@ function showLastScene() {
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
       regenBtn.addEventListener('click', () => {
-        if (!window.apiKey) return;
+        if(!window.apiKey) return;
         const idx = window.sceneHistory.indexOf(imgEntry);
-        if (idx >= 0) {
+        if(idx>=0){
           openImagePromptModal(imgEntry.prompt, idx);
         }
       });
@@ -527,8 +467,8 @@ function showLastScene() {
       // 画像削除
       const delBtn = document.createElement('button');
       delBtn.textContent = '画像削除';
-      delBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
+      delBtn.addEventListener('click', async()=>{
+        if(!window.apiKey) return;
         await deleteSceneEntry(imgEntry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== imgEntry.entryId);
         showLastScene();
@@ -539,8 +479,7 @@ function showLastScene() {
       lastSceneImagesDiv.appendChild(container);
     });
 
-    // 入力関連の表示可否
-    if (window.apiKey) {
+    if(window.apiKey){
       nextSceneBtn.style.display = 'inline-block';
       playerInput.style.display = 'inline-block';
       playerActionLabel.textContent = 'プレイヤーがどんな行動を取るか？';
@@ -550,20 +489,11 @@ function showLastScene() {
       playerActionLabel.textContent = '';
     }
   } else {
-    // シーンが無い場合 => シナリオ概要のみ
+    // シーンが無い場合
     storyDiv.innerHTML = '';
     lastSceneImagesDiv.innerHTML = '';
 
-    if (window.currentScenario && window.currentScenario.wizardData) {
-      const summary = window.currentScenario.wizardData.scenarioSummary || "（シナリオ概要なし）";
-      storyDiv.innerHTML = `
-        <div style="margin-bottom: 10px; font-weight: bold;">
-          ${DOMPurify.sanitize(summary)}
-        </div>
-      `;
-    }
-
-    if (window.apiKey) {
+    if(window.apiKey){
       nextSceneBtn.style.display = 'inline-block';
       playerInput.style.display = 'block';
       playerActionLabel.textContent = '最初のシーンを作るために行動を入力してください。';
@@ -575,17 +505,72 @@ function showLastScene() {
   }
 }
 
-/** ローディングモーダル表示/非表示 */
-function showLoadingModal(show) {
+/** パーティ情報差し込み */
+function buildPartyInsertionText(party) {
+  let text = "【パーティ編成情報】\n";
+
+  const avatar = party.find(e => e.role === "avatar");
+  if (avatar) {
+    text += `プレイヤーの分身(アバター): ${avatar.name}\n`;
+    text += "実プレイヤーとして扱います。\n\n";
+  }
+
+  const partners = party.filter(e => e.role === "partner");
+  if (partners.length > 0) {
+    text += "パートナー(フレンドリーNPC):\n";
+    partners.forEach((p) => {
+      text += ` - ${p.name}\n`;
+    });
+    text += "\n";
+  }
+
+  const others = party.filter(e => !e.role || e.role==="none");
+  if(others.length>0){
+    const charList = others.filter(c => c.type==="キャラクター");
+    const monsterList = others.filter(c => c.type==="モンスター");
+    const itemList = others.filter(c => c.type==="アイテム");
+
+    if(charList.length>0){
+      text += "◆【キャラクター】\n";
+      charList.forEach(c => {
+        text += ` - ${c.name}\n`;
+      });
+      text += "\n";
+    }
+    if(monsterList.length>0){
+      text += "◆【モンスター】\n";
+      monsterList.forEach(m => {
+        text += ` - ${m.name}\n`;
+      });
+      text += "\n";
+    }
+    if(itemList.length>0){
+      text += "◆【アイテム】\n";
+      itemList.forEach(i => {
+        text += ` - ${i.name}\n`;
+      });
+      text += "\n";
+    }
+  }
+
+  text += "以上を踏まえ、アバターは実プレイヤー、パートナーは味方NPCとして扱ってください。";
+  return text;
+}
+
+/** 連携メソッド */
+function generateUniqueId() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+function showLoadingModal(show){
   const modal = document.getElementById('loading-modal');
-  if (!modal) return;
+  if(!modal) return;
   modal.style.display = show ? 'flex' : 'none';
 }
 
-/** リクエスト中断 */
-function onCancelFetch() {
+function onCancelFetch(){
   window.cancelRequested = true;
-  if (window.currentRequestController) {
+  if(window.currentRequestController){
     window.currentRequestController.abort();
   }
   showLoadingModal(false);

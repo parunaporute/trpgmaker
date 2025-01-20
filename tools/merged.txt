@@ -247,6 +247,8 @@ scenario.html
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+  <!-- 追加：内部的にZIP圧縮するためのpakoライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </head>
 
 <body>
@@ -294,6 +296,18 @@ scenario.html
       <button id="get-card-button" style="display:none; margin-top:20px;">
         カードを取得する
       </button>
+    </div>
+  </div>
+
+  <!-- ▼ 追加: 全セクションを閲覧ボタン -->
+  <button id="view-all-sections-button" style="margin-top:20px;">全セクションを閲覧する</button>
+
+  <!-- ▼ 追加: 全セクション表示モーダル -->
+  <div id="all-sections-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+      <h2>全セクション一覧</h2>
+      <div id="all-sections-content" style="white-space:pre-wrap; text-align:left;"></div>
+      <button id="close-all-sections-modal" style="margin-top:10px;">閉じる</button>
     </div>
   </div>
 
@@ -351,10 +365,11 @@ scenario.html
 
 </html>
 --- 
+scenarioSections.html 
+--- 
 scenarioWizard.html 
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <title>新しいシナリオ作成ウィザード</title>
@@ -363,7 +378,6 @@ scenarioWizard.html
 </head>
 
 <body>
-
   <!-- 戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
@@ -411,7 +425,7 @@ scenarioWizard.html
       </div>
 
       <p style="margin-top:10px;">
-        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。
+        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。<br />
         ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
       </p>
     </div>
@@ -419,16 +433,11 @@ scenarioWizard.html
     <!-- ステップ3：最終確認(シナリオ要約表示) -->
     <div id="wizard-step3" style="display:none;">
       <h2>ステップ3：シナリオ要約</h2>
-      <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-        <!-- 生成されたシナリオ概要を表示 -->
-      </div>
+      <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;"></div>
 
       <!-- ステップ2に戻るボタン -->
       <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
-
-      <button id="start-scenario-button" style="background-color:#4CAF50;">
-        このシナリオで始める
-      </button>
+      <button id="start-scenario-button" style="background-color:#4CAF50;">このシナリオで始める</button>
     </div>
   </div>
 
@@ -440,7 +449,7 @@ scenarioWizard.html
     </div>
   </div>
 
-  <!-- ★ シナリオ作成確認モーダル（ステップ2でタイプ選択時に出す） -->
+  <!-- シナリオ作成確認モーダル（ステップ2でタイプ選択時に出す） -->
   <div id="confirm-scenario-modal" class="modal" style="display:none;">
     <div class="modal-content" style="max-width:500px;">
       <h3>シナリオ生成の確認</h3>
@@ -453,19 +462,23 @@ scenarioWizard.html
     </div>
   </div>
 
-  <!-- Script -->
+  <!-- ★ pakoを先に読み込む -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+
+  <!-- IndexedDBなどの共通スクリプト -->
   <script src="js/indexedDB.js"></script>
+  <!-- シナリオウィザード用スクリプト -->
   <script src="js/scenarioWizard.js"></script>
 
-  <!-- 戻るボタン用 -->
+  <!-- 戻るボタン -->
   <script>
     document.getElementById("back-to-menu").addEventListener("click", function () {
       window.location.href = "index.html";
     });
   </script>
 </body>
-
-</html>--- 
+</html>
+--- 
 styles.css 
 /* styles.css */
 
@@ -3311,34 +3324,22 @@ function updatePartyMoveButtonVisibility(){
 scenarioPage.js 
 /********************************
  * scenarioPage.js
- * シナリオページ固有のUI操作
- * - 「回答候補を生成」機能
- * - 「カードを取得する」ボタンでプレビューモーダル表示
- * - 「パーティを確認」ボタンとモーダル表示
- * - 画像再生成機能など
+ * - 「セクション」情報や「導入シーン」を可視化
+ * - 「全セクションを閲覧する」ボタンでZIP解凍して表示
+ * - 冒頭シーン(最初にDBへ登録されたscene)も履歴に出る
  ********************************/
 
 window.addEventListener("load", async () => {
-  // 1. IndexedDB 初期化
+  // IndexedDB初期化 & characterDataロード
   await initIndexedDB();
-
-  // 2. もしwindow.characterDataが無ければ空配列を用意
-  if (!window.characterData) {
+  const storedChars = await loadCharacterDataFromIndexedDB();
+  if (storedChars) {
+    window.characterData = storedChars;
+  } else {
     window.characterData = [];
   }
 
-  // 3. IndexedDBからキャラクタ配列をロードし、上書き
-  const stored = await loadCharacterDataFromIndexedDB();
-  if (stored && stored.length > 0) {
-    window.characterData = stored;
-  }
-
-  console.log(
-    "scenarioPage.js: IndexedDB init & characterData loaded. length=",
-    window.characterData.length
-  );
-
-  // ネタバレ（目的達成型）の処理
+  // ネタバレ関連
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
@@ -3358,393 +3359,386 @@ window.addEventListener("load", async () => {
   if (getCardButton) {
     getCardButton.addEventListener("click", async () => {
       const sceneSummary = await getLastSceneSummary();
-      let onlyTitle = "";
-      let onlyType = "";
-      let addPrompt = "";
+      let onlyTitle="";
+      let onlyType="";
+      let addPrompt="";
 
-      // シーン要約から【名前】【タイプ】【外見】を抜き出す（簡易実装）
       const lines = sceneSummary.split("\n");
-      lines.forEach((line) => {
-        const trimLine = line.trim();
-        if (trimLine.startsWith("【名前】")) {
-          onlyTitle = trimLine.replace("【名前】", "").replace("：", "").trim();
-        } else if (trimLine.startsWith("【タイプ】")) {
-          onlyType = trimLine.replace("【タイプ】", "").replace("：", "").trim();
-        } else if (trimLine.startsWith("【外見】")) {
-          addPrompt = trimLine.replace("【外見】", "").replace("：", "").trim();
+      lines.forEach(line=>{
+        const t=line.trim();
+        if(t.startsWith("【名前】")){
+          onlyTitle=t.replace("【名前】","").replace("：","").trim();
+        } else if(t.startsWith("【タイプ】")){
+          onlyType=t.replace("【タイプ】","").replace("：","").trim();
+        } else if(t.startsWith("【外見】")){
+          addPrompt=t.replace("【外見】","").replace("：","").trim();
         }
       });
 
-      // プレビューモーダル表示
       const previewModal = document.getElementById("card-preview-modal");
       const previewContainer = document.getElementById("preview-card-container");
-      if (!previewModal || !previewContainer) return;
+      if(!previewModal||!previewContainer)return;
 
-      previewContainer.innerHTML = "";
+      previewContainer.innerHTML="";
+      const p=document.createElement("p");
+      p.textContent=
+        `【名前】：${onlyTitle}\n【タイプ】：${onlyType}\n【外見】：${addPrompt}\nこの内容で作成しますか？`;
+      p.style.whiteSpace="pre-wrap";
+      previewContainer.appendChild(p);
 
-      const preText = document.createElement("p");
-      preText.textContent =
-        `【名前】：${onlyTitle || "(未取得)"}\n` +
-        `【タイプ】：${onlyType || "(未取得)"}\n` +
-        `【外見(生成プロンプト)】：${addPrompt || "(未取得)"}\n\n` +
-        "この内容でカードを生成しますか？";
-      preText.style.whiteSpace = "pre-wrap";
-      previewContainer.appendChild(preText);
+      previewModal.style.display="flex";
 
-      previewModal.style.display = "flex";
-
-      // 「ガチャ箱に追加」ボタン
       const addBtn = document.getElementById("add-to-gachabox-button");
-      if (addBtn) {
-        addBtn.onclick = async () => {
-          previewModal.style.display = "none";
-          const gachaModal = document.getElementById("gacha-modal");
-          if (gachaModal) {
-            gachaModal.style.display = "flex";
-          }
-          try {
-            await runGacha(1, addPrompt, onlyTitle, onlyType);
-            alert("新しいカードをガチャ箱に追加しました。\n「エレメント作成」画面で確認できます。");
-          } catch (err) {
-            console.error(err);
-            alert("カード生成に失敗しました:\n" + err.message);
-          } finally {
-            if (gachaModal) {
-              gachaModal.style.display = "none";
-            }
+      if(addBtn){
+        addBtn.onclick=async()=>{
+          previewModal.style.display="none";
+          const gachaModal=document.getElementById("gacha-modal");
+          if(gachaModal) gachaModal.style.display="flex";
+
+          try{
+            await runGacha(1,addPrompt,onlyTitle,onlyType);
+            alert("ガチャ箱に追加しました。");
+          }catch(e){
+            console.error(e);
+            alert("カード生成失敗:"+e.message);
+          }finally{
+            if(gachaModal) gachaModal.style.display="none";
           }
         };
       }
-
-      // 「キャンセル」ボタン
       const cancelBtn = document.getElementById("cancel-card-preview-button");
-      if (cancelBtn) {
-        cancelBtn.onclick = () => {
-          previewModal.style.display = "none";
+      if(cancelBtn){
+        cancelBtn.onclick=()=>{
+          previewModal.style.display="none";
         };
       }
     });
   }
 
-  // 「回答候補を生成」ボタン
+  // 回答候補を生成
   const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
-  if (generateActionCandidatesBtn) {
+  if(generateActionCandidatesBtn){
     generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
   }
 
-  // 「パーティーを確認」ボタン → モーダル
+  // パーティモーダル
   const showPartyBtn = document.getElementById("show-party-button");
-  if (showPartyBtn) {
-    showPartyBtn.addEventListener("click", () => {
-      showPartyModal();
+  if(showPartyBtn){
+    showPartyBtn.addEventListener("click", showPartyModal);
+  }
+  const closePartyModalBtn = document.getElementById("close-party-modal");
+  if(closePartyModalBtn){
+    closePartyModalBtn.addEventListener("click",()=>{
+      const modal = document.getElementById("party-modal");
+      if(modal) modal.style.display="none";
     });
   }
 
-  const closePartyModalBtn = document.getElementById("close-party-modal");
-  if (closePartyModalBtn) {
-    closePartyModalBtn.addEventListener("click", () => {
-      const modal = document.getElementById("party-modal");
-      if (modal) {
-        modal.style.display = "none";
-      }
+  // 全セクション閲覧
+  const viewAllSectionsBtn = document.getElementById("view-all-sections-button");
+  if(viewAllSectionsBtn){
+    viewAllSectionsBtn.addEventListener("click", showAllSectionsModal);
+  }
+  const closeAllSecBtn = document.getElementById("close-all-sections-modal");
+  if(closeAllSecBtn){
+    closeAllSecBtn.addEventListener("click",()=>{
+      document.getElementById("all-sections-modal").style.display="none";
     });
   }
 });
 
-/**
- * 回答候補（プレイヤー行動案）を生成
- */
-async function onGenerateActionCandidates() {
-  if (!window.apiKey) {
-    alert("APIキーが設定されていません。");
+/** 回答候補 */
+async function onGenerateActionCandidates(){
+  if(!window.apiKey){
+    alert("APIキー未設定");
     return;
   }
-  // 最新シーンを取得
-  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
-  const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(シーンがありません)";
+  const lastSceneEntry = [...window.sceneHistory].reverse().find(e=> e.type==="scene");
+  const lastSceneText = lastSceneEntry? lastSceneEntry.content : "(シーン無し)";
 
-  window.cancelRequested = false;
+  window.cancelRequested=false;
   showLoadingModal(true);
 
-  try {
-    window.currentRequestController = new AbortController();
-    const signal = window.currentRequestController.signal;
+  try{
+    window.currentRequestController=new AbortController();
+    const signal=window.currentRequestController.signal;
 
-    const prompt = `
-      あなたはTRPGのゲームマスターです。
-      次のシーンは下記の描写です。
+    const prompt=`
+      あなたはTRPGのGMです。
+      下記シーンを踏まえ、プレイヤーが可能な行動案を5つ提案してください。
       ---
       ${lastSceneText}
-      ---
-      この状況でプレイヤーが取り得る行動案を5つほど提案してください。
-      箇条書き形式で短めにお願いします。
     `;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp=await fetch("https://api.openai.com/v1/chat/completions",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
         "Authorization":`Bearer ${window.apiKey}`
       },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages: [
-          { role:"system", content:"あなたは優秀なTRPGのアシスタントです。"},
-          { role:"user", content: prompt }
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content:"あなたは優秀なTRPGアシスタント" },
+          { role:"user", content:prompt }
         ],
         temperature:0.7
       }),
       signal
     });
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
 
-    const data = await response.json();
-    if(data.error){
-      throw new Error(data.error.message);
-    }
-
-    const content = data.choices[0].message.content.trim();
+    const content = data.choices[0].message.content||"";
     const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
 
     const container = document.getElementById("action-candidates-container");
-    if(!container) return;
-    container.innerHTML = "";
+    if(!container)return;
+    container.innerHTML="";
 
-    lines.forEach(line => {
-      const btn = document.createElement("button");
-      btn.textContent = line.replace(/^\d+\.\s*/, "");  // "1. "など行頭番号を削除
-      btn.style.display = "block";
-      btn.style.margin = "5px 0";
-
-      // クリックしたら #player-input に反映
-      btn.addEventListener("click", ()=>{
-        const playerInput = document.getElementById("player-input");
+    lines.forEach(line=>{
+      const btn=document.createElement("button");
+      btn.textContent=line.replace(/^\d+\.\s*/,"");
+      btn.style.display="block";
+      btn.style.margin="5px 0";
+      btn.addEventListener("click",()=>{
+        const playerInput=document.getElementById("player-input");
         if(playerInput){
-          playerInput.value = btn.textContent;
+          playerInput.value=btn.textContent;
         }
       });
-
       container.appendChild(btn);
     });
-
-  } catch(err){
-    if(err.name === "AbortError"){
-      console.log("回答候補生成キャンセル");
+  }catch(e){
+    if(e.name==="AbortError"){
+      console.log("候補生成キャンセル");
     } else {
-      console.error(err);
-      alert("回答候補の生成に失敗しました:\n" + err.message);
+      console.error(e);
+      alert("候補生成失敗:"+e.message);
     }
-  } finally {
+  }finally{
     showLoadingModal(false);
   }
 }
 
-/**
- * 直近シーンをChatGPTで要約し、カード向け【名前】【タイプ】【外見】を抽出
- */
-async function getLastSceneSummary() {
-  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
-  if (!lastSceneEntry) return "シーンがありません。";
+/** 全セクション表示モーダル */
+function showAllSectionsModal(){
+  const modal=document.getElementById("all-sections-modal");
+  if(!modal)return;
 
-  const fullText = lastSceneEntry.content;
+  // scenario.jsの loadScenarioData() で window.currentScenario.wizardData が格納済み
+  const wd = (window.currentScenario && window.currentScenario.wizardData)||{};
+  const sections = wd.sections||[];
 
-  const systemPrompt = `あなたは優秀なカード作成用プロンプト製造者です。以下のフォーマットでプロンプトを製造してください。
-【名前】：...
-【タイプ】：キャラクター、モンスター、アイテムのいずれか
-【外見】：...
-`;
-  const userPrompt = `
-以下のシナリオの1シーンから、エレメントにできそうな対象を1つだけ取り出し、
-カード用の【名前】【タイプ】【外見】を生成してください。
----
-${fullText}
----
-`;
+  const container=document.getElementById("all-sections-content");
+  container.textContent="";
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ]
-      }),
-    });
+  if(!sections.length){
+    container.textContent="セクション情報がありません。";
+  } else {
+    let text="";
+    for(const sec of sections){
+      text += `【セクション${sec.number}】`+(sec.cleared?"(クリア済み)":"(未クリア)")+"\n";
+      text += "条件: "+(decompressCondition(sec.conditionZipped))+"\n\n";
+    }
+    container.textContent=text;
+  }
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
+  modal.style.display="flex";
+}
 
-    return data.choices[0].message.content.trim();
-  } catch (err) {
-    console.error("要約取得失敗:", err);
-    return "(要約失敗)";
+/** ZIP解凍 */
+function decompressCondition(zippedBase64){
+  if(!zippedBase64)return"(不明)";
+  try{
+    const bin=atob(zippedBase64);
+    const uint8=new Uint8Array([...bin].map(c=>c.charCodeAt(0)));
+    const inf=pako.inflate(uint8);
+    return new TextDecoder().decode(inf);
+  }catch(e){
+    console.error("decompress失敗:",e);
+    return"(解凍エラー)";
   }
 }
 
-/** ローディングモーダルの表示/非表示 */
-function showLoadingModal(show){
-  const modal = document.getElementById("loading-modal");
-  if(!modal) return;
-  modal.style.display = show ? "flex" : "none";
+/** パーティ確認モーダル */
+function showPartyModal(){
+  const modal=document.getElementById("party-modal");
+  if(!modal)return;
+  modal.style.display="flex";
+
+  renderPartyCardsInModal();
+}
+function renderPartyCardsInModal(){
+  const container=document.getElementById("party-modal-card-container");
+  if(!container)return;
+  container.innerHTML="";
+
+  const partyCards=window.characterData.filter(c=>c.group==="Party");
+  if(!partyCards.length){
+    container.textContent="パーティにカードがありません。";
+    return;
+  }
+  partyCards.forEach(card=>{
+    const cardEl=createPartyCardElement(card);
+    container.appendChild(cardEl);
+  });
+}
+function createPartyCardElement(c){
+  const cardEl=document.createElement("div");
+  cardEl.className="card";
+  cardEl.setAttribute("data-id",c.id);
+  cardEl.addEventListener("click",()=>{
+    cardEl.classList.toggle("flipped");
+  });
+
+  const cardInner=document.createElement("div");
+  cardInner.className="card-inner";
+
+  const cf=document.createElement("div");
+  cf.className="card-front";
+
+  const bg=(c.backgroundcss||"").replace("background-image:","").replace("background","").trim();
+  cf.style="background-image:"+bg;
+
+  const rv=(typeof c.rarity==="string")? c.rarity.replace("★","").trim() : "0";
+  cf.innerHTML=`<div class='bezel rarity${rv}'></div>`;
+
+  let roleLabel="";
+  if(c.role==="avatar") roleLabel="(アバター)";
+  else if(c.role==="partner") roleLabel="(パートナー)";
+
+  const tEl=document.createElement("div");
+  tEl.className="card-type";
+  tEl.textContent=(c.type||"不明")+roleLabel;
+  cf.appendChild(tEl);
+
+  const imgCont=document.createElement("div");
+  imgCont.className="card-image";
+  if(c.imageData){
+    const im=document.createElement("img");
+    im.src=c.imageData;
+    im.alt=c.name;
+    imgCont.appendChild(im);
+  }
+  cf.appendChild(imgCont);
+
+  const info=document.createElement("div");
+  info.className="card-info";
+
+  const nm=document.createElement("p");
+  nm.innerHTML="<h3>"+DOMPurify.sanitize(c.name)+"</h3>";
+  info.appendChild(nm);
+
+  if(c.state){
+    const st=document.createElement("p");
+    st.innerHTML="<strong>状態：</strong>"+DOMPurify.sanitize(c.state);
+    info.appendChild(st);
+  }
+
+  const sp=document.createElement("p");
+  sp.innerHTML="<strong>特技：</strong>"+DOMPurify.sanitize(c.special);
+  info.appendChild(sp);
+
+  const cap=document.createElement("p");
+  cap.innerHTML="<span>"+DOMPurify.sanitize(c.caption)+"</span>";
+  info.appendChild(cap);
+
+  cf.appendChild(info);
+
+  const cb=document.createElement("div");
+  cb.className="card-back";
+  cb.innerHTML=`<strong>${DOMPurify.sanitize(c.type)}</strong>`;
+
+  cardInner.appendChild(cf);
+  cardInner.appendChild(cb);
+  cardEl.appendChild(cardInner);
+  return cardEl;
 }
 
-/** リクエストを中断 */
+/** シーン要約からカード用【名前】【タイプ】【外見】を得る */
+async function getLastSceneSummary(){
+  const lastSceneEntry=[...window.sceneHistory].reverse().find(e=>e.type==="scene");
+  if(!lastSceneEntry) return "シーンがありません。";
+
+  const text=lastSceneEntry.content;
+  const systemPrompt=`
+あなたは優秀なカード作成用プロンプト生成者。
+以下フォーマットで【名前】【タイプ】【外見】を作ってください。`;
+  const userPrompt=`
+シーン文:
+${text}
+ここからエレメントにできそうな対象1つを抽出し、【名前】【タイプ】【外見】を生成してください。
+`;
+
+  try{
+    const resp=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${window.apiKey}`
+      },
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content: systemPrompt },
+          { role:"user", content: userPrompt }
+        ]
+      })
+    });
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+
+    return data.choices[0].message.content||"";
+  }catch(e){
+    console.error("要約失敗:",e);
+    return"(要約失敗)";
+  }
+}
+
+/** ローディング表示 */
+function showLoadingModal(show){
+  const m=document.getElementById("loading-modal");
+  if(!m)return;
+  m.style.display=show?"flex":"none";
+}
 function onCancelFetch(){
   if(window.currentRequestController){
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
 }
-
-/* -------------------------------------------
- * 「パーティーを確認」モーダル表示
- -------------------------------------------*/
-function showPartyModal(){
-  const modal = document.getElementById("party-modal");
-  if(!modal) return;
-  modal.style.display = "flex";
-
-  // モーダル内にカードを表示
-  renderPartyCardsInModal();
-}
-
-/** モーダル内にパーティのカードを表示（読み取り専用, roleを表示） */
-function renderPartyCardsInModal(){
-  const container = document.getElementById("party-modal-card-container");
-  if(!container) return;
-
-  container.innerHTML = "";
-
-  // 最新のcharacterDataから、group==="Party" を抽出
-  const partyCards = window.characterData.filter(c => c.group === "Party");
-  if(partyCards.length === 0){
-    container.textContent = "パーティにはカードがありません。";
-    return;
-  }
-
-  partyCards.forEach(card => {
-    const cardEl = createPartyCardElement(card);
-    container.appendChild(cardEl);
-  });
-}
-
-/** パーティ用カードDOMを生成（role表示のため若干カスタム） */
-function createPartyCardElement(card){
-  const cardEl = document.createElement("div");
-  cardEl.className = "card";
-  cardEl.setAttribute("data-id", card.id);
-
-  // クリックで反転
-  cardEl.addEventListener("click", () => {
-    cardEl.classList.toggle("flipped");
-  });
-
-  const cardInner = document.createElement("div");
-  cardInner.className = "card-inner";
-
-  const cardFront = document.createElement("div");
-  cardFront.className = "card-front";
-
-  // 背景CSS
-  const bgStyle = (card.backgroundcss || "")
-    .replace("background-image:", "")
-    .replace("background", "")
-    .trim();
-  cardFront.style = "background-image:" + bgStyle;
-
-  // レアリティ
-  const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
-  cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
-
-  // タイプ
-  const typeEl = document.createElement("div");
-  typeEl.className = "card-type";
-  // roleをわかりやすく表示
-  let roleLabel = "";
-  if(card.role === "avatar") {
-    roleLabel = "（アバター）";
-  } else if(card.role === "partner") {
-    roleLabel = "（パートナー）";
-  }
-  typeEl.textContent = (card.type || "不明") + roleLabel;
-  cardFront.appendChild(typeEl);
-
-  // 画像
-  const imageContainer = document.createElement("div");
-  imageContainer.className = "card-image";
-  if(card.imageData){
-    const imageEl = document.createElement("img");
-    imageEl.src = card.imageData;
-    imageEl.alt = card.name;
-    imageContainer.appendChild(imageEl);
-  }
-  cardFront.appendChild(imageContainer);
-
-  // 下部テキスト情報
-  const infoContainer = document.createElement("div");
-  infoContainer.className = "card-info";
-
-  const nameEl = document.createElement("p");
-  nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
-  infoContainer.appendChild(nameEl);
-
-  if (card.state) {
-    const stateEl = document.createElement("p");
-    stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
-    infoContainer.appendChild(stateEl);
-  }
-
-  const specialEl = document.createElement("p");
-  specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
-  infoContainer.appendChild(specialEl);
-
-  const captionEl = document.createElement("p");
-  captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
-  infoContainer.appendChild(captionEl);
-
-  cardFront.appendChild(infoContainer);
-
-  const cardBack = document.createElement("div");
-  cardBack.className = "card-back";
-  cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type)}</strong>`;
-
-  cardInner.appendChild(cardFront);
-  cardInner.appendChild(cardBack);
-  cardEl.appendChild(cardInner);
-
-  return cardEl;
-}
 --- 
 scenarioWizard.js 
 /********************************
  * scenarioWizard.js
  * 新しいシナリオ作成ウィザード
- *  - ローカルストレージを廃止し、IndexedDBに保存
+ *  - シナリオ概要
+ *  - 導入シーン(冒頭部分)
+ *  - セクション生成(2〜5個ランダム)
+ *    * 達成条件は「動詞を使った形式(～を入手する/～に行く 等)」で生成するようプロンプトを修正
  ********************************/
 
 let wizardData = {
   genre: "",
-  scenarioType: "",      // "objective" or "exploration"
-  clearCondition: "",    // 目的達成型ならChatGPTから取得
-  scenarioSummary: "",   // 全体のシナリオ要約
-  party: []
+  scenarioType: "",
+  clearCondition: "",
+  scenarioSummary: "",
+  introScene: "",   // ★冒頭シーン
+  party: [],
+  sections: []      // セクション配列
 };
 
 window.addEventListener("load", async function () {
-  // 1) IndexedDB初期化
+  // IndexedDB初期化
   await initIndexedDB();
 
-  // 2) 可能なら既存のwizardDataをロード
+  // 既存wizardDataあればロード
   const storedWizard = await loadWizardDataFromIndexedDB();
   if (storedWizard) {
     wizardData = storedWizard;
   }
 
+  // 画面更新
   updateSelectedGenreDisplay();
   updateSummaryUI();
 
@@ -3766,40 +3760,9 @@ window.addEventListener("load", async function () {
   document.getElementById("confirm-scenario-cancel").addEventListener("click", onConfirmScenarioModalCancel);
 });
 
-/* ---------------------------------------------
-   シナリオ作成時に、現在のパーティをwizardDataに保存
-   （ただしimageDataなど巨大データをそのまま持たない）
----------------------------------------------*/
-async function storePartyInWizardData() {
-  // 1) IndexedDBから最新の characterData をロード
-  const charData = await loadCharacterDataFromIndexedDB();
-  if (!charData) return;
-
-  // 2) group === "Party" のエレメントを取得
-  const fullParty = charData.filter(e => e.group === "Party");
-
-  // 3) 容量肥大を防ぐため、imageData等は除去し、必要情報のみ保持
-  const strippedParty = fullParty.map(e => {
-    return {
-      id: e.id,
-      name: e.name,
-      type: e.type,
-      rarity: e.rarity,
-      state: e.state,
-      special: e.special,
-      caption: e.caption,
-      backgroundcss: e.backgroundcss
-      // imageDataは保持しない
-    };
-  });
-
-  wizardData.party = strippedParty;
-
-  // 4) wizardDataをDBに保存
-  await saveWizardDataToIndexedDB(wizardData);
-}
-
-/* ---- ステップ1 ---- */
+/* ---------------------------
+   ステップ1：ジャンル選択
+--------------------------- */
 async function onGenerateGenre() {
   const genreListDiv = document.getElementById("genre-list");
   const apiKey = localStorage.getItem("apiKey") || "";
@@ -3816,18 +3779,21 @@ async function onGenerateGenre() {
 
   try {
     const messages = [
-      { role: "system", content: "あなたはTRPGのプロです。ジャンルを5つ提案してください。" },
-      { role: "user", content: "SF, 中世ファンタジー, 現代など、TRPGに使いやすいジャンル候補を5つ、箇条書きで出してください。" }
+      { role: "system", content: "あなたはTRPGのプロ。ジャンルを5つ提案してください。" },
+      {
+        role: "user",
+        content: "SF, 中世ファンタジー, 現代などTRPGに使えるジャンル候補を5つ、箇条書きで。"
+      }
     ];
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: "gpt-4",
-        messages: messages,
+        messages,
         temperature: 0.7
       }),
       signal
@@ -3837,9 +3803,8 @@ async function onGenerateGenre() {
     if (data.error) throw new Error(data.error.message);
 
     const content = data.choices[0].message.content;
-    const lines = content.split("\n").map(l => l.trim()).filter(l => l);
+    const lines = content.split("\n").map(l=>l.trim()).filter(l=>l);
 
-    // ボタンを追加
     lines.forEach(line => {
       const btn = document.createElement("button");
       btn.classList.add("candidate-button");
@@ -3852,278 +3817,400 @@ async function onGenerateGenre() {
         await saveWizardDataToIndexedDB(wizardData);
         highlightSelectedButton(genreListDiv, btn);
 
-        // ステップ1→ステップ2
         document.getElementById("wizard-step1").style.display = "none";
         document.getElementById("wizard-step2").style.display = "block";
         updateSelectedGenreDisplay();
       });
       genreListDiv.appendChild(btn);
     });
-  } catch (err) {
-    if (err.name === "AbortError") {
-      console.log("ジャンル生成キャンセル");
-    } else {
-      console.error(err);
-      alert("ジャンル生成に失敗しました:\n" + err.message);
-    }
+  } catch(err) {
+    console.error(err);
+    alert("ジャンル生成に失敗: " + err.message);
   } finally {
     showLoadingModal(false);
   }
 }
 
-async function onClearGenre() {
+async function onClearGenre(){
   const genreListDiv = document.getElementById("genre-list");
   genreListDiv.innerHTML = "";
   wizardData.genre = "";
   await saveWizardDataToIndexedDB(wizardData);
-
   document.getElementById("free-genre-input").value = "";
 }
 
-async function onConfirmGenre() {
+async function onConfirmGenre(){
   const freeInput = document.getElementById("free-genre-input");
-  const txt = (freeInput.value || "").trim();
-  if (!txt) {
+  const val = (freeInput.value || "").trim();
+  if(!val){
     alert("ジャンルを入力してください。");
     return;
   }
-  wizardData.genre = txt;
+  wizardData.genre = val;
   await saveWizardDataToIndexedDB(wizardData);
 
-  // ステップ1→ステップ2
   document.getElementById("wizard-step1").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
   updateSelectedGenreDisplay();
 }
 
-/* ---- ステップ2 ---- */
-async function onSelectScenarioType(type) {
+/* ---------------------------
+   ステップ2：シナリオタイプ
+--------------------------- */
+async function onSelectScenarioType(type){
   wizardData.scenarioType = type;
   await saveWizardDataToIndexedDB(wizardData);
 
-  // モーダルのテキストを更新
   const textEl = document.getElementById("confirm-genre-type-text");
-  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type === "objective" ? "目的達成型" : "探索型"}`;
+  textEl.textContent = `ジャンル:${wizardData.genre}\nシナリオタイプ:${type}`;
 
-  // モーダル表示
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "flex";
 }
 
-// モーダル: OK
-async function onConfirmScenarioModalOK() {
+function onConfirmScenarioModalCancel(){
+  const modal = document.getElementById("confirm-scenario-modal");
+  modal.style.display = "none";
+}
+
+async function onConfirmScenarioModalOK(){
   const modal = document.getElementById("confirm-scenario-modal");
   modal.style.display = "none";
 
-  // ★ シナリオ概要を生成する直前にパーティ情報を取り込む
+  // シナリオ要約生成前にパーティ情報を取り込む
   await storePartyInWizardData();
 
-  if (wizardData.scenarioType === "objective") {
+  // シナリオ概要
+  if(wizardData.scenarioType==="objective"){
     await generateScenarioSummaryAndClearCondition();
   } else {
     await generateScenarioSummary();
   }
+
+  // セクション(達成条件)生成
+  await generateSections();
+
+  // 導入文
+  await generateIntroScene();
 
   // ステップ2→ステップ3
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step3").style.display = "block";
 }
 
-// モーダル: キャンセル
-function onConfirmScenarioModalCancel() {
-  const modal = document.getElementById("confirm-scenario-modal");
-  modal.style.display = "none";
-}
-
-function onBackToStep1() {
+function onBackToStep1(){
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step1").style.display = "block";
 }
 
-/* ---- ステップ3 ---- */
-function onBackToStep2FromStep3() {
+/* ---------------------------
+   ステップ3：最終確認(シナリオ要約表示)
+--------------------------- */
+function onBackToStep2FromStep3(){
   document.getElementById("wizard-step3").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 }
 
-async function onStartScenario() {
+async function onStartScenario(){
   try {
     let title = wizardData.genre || "新シナリオ";
-
     const scenarioId = await createNewScenario(wizardData, title);
+
+    // ★もし冒頭文があれば最初のsceneとして登録
+    if(wizardData.introScene && wizardData.introScene.trim()){
+      const firstScene = {
+        scenarioId,
+        type:"scene",
+        sceneId: "intro_"+Date.now(),
+        content: wizardData.introScene
+      };
+      await addSceneEntry(firstScene);
+    }
+
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
-  } catch (err) {
+  } catch(err) {
     console.error("シナリオ作成失敗:", err);
-    alert("シナリオを開始できませんでした:\n" + err.message);
+    alert("シナリオ開始失敗: " + err.message);
   }
 }
 
-/* ---- シナリオ生成 (GPT呼び出し) ---- */
-async function generateScenarioSummaryAndClearCondition() {
+/* ---------------------------
+   GPT呼び出しで概要やセクション達成条件、導入文を生成
+--------------------------- */
+async function generateScenarioSummaryAndClearCondition(){
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
-    const apiKey = localStorage.getItem("apiKey") || "";
-    if (!apiKey) {
-      throw new Error("APIキーが未設定です。");
-    }
+    const apiKey = localStorage.getItem("apiKey")||"";
+    if(!apiKey) throw new Error("APIキーが未設定");
 
     wizardData.scenarioSummary = "";
     wizardData.clearCondition = "";
 
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
-      ジャンルは「${wizardData.genre}」、シナリオタイプは「目的達成型」です。
-      以下を生成してください：
-      1. シナリオの概要（短め）
-      2. このシナリオのクリア条件（【クリア条件】という見出しで書いてください）
-         ただし、【クリア条件】はプレイヤーに公開しません。
+      ジャンル:${wizardData.genre}, タイプ:目的達成型。
+      1) シナリオ概要(短め)
+      2) 【クリア条件】(非公開,プレイヤー非表示)。必ず明示してください。
     `;
-    const messages = [
-      { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
-      { role: "user", content: prompt }
-    ];
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages,
-        temperature: 0.7
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
+          { role:"user", content: prompt }
+        ],
+        temperature:0.7
       }),
       signal
     });
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-
-    const text = data.choices[0].message.content;
-    let clearConditionPart = "";
-    let summaryPart = text;
-    if (text.includes("【クリア条件】")) {
+    const text = data.choices[0].message.content||"";
+    let sum = text;
+    let cc = "";
+    if(text.includes("【クリア条件】")){
       const arr = text.split("【クリア条件】");
-      summaryPart = arr[0].trim();
-      clearConditionPart = arr[1] ? arr[1].trim() : "";
+      sum = arr[0].trim();
+      cc = arr[1]? arr[1].trim() : "";
     }
-    wizardData.scenarioSummary = summaryPart;
-    wizardData.clearCondition = clearConditionPart;
+    wizardData.scenarioSummary = sum;
+    wizardData.clearCondition = cc;
 
     await saveWizardDataToIndexedDB(wizardData);
     updateSummaryUI();
-  } catch (err) {
-    if (err.name === "AbortError") {
-      console.log("目的達成型シナリオ生成キャンセル");
-    } else {
-      console.error(err);
-      alert("目的達成型シナリオ生成に失敗:\n" + err.message);
-    }
+  } catch(err){
+    console.error(err);
+    alert("目的達成型シナリオ生成失敗: "+err.message);
   } finally {
     showLoadingModal(false);
   }
 }
 
-async function generateScenarioSummary() {
+async function generateScenarioSummary(){
   showLoadingModal(true);
   window.currentRequestController = new AbortController();
   const signal = window.currentRequestController.signal;
 
   try {
-    const apiKey = localStorage.getItem("apiKey") || "";
-    if (!apiKey) {
-      throw new Error("APIキーが未設定です。");
-    }
+    const apiKey = localStorage.getItem("apiKey")||"";
+    if(!apiKey) throw new Error("APIキーが未設定");
 
     wizardData.scenarioSummary = "";
 
     const prompt = `
-      あなたはTRPG用のシナリオ作成に長けたアシスタントです。
-      ジャンルは「${wizardData.genre}」、シナリオタイプは「探索型」です。
-      ストーリー内でエレメントを手に入れることができるようにしてください。
-      概要は短めで、プレイヤーが興味を持ちそうな設定を盛り込んでください。
+      あなたはTRPGシナリオ作成のプロ。ジャンル:${wizardData.genre}, タイプ:探索型。
+      エレメント取得可能。短めの概要を作ってください。
     `;
-    const messages = [
-      { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
-      { role: "user", content: prompt }
-    ];
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages,
-        temperature: 0.7
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
+          { role:"user", content: prompt }
+        ],
+        temperature:0.7
       }),
       signal
     });
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-
-    wizardData.scenarioSummary = data.choices[0].message.content;
+    wizardData.scenarioSummary = data.choices[0].message.content||"(概要なし)";
     await saveWizardDataToIndexedDB(wizardData);
     updateSummaryUI();
-  } catch (err) {
-    if (err.name === "AbortError") {
-      console.log("探索型シナリオ生成キャンセル");
-    } else {
-      console.error(err);
-      alert("探索型シナリオ生成に失敗:\n" + err.message);
-    }
+  } catch(err){
+    console.error(err);
+    alert("探索型シナリオ生成失敗: "+err.message);
   } finally {
     showLoadingModal(false);
   }
 }
 
-/* ---- UI更新 ---- */
-function updateSummaryUI() {
-  const summaryDiv = document.getElementById("scenario-summary");
-  const scenario = wizardData.scenarioSummary || "（シナリオ概要なし）";
-  summaryDiv.textContent = scenario;
-}
+/**
+ * セクション(達成条件)を生成 (2〜5個)
+ * ※必ず動詞を用いた条件文にするようにプロンプトを修正
+ */
+async function generateSections(){
+  wizardData.sections = [];
+  const count = Math.floor(Math.random()*4)+2; //2..5
 
-function updateSelectedGenreDisplay() {
-  const displayEl = document.getElementById("selected-genre-display");
-  if (!displayEl) return;
-  if (wizardData.genre) {
-    displayEl.textContent = wizardData.genre;
-  } else {
-    displayEl.textContent = "（未選択）";
+  // ★修正: 「動詞で書いてください」と強制
+  const systemPrompt = `
+あなたはTRPGシナリオを小分けにして目標を作るエキスパートです。
+絶対に動詞を用いた条件文で書いてください(例:「XXを発見する」「XXを調べる」「XXと会う」など)。
+セクション数:${count}個、それぞれ1行ずつ動詞で始まるようお願いします。`;
+
+  const userPrompt = `
+ジャンル:${wizardData.genre}, シナリオタイプ:${wizardData.scenarioType} 用のセクション達成条件:
+- 例：「封印を解く」「古文書を読む」「ボスを倒す」etc
+必ず動詞～で書いてください。${count}個分、箇条書きで。`;
+
+  try {
+    const apiKey = localStorage.getItem("apiKey")||"";
+    if(!apiKey) throw new Error("APIキーが未設定");
+
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${apiKey}`
+      },
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content: systemPrompt },
+          { role:"user", content: userPrompt }
+        ],
+        temperature:0.7
+      })
+    });
+
+    const d = await r.json();
+    if(d.error) throw new Error(d.error.message);
+
+    const text = d.choices[0].message.content||"";
+    const lines = text.split("\n").map(v=>v.trim()).filter(v=>v);
+    for(let i=0;i<count;i++){
+      const raw = lines[i]||(`セクション${i+1}のダミー条件(動詞)`);
+      wizardData.sections.push({
+        number:(i+1),
+        conditionZipped: zipString(raw),
+        cleared:false
+      });
+    }
+  } catch(err){
+    console.error("セクション生成失敗:",err);
+    // ダミー
+    for(let i=0;i<count;i++){
+      wizardData.sections.push({
+        number:(i+1),
+        conditionZipped: zipString(`セクション${i+1}のダミー(動詞形)`),
+        cleared:false
+      });
+    }
   }
+  await saveWizardDataToIndexedDB(wizardData);
 }
 
-/* ---- 共通 ---- */
-function showLoadingModal(show) {
+/** pakoでZIP圧縮→Base64 */
+function zipString(str){
+  const utf8 = new TextEncoder().encode(str);
+  const def = pako.deflate(utf8);
+  return btoa(String.fromCharCode(...def));
+}
+
+/** 導入シーン(冒頭)を生成 */
+async function generateIntroScene(){
+  const apiKey = localStorage.getItem("apiKey")||"";
+  if(!apiKey){
+    console.warn("APIキー無し → 導入シーン生成スキップ");
+    wizardData.introScene = "(導入生成失敗)";
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+
+  try{
+    const pro = `
+      あなたはTRPGのゲームマスターです。
+      次のシナリオ概要を踏まえ、プレイヤーが行動したくなる導入シーン(300字程度)を作ってください。
+      シナリオ概要:
+      ${wizardData.scenarioSummary}
+    `;
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${apiKey}`
+      },
+      body:JSON.stringify({
+        model:"gpt-4",
+        messages:[
+          { role:"system", content:"あなたは優秀なTRPGシナリオライターです。" },
+          { role:"user", content: pro }
+        ],
+        temperature:0.7
+      })
+    });
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
+
+    wizardData.introScene = data.choices[0].message.content||"(導入空)";
+  } catch(err){
+    console.error(err);
+    wizardData.introScene="(導入生成失敗)";
+  }
+  await saveWizardDataToIndexedDB(wizardData);
+}
+
+/* ---------------------------
+   汎用
+--------------------------- */
+function updateSelectedGenreDisplay(){
+  const el = document.getElementById("selected-genre-display");
+  if(!el)return;
+  el.textContent = wizardData.genre||"(未選択)";
+}
+
+function updateSummaryUI(){
+  const el = document.getElementById("scenario-summary");
+  if(!el)return;
+  el.textContent = wizardData.scenarioSummary||"(シナリオ概要なし)";
+}
+
+async function storePartyInWizardData(){
+  const charData = await loadCharacterDataFromIndexedDB();
+  if(!charData)return;
+
+  const party = charData.filter(c=>c.group==="Party");
+  // imageDataなどを落としておく
+  const stripped = party.map(c=>({
+    id:c.id, name:c.name, type:c.type,
+    rarity:c.rarity, state:c.state, special:c.special,
+    caption:c.caption, backgroundcss:c.backgroundcss
+  }));
+  wizardData.party = stripped;
+  await saveWizardDataToIndexedDB(wizardData);
+}
+
+function highlightSelectedButton(container, targetBtn){
+  const all = container.querySelectorAll(".candidate-button");
+  all.forEach(b=>b.style.backgroundColor="");
+  targetBtn.style.backgroundColor="#8BC34A";
+}
+
+function showLoadingModal(show){
   const modal = document.getElementById("loading-modal");
-  if (!modal) return;
-  modal.style.display = show ? "flex" : "none";
+  if(!modal)return;
+  modal.style.display = show?"flex":"none";
 }
 
-function onCancelFetch() {
-  if (window.currentRequestController) {
+function onCancelFetch(){
+  if(window.currentRequestController){
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
-}
-
-function highlightSelectedButton(container, targetBtn) {
-  const allBtns = container.querySelectorAll(".candidate-button");
-  allBtns.forEach(b => b.style.backgroundColor = "");
-  targetBtn.style.backgroundColor = "#8BC34A";
 }
 --- 
 scene.js 
 /********************************
  * scene.js - シナリオ/シーン管理関連 (複数シナリオ対応)
+ *   セクション管理のため、従来の「シナリオ要約」を履歴先頭に表示する方式を廃止
+ *   → 代わりに「まだクリアしていない最小セクション」をシーン履歴の最上部に表示する
+ *   セクションをクリアすると次のセクションを追加表示、最後は「シナリオ達成」を履歴に表示
  ********************************/
 
 window.apiKey = '';
@@ -4134,87 +4221,17 @@ window.currentRequestController = null;
 window.cancelRequested = false;
 window.editingImageEntry = null;
 
-// シナリオタイプやクリア条件（目的達成型/探索型の区別）
 window.scenarioType = null;
 window.clearCondition = null;
 
-/** ユニークID生成 */
-function generateUniqueId() {
-  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-}
+// ▼ シナリオに紐づくセクション配列（ZIP圧縮済み）
+window.sections = [];  // [ {number, conditionZipped, cleared}, ... ]
 
 /**
- * パーティ情報を文章にまとめる。
- * 「プレイヤーの分身(role='avatar')」「パートナー(role='partner')」
- * それ以外（roleがnone）は、従来どおりtype(キャラクター/モンスター/アイテム)により区別。
- */
-function buildPartyInsertionText(party) {
-  let text = "【パーティ編成情報】\n";
-
-  // 1) プレイヤーの分身(アバター)
-  const avatar = party.find(e => e.role === "avatar");
-  if (avatar) {
-    text += `プレイヤーの分身(アバター): ${avatar.name}\n`;
-    text += "このアバターは、TRPGでコマンドを入力している実プレイヤーとして扱います。\n\n";
-  }
-
-  // 2) パートナー(フレンドリーNPC)
-  const partners = party.filter(e => e.role === "partner");
-  if (partners.length > 0) {
-    text += "パートナー(フレンドリーNPC):\n";
-    partners.forEach((p) => {
-      text += ` - ${p.name}\n`;
-    });
-    text += "これらのパートナーは、コマンドを入力しているTRPGプレイヤーにとって友好的なNPCとして扱います。\n\n";
-  }
-
-  // 3) 上記以外(role==="none")のカードを、従来の type で仕分け
-  //    → キャラクター / モンスター / アイテム
-  const others = party.filter(e => !e.role || e.role === "none");
-  if (others.length > 0) {
-    // ここから従来通り type="キャラクター" "モンスター" "アイテム" などをまとめる
-    const charList = others.filter(e => e.type === "キャラクター");
-    const monsterList = others.filter(e => e.type === "モンスター");
-    const itemList = others.filter(e => e.type === "アイテム");
-
-    if (charList.length > 0) {
-      text += "◆【キャラクター】\n";
-      charList.forEach(ch => {
-        text += ` - ${ch.name}\n`;
-      });
-      text += "\n";
-    }
-
-    if (monsterList.length > 0) {
-      text += "◆【モンスター】\n";
-      monsterList.forEach(m => {
-        text += ` - ${m.name}\n`;
-      });
-      text += "\n";
-    }
-
-    if (itemList.length > 0) {
-      text += "◆【アイテム】\n";
-      itemList.forEach(it => {
-        text += ` - ${it.name}\n`;
-      });
-      text += "\n";
-    }
-  }
-
-  text += "以上を踏まえて、シーン描写の中でアバターやパートナーが絡む場合は、" +
-          "指定の通りに扱ってください。アバターは実プレイヤー、パートナーは味方NPCとなります。";
-
-  return text;
-}
-
-
-/**
- * 指定シナリオIDをDBからロードして sceneHistory を構築
+ * DBからシナリオ情報をロードし、シーン履歴とセクションを復元
  */
 async function loadScenarioData(scenarioId) {
   try {
-    // シナリオ情報
     const scenario = await getScenarioById(scenarioId);
     if (!scenario) {
       alert("指定されたシナリオIDが存在しません。");
@@ -4226,6 +4243,8 @@ async function loadScenarioData(scenarioId) {
     const wd = scenario.wizardData || {};
     window.scenarioType = wd.scenarioType;
     window.clearCondition = wd.clearCondition || "";
+    // セクション配列
+    window.sections = wd.sections || [];
 
     // シーン履歴を取得
     const entries = await getSceneEntriesByScenarioId(scenarioId);
@@ -4238,11 +4257,10 @@ async function loadScenarioData(scenarioId) {
       prompt: e.prompt
     }));
 
-    // 目的達成型ならネタバレボタン表示
+    // ネタバレボタン
     if (window.scenarioType === "objective") {
       const sb = document.getElementById("spoiler-button");
       if (sb) sb.style.display = "inline-block";
-
       const spTxt = document.getElementById("clear-condition-text");
       if (spTxt) {
         spTxt.textContent = window.clearCondition || "（クリア条件なし）";
@@ -4261,7 +4279,7 @@ async function loadScenarioData(scenarioId) {
 }
 
 /**
- * プレイヤー行動をもとに次のシーンをChatGPTから取得
+ * シーン生成
  */
 async function getNextScene() {
   if (!window.apiKey) {
@@ -4270,7 +4288,7 @@ async function getNextScene() {
   }
   const playerInput = (document.getElementById('player-input')?.value || "").trim();
 
-  // 既にシーンがある場合は行動必須
+  // シーンがある場合は行動必須
   const hasScene = window.sceneHistory.some(e => e.type === 'scene');
   if (hasScene && !playerInput) {
     alert('プレイヤーの行動を入力してください');
@@ -4280,29 +4298,27 @@ async function getNextScene() {
   window.cancelRequested = false;
   showLoadingModal(true);
 
-  // プロンプト用メッセージを積み上げ
-  // -----------------------------------------
-  // まずシステムプロンプト
+  // システムプロンプト
   let systemText = "あなたはTRPGのゲームマスターです。HTMLタグOK。";
   const messages = [
     { role: 'system', content: systemText },
   ];
 
-  // シナリオ概要
+  // シナリオ概要（実際には使わず）
   if (window.currentScenario) {
     const wizardData = window.currentScenario.wizardData || {};
-    const scenarioSummary = wizardData.scenarioSummary || "(概要なし)";
+    // ここではパーティ情報を埋め込み
+    const scenarioSummary = wizardData.scenarioSummary || "(概要)";
     messages.push({ role: 'user', content: `シナリオ概要:${scenarioSummary}` });
 
-    // ★ パーティ情報（avatar / partner 含む）を挿入
-    //   group==="Party" の要素を抽出して buildPartyInsertionText
+    // パーティ情報
     const charData = await loadCharacterDataFromIndexedDB();
     const party = charData.filter(e => e.group === "Party");
     const partyText = buildPartyInsertionText(party);
     messages.push({ role: 'user', content: partyText });
   }
 
-  // 過去のシーン履歴をChatGPTに渡す
+  // 過去のシーン履歴
   window.sceneHistory.forEach(e => {
     if (e.type === 'scene') {
       messages.push({ role: 'assistant', content: e.content });
@@ -4316,8 +4332,6 @@ async function getNextScene() {
     messages.push({ role: 'user', content: `プレイヤーの行動:${playerInput}` });
   }
 
-  // -----------------------------------------
-  // GPTに投げる
   try {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
@@ -4334,10 +4348,12 @@ async function getNextScene() {
       }),
       signal
     });
+
     if (window.cancelRequested) {
       showLoadingModal(false);
       return;
     }
+
     const data = await response.json();
     if (window.cancelRequested) {
       showLoadingModal(false);
@@ -4349,7 +4365,7 @@ async function getNextScene() {
 
     const nextScene = data.choices[0].message.content;
 
-    // 1) 行動を履歴に追加
+    // 1) 行動履歴
     if (playerInput) {
       const actionEntry = {
         scenarioId: window.currentScenarioId || 0,
@@ -4366,7 +4382,7 @@ async function getNextScene() {
       document.getElementById('player-input').value = '';
     }
 
-    // 2) 次のシーンを履歴に追加
+    // 2) 新しいシーン
     const newSceneIdStr = generateUniqueId();
     const sceneEntry = {
       scenarioId: window.currentScenarioId || 0,
@@ -4382,11 +4398,7 @@ async function getNextScene() {
       content: nextScene
     });
 
-    // 画面更新
-    updateSceneHistory();
-    showLastScene();
-
-    // シナリオ更新日時
+    // シナリオ更新
     if (window.currentScenario) {
       await updateScenario({
         ...window.currentScenario,
@@ -4394,6 +4406,8 @@ async function getNextScene() {
       });
     }
 
+    updateSceneHistory();
+    showLastScene();
   } catch (error) {
     if (error.name === 'AbortError') {
       console.warn('シーン取得キャンセル');
@@ -4407,88 +4421,107 @@ async function getNextScene() {
 }
 
 /**
- * シーン履歴を画面に表示する。
- * - 先頭に必ずシナリオ概要タイルを追加
- * - 最後のシーン(および関連画像)は履歴に表示しない
- * - それ以外のentryを古い順に表示
+ * シーン履歴を再構築する
+ * 仕様:
+ *  - ゲーム開始時 → 未クリアセクションの最小番号が1なら、それのみを履歴に表示
+ *  - セクション1クリア後 → 履歴にセクション1が残り、かつセクション2が追加表示
+ *  - セクション2クリア後 → 履歴にセクション1&2が残り、セクション3を表示
+ *  - ...
+ *  - 最後のセクションがクリアされた時点で「シナリオ達成」を履歴に追加表示
+ * 
+ * “セクションの表示” は「シナリオ概要の代わり」に先頭に配置
  */
 function updateSceneHistory() {
   const historyContainer = document.getElementById('scene-history');
   if (!historyContainer) return;
 
-  // 1) いったんクリア
   historyContainer.innerHTML = '';
 
-  // 2) シナリオ概要タイルを最初に表示
-  if (window.currentScenario && window.currentScenario.wizardData) {
-    const scenarioSummary = window.currentScenario.wizardData.scenarioSummary || '（シナリオ概要なし）';
-    const summaryTile = document.createElement('div');
-    summaryTile.className = 'history-tile';
-    summaryTile.innerHTML = DOMPurify.sanitize(scenarioSummary);
-    historyContainer.appendChild(summaryTile);
+  // 1) まず、最小の未クリアセクション番号を判定
+  const sorted = [...window.sections].sort((a,b) => a.number - b.number);
+  const firstUncleared = sorted.find(s => !s.cleared);
+  if (!firstUncleared) {
+    // すべてクリア済み → 履歴の最上部に「シナリオ達成」のみ表示
+    const tile = document.createElement('div');
+    tile.className = 'history-tile';
+    tile.textContent = "シナリオ達成";
+    historyContainer.appendChild(tile);
+  } else {
+    // 未クリアセクションがある → そこまでのセクションは履歴に表示
+    // つまり section.number <= firstUncleared.number をすべて
+    for(const sec of sorted) {
+      if(sec.number < firstUncleared.number) {
+        // 過去にクリア済みセクションとして履歴に残す
+        const t = document.createElement('div');
+        t.className = 'history-tile';
+        t.textContent = `セクション${sec.number} (クリア済み)`;
+        historyContainer.appendChild(t);
+      } else if(sec.number === firstUncleared.number) {
+        // 今まさに取り組むセクション
+        const t = document.createElement('div');
+        t.className = 'history-tile';
+        t.textContent = `セクション${sec.number} (未クリア)`;
+        historyContainer.appendChild(t);
+      } else {
+        // それより先のセクションはまだ非表示
+      }
+    }
   }
 
-  // 3) 「最後のシーン」を特定（履歴に出さない）
-  const reversed = [...window.sceneHistory].reverse();
-  const lastSceneEntry = reversed.find(e => e.type === 'scene');
-  let skipEntryIds = [];
+  // 2) その下に、「行動/シーン/画像」などを順番に表示
+  //  ただし、最後のシーン(現状)は showLastScene() で別枠に表示するため
+  //  “最後のシーン+画像” はスキップする
+  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
+  const skipEntryIds = [];
   if (lastSceneEntry) {
     skipEntryIds.push(lastSceneEntry.entryId);
-
-    // 最後のシーンに紐づく画像もスキップ
+    // そのsceneIdの画像もスキップ
     window.sceneHistory.forEach(e => {
-      if (e.type === 'image' && e.sceneId === lastSceneEntry.sceneId) {
+      if(e.type==='image' && e.sceneId===lastSceneEntry.sceneId){
         skipEntryIds.push(e.entryId);
       }
     });
   }
 
-  // 4) フィルタリングして「最後のシーン以外」を古い順で表示
+  // フィルタして古い順に
   const entriesToShow = window.sceneHistory
     .filter(e => !skipEntryIds.includes(e.entryId))
-    .sort((a, b) => (a.entryId - b.entryId)); // entryId昇順(=古い順)
+    .sort((a, b) => (a.entryId - b.entryId));
 
-  entriesToShow.forEach(entry => {
-    if (entry.type === 'scene') {
-      // シーン
+  for(const entry of entriesToShow) {
+    // scene / action / image
+    if(entry.type === 'scene'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
       // 削除ボタン
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '削除';
-      deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
-
-        const delSceneId = entry.sceneId;
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.style.marginBottom = '5px';
+      delBtn.addEventListener('click', async () => {
         const toRemoveIds = [entry.entryId];
-        // 同じsceneIdの画像も削除
         window.sceneHistory.forEach(e => {
-          if (e.type === 'image' && e.sceneId === delSceneId) {
+          if(e.type==='image' && e.sceneId===entry.sceneId){
             toRemoveIds.push(e.entryId);
           }
         });
-        // DB削除
-        for (const rid of toRemoveIds) {
+        for(const rid of toRemoveIds) {
           await deleteSceneEntry(rid);
         }
-        // メモリ削除
         window.sceneHistory = window.sceneHistory.filter(e => !toRemoveIds.includes(e.entryId));
-
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(deleteBtn);
+      tile.appendChild(delBtn);
 
-      // テキスト可変
-      const sceneText = document.createElement('p');
-      sceneText.className = 'scene-text';
-      sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
-      sceneText.innerHTML = DOMPurify.sanitize(entry.content);
-      sceneText.addEventListener('blur', async () => {
-        if (!window.apiKey) return;
-        entry.content = sceneText.textContent.trim();
+      // テキスト
+      const p = document.createElement('p');
+      p.className = 'scene-text';
+      p.setAttribute('contenteditable', window.apiKey ? 'true':'false');
+      p.innerHTML = DOMPurify.sanitize(entry.content);
+      p.addEventListener('blur', async() => {
+        if(!window.apiKey) return;
+        entry.content = p.innerText.trim();
         const updated = {
           entryId: entry.entryId,
           scenarioId: window.currentScenarioId || 0,
@@ -4498,51 +4531,46 @@ function updateSceneHistory() {
         };
         await updateSceneEntry(updated);
       });
-      tile.appendChild(sceneText);
+      tile.appendChild(p);
 
       historyContainer.appendChild(tile);
 
-    } else if (entry.type === 'action') {
-      // 行動
+    } else if(entry.type==='action'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '削除';
-      deleteBtn.style.backgroundColor = '#f44336';
-      deleteBtn.style.marginBottom = '5px';
-      deleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
-
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.style.backgroundColor = '#f44336';
+      delBtn.style.marginBottom = '5px';
+      delBtn.addEventListener('click', async () => {
         await deleteSceneEntry(entry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
-
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(deleteBtn);
+      tile.appendChild(delBtn);
 
-      const actionText = document.createElement('p');
-      actionText.className = 'action-text';
-      actionText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
-      actionText.innerHTML = DOMPurify.sanitize(entry.content);
-      actionText.addEventListener('blur', async () => {
-        if (!window.apiKey) return;
-        entry.content = actionText.textContent.trim();
+      const a = document.createElement('p');
+      a.className = 'action-text';
+      a.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
+      a.innerHTML = DOMPurify.sanitize(entry.content);
+      a.addEventListener('blur', async() => {
+        if(!window.apiKey) return;
+        entry.content = a.innerText.trim();
         const updated = {
           entryId: entry.entryId,
-          scenarioId: window.currentScenarioId || 0,
-          type: 'action',
+          scenarioId: window.currentScenarioId||0,
+          type:'action',
           content: entry.content
         };
         await updateSceneEntry(updated);
       });
-      tile.appendChild(actionText);
+      tile.appendChild(a);
 
       historyContainer.appendChild(tile);
 
-    } else if (entry.type === 'image') {
-      // 画像
+    } else if(entry.type==='image'){
       const tile = document.createElement('div');
       tile.className = 'history-tile';
 
@@ -4556,36 +4584,36 @@ function updateSceneHistory() {
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
       regenBtn.addEventListener('click', () => {
-        if (!window.apiKey) return;
+        if(!window.apiKey) return;
         const idx = window.sceneHistory.indexOf(entry);
-        if (idx >= 0) {
+        if(idx >= 0){
           openImagePromptModal(entry.prompt, idx);
         }
       });
       tile.appendChild(regenBtn);
 
-      // 画像削除
-      const imgDeleteBtn = document.createElement('button');
-      imgDeleteBtn.textContent = '画像だけ削除';
-      imgDeleteBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
+      // 削除
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '画像だけ削除';
+      delBtn.addEventListener('click', async() => {
+        if(!window.apiKey) return;
         await deleteSceneEntry(entry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== entry.entryId);
         updateSceneHistory();
         showLastScene();
       });
-      tile.appendChild(imgDeleteBtn);
+      tile.appendChild(delBtn);
 
       historyContainer.appendChild(tile);
     }
-  });
+  }
 
   // スクロール最下部へ
   historyContainer.scrollTop = historyContainer.scrollHeight;
 }
 
 /**
- * 最新シーン(末尾1件)をメイン表示し、ここも編集できるようにする
+ * 最新シーンをメイン表示
  */
 function showLastScene() {
   const storyDiv = document.getElementById('story');
@@ -4599,19 +4627,14 @@ function showLastScene() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === 'scene');
 
   if (lastSceneEntry) {
-    // ここを編集可能にする
     storyDiv.innerHTML = '';
 
-    // メインストーリー編集用の <p> 要素
     const sceneText = document.createElement('p');
     sceneText.className = 'scene-text';
-    sceneText.setAttribute('contenteditable', window.apiKey ? 'true' : 'false');
+    sceneText.setAttribute('contenteditable', window.apiKey ? 'true':'false');
     sceneText.innerHTML = DOMPurify.sanitize(lastSceneEntry.content);
-    storyDiv.appendChild(sceneText);
-
-    // blurでDBに保存
-    sceneText.addEventListener('blur', async () => {
-      if (!window.apiKey) return;
+    sceneText.addEventListener('blur', async() => {
+      if(!window.apiKey) return;
       lastSceneEntry.content = sceneText.innerText.trim();
       const updated = {
         entryId: lastSceneEntry.entryId,
@@ -4622,10 +4645,11 @@ function showLastScene() {
       };
       await updateSceneEntry(updated);
     });
+    storyDiv.appendChild(sceneText);
 
-    // シーンに紐づく画像を表示
+    // そのシーンに紐づく画像
     lastSceneImagesDiv.innerHTML = '';
-    const images = window.sceneHistory.filter(e => e.type === 'image' && e.sceneId === lastSceneEntry.sceneId);
+    const images = window.sceneHistory.filter(e => e.type==='image' && e.sceneId===lastSceneEntry.sceneId);
     images.forEach(imgEntry => {
       const container = document.createElement('div');
       container.style.marginBottom = '10px';
@@ -4640,9 +4664,9 @@ function showLastScene() {
       const regenBtn = document.createElement('button');
       regenBtn.textContent = '再生成';
       regenBtn.addEventListener('click', () => {
-        if (!window.apiKey) return;
+        if(!window.apiKey) return;
         const idx = window.sceneHistory.indexOf(imgEntry);
-        if (idx >= 0) {
+        if(idx>=0){
           openImagePromptModal(imgEntry.prompt, idx);
         }
       });
@@ -4651,8 +4675,8 @@ function showLastScene() {
       // 画像削除
       const delBtn = document.createElement('button');
       delBtn.textContent = '画像削除';
-      delBtn.addEventListener('click', async () => {
-        if (!window.apiKey) return;
+      delBtn.addEventListener('click', async()=>{
+        if(!window.apiKey) return;
         await deleteSceneEntry(imgEntry.entryId);
         window.sceneHistory = window.sceneHistory.filter(e => e.entryId !== imgEntry.entryId);
         showLastScene();
@@ -4663,8 +4687,7 @@ function showLastScene() {
       lastSceneImagesDiv.appendChild(container);
     });
 
-    // 入力関連の表示可否
-    if (window.apiKey) {
+    if(window.apiKey){
       nextSceneBtn.style.display = 'inline-block';
       playerInput.style.display = 'inline-block';
       playerActionLabel.textContent = 'プレイヤーがどんな行動を取るか？';
@@ -4674,20 +4697,11 @@ function showLastScene() {
       playerActionLabel.textContent = '';
     }
   } else {
-    // シーンが無い場合 => シナリオ概要のみ
+    // シーンが無い場合
     storyDiv.innerHTML = '';
     lastSceneImagesDiv.innerHTML = '';
 
-    if (window.currentScenario && window.currentScenario.wizardData) {
-      const summary = window.currentScenario.wizardData.scenarioSummary || "（シナリオ概要なし）";
-      storyDiv.innerHTML = `
-        <div style="margin-bottom: 10px; font-weight: bold;">
-          ${DOMPurify.sanitize(summary)}
-        </div>
-      `;
-    }
-
-    if (window.apiKey) {
+    if(window.apiKey){
       nextSceneBtn.style.display = 'inline-block';
       playerInput.style.display = 'block';
       playerActionLabel.textContent = '最初のシーンを作るために行動を入力してください。';
@@ -4699,17 +4713,72 @@ function showLastScene() {
   }
 }
 
-/** ローディングモーダル表示/非表示 */
-function showLoadingModal(show) {
+/** パーティ情報差し込み */
+function buildPartyInsertionText(party) {
+  let text = "【パーティ編成情報】\n";
+
+  const avatar = party.find(e => e.role === "avatar");
+  if (avatar) {
+    text += `プレイヤーの分身(アバター): ${avatar.name}\n`;
+    text += "実プレイヤーとして扱います。\n\n";
+  }
+
+  const partners = party.filter(e => e.role === "partner");
+  if (partners.length > 0) {
+    text += "パートナー(フレンドリーNPC):\n";
+    partners.forEach((p) => {
+      text += ` - ${p.name}\n`;
+    });
+    text += "\n";
+  }
+
+  const others = party.filter(e => !e.role || e.role==="none");
+  if(others.length>0){
+    const charList = others.filter(c => c.type==="キャラクター");
+    const monsterList = others.filter(c => c.type==="モンスター");
+    const itemList = others.filter(c => c.type==="アイテム");
+
+    if(charList.length>0){
+      text += "◆【キャラクター】\n";
+      charList.forEach(c => {
+        text += ` - ${c.name}\n`;
+      });
+      text += "\n";
+    }
+    if(monsterList.length>0){
+      text += "◆【モンスター】\n";
+      monsterList.forEach(m => {
+        text += ` - ${m.name}\n`;
+      });
+      text += "\n";
+    }
+    if(itemList.length>0){
+      text += "◆【アイテム】\n";
+      itemList.forEach(i => {
+        text += ` - ${i.name}\n`;
+      });
+      text += "\n";
+    }
+  }
+
+  text += "以上を踏まえ、アバターは実プレイヤー、パートナーは味方NPCとして扱ってください。";
+  return text;
+}
+
+/** 連携メソッド */
+function generateUniqueId() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+function showLoadingModal(show){
   const modal = document.getElementById('loading-modal');
-  if (!modal) return;
+  if(!modal) return;
   modal.style.display = show ? 'flex' : 'none';
 }
 
-/** リクエスト中断 */
-function onCancelFetch() {
+function onCancelFetch(){
   window.cancelRequested = true;
-  if (window.currentRequestController) {
+  if(window.currentRequestController){
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
