@@ -249,6 +249,15 @@ button:hover {
   z-index: 2;
 }
 
+/* 例：画像生成ボタン(.gen-image-btn)が disable 時 */
+.gen-image-btn:disabled {
+  background-color: #999;    /* 背景色をやや暗めに */
+  color: #ccc;               /* 文字色も薄く */
+  cursor: not-allowed;       /* カーソルを禁止マークに */
+  opacity: 0.6;             /* 全体的に薄く */
+}
+
+
 /* 下部テキスト情報 */
 .card-front .card-info {
   padding: 8px;
@@ -545,4 +554,28 @@ button:hover {
   overflow-y: auto;
 }
 
-/* カード関連: 既存のまま（略） */
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #e0e0e0;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.chip:hover {
+  background-color: #cfcfcf;
+}
+
+.chip.selected {
+  background-color: #8BC34A;
+  color: #fff;
+}

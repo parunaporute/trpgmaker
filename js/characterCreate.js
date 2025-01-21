@@ -43,48 +43,181 @@ function showToast(message) {
     }, 3000);
 }
 
-
 // グローバル変数
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 // キャラクタ情報 [{ id, ... }, ...]
 window.characterData = [];
+let isSelectionMode = false;  // 選択モードフラグ
 
-// 選択モードフラグ
-let isSelectionMode = false;
+// 「舞台」は複数 => 配列にする
+// 「テーマ」は単一だが非表示 => 文字列1つ
+// 「雰囲気」は単一 => 文字列1つ
+let storedStageArr = [];  // 舞台の配列
+let storedTheme = "";     // テーマ(非表示)
+let storedMood = "";      // 雰囲気(単一)
 
 window.addEventListener("load", async function () {
+    // 1) IndexedDB初期化 & キャラデータロード
     await initIndexedDB();
-    const stored = await loadCharacterDataFromIndexedDB();
-    if (stored) {
-        window.characterData = stored;
+    const storedChars = await loadCharacterDataFromIndexedDB();
+    if (storedChars) {
+        window.characterData = storedChars;
     }
     displayCharacterCards(window.characterData);
 
-    // ▼ ボタン要素があればイベント登録
-    const gachaBtn = document.getElementById("gacha-btn");
-    if (gachaBtn) {
-        gachaBtn.addEventListener("click", onGachaButton);
+    // 2) localStorage から読み込み
+    // 舞台は配列を JSON文字列 で保存している想定
+    const stageJson = localStorage.getItem("elementStageArr");
+    if (stageJson) {
+      try {
+        storedStageArr = JSON.parse(stageJson);
+      } catch(e) {
+        storedStageArr = [];
+      }
+    } else {
+      storedStageArr = []; // 初期状態
     }
+    storedTheme = localStorage.getItem("elementTheme") || "アクション / 冒険"; 
+    storedMood  = localStorage.getItem("elementMood")  || "ライト / ポップ";
 
-    const moveGachaBtn = document.getElementById("move-gacha-to-warehouse-btn");
-    if (moveGachaBtn) {
-        moveGachaBtn.addEventListener("click", onMoveGachaToWarehouse);
-    }
+    // 3) UIイベント登録
+    document.getElementById("gacha-btn").addEventListener("click", onGachaButton);
+    document.getElementById("move-gacha-to-warehouse-btn").addEventListener("click", onMoveGachaToWarehouse);
+    document.getElementById("toggle-selection-mode-btn").addEventListener("click", toggleSelectionMode);
+    document.getElementById("move-selected-to-warehouse-btn").addEventListener("click", moveSelectedCardsToWarehouse);
 
-    const toggleModeBtn = document.getElementById("toggle-selection-mode-btn");
-    if (toggleModeBtn) {
-        toggleModeBtn.addEventListener("click", toggleSelectionMode);
-    }
+    // モーダルのOK/Cancel
+    document.getElementById("genre-setting-ok-btn").addEventListener("click", onGenreSettingOk);
+    document.getElementById("genre-setting-cancel-btn").addEventListener("click", onGenreSettingCancel);
 
-    const moveSelectedBtn = document.getElementById("move-selected-to-warehouse-btn");
-    if (moveSelectedBtn) {
-        moveSelectedBtn.addEventListener("click", moveSelectedCardsToWarehouse);
-    }
+    // 4) 舞台/テーマ/雰囲気 用のチップを生成
+    initStageChips();
+    initThemeChips(); // 非表示だけど初期化
+    initMoodChips();
 });
 
-/** ガチャボタン押下 */
+/** 「舞台」チップを生成 (複数選択可) */
+function initStageChips() {
+    const stageCandidates = [
+      "ファンタジー", "SF", "歴史・時代劇", "現代", "ホラー / ダーク"
+    ];
+    const container = document.getElementById("stage-chips-container");
+    container.innerHTML = "";  // クリア
+
+    stageCandidates.forEach(label => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.textContent = label;
+      // 既に storedStageArr に含まれていれば selected表示
+      if (storedStageArr.includes(label)) {
+        chip.classList.add("selected");
+      }
+      chip.addEventListener("click", () => {
+        // toggle
+        if (chip.classList.contains("selected")) {
+          chip.classList.remove("selected");
+          // 配列から削除
+          storedStageArr = storedStageArr.filter(x => x !== label);
+        } else {
+          chip.classList.add("selected");
+          // 配列に追加
+          storedStageArr.push(label);
+        }
+      });
+      container.appendChild(chip);
+    });
+}
+
+/** 「テーマ」チップを生成 (単一選択, ただしUIは非表示) */
+function initThemeChips() {
+    const themeCandidates = [
+      "アクション / 冒険",
+      "ミステリー / サスペンス",
+      "ロマンス / ドラマ",
+      "コメディ / ほのぼの",
+      "ホラー / スリラー"
+    ];
+    const container = document.getElementById("theme-chips-container");
+    container.innerHTML = "";
+
+    themeCandidates.forEach(label => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.textContent = label;
+
+      if (storedTheme === label) {
+        chip.classList.add("selected");
+      }
+      // 単一なので、クリックされたら他を解除
+      chip.addEventListener("click", () => {
+        // いったん全部クリア
+        const allChips = container.querySelectorAll(".chip");
+        allChips.forEach(c => c.classList.remove("selected"));
+        // 自分だけON
+        chip.classList.add("selected");
+        storedTheme = label;
+      });
+      container.appendChild(chip);
+    });
+}
+
+/** 「雰囲気」チップを生成 (単一選択) */
+function initMoodChips() {
+    const moodCandidates = [
+      "ライト / ポップ",
+      "中間 / バランス型",
+      "ダーク / シリアス"
+    ];
+    const container = document.getElementById("mood-chips-container");
+    container.innerHTML = "";
+
+    moodCandidates.forEach(label => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.textContent = label;
+
+      if (storedMood === label) {
+        chip.classList.add("selected");
+      }
+      // 単一なので、クリックされたら他を解除
+      chip.addEventListener("click", () => {
+        const allChips = container.querySelectorAll(".chip");
+        allChips.forEach(c => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        storedMood = label;
+      });
+      container.appendChild(chip);
+    });
+}
+
+/** ガチャボタン押下時 → 3軸モーダルを開く */
 function onGachaButton() {
+    openGenreModal();
+}
+
+/** 3軸モーダルを開く */
+function openGenreModal() {
+    // 一度、現在のチップ状態を反映(念のため再描画)
+    initStageChips();
+    initThemeChips();
+    initMoodChips();
+
+    document.getElementById("element-genre-modal").style.display = "flex";
+}
+
+/** 3軸モーダル: OK */
+function onGenreSettingOk() {
+    // 1) 現在の舞台（複数）を localStorage に JSON保存
+    localStorage.setItem("elementStageArr", JSON.stringify(storedStageArr));
+    // 2) テーマ/雰囲気も保存
+    localStorage.setItem("elementTheme", storedTheme);
+    localStorage.setItem("elementMood", storedMood);
+
+    // モーダル閉じる
+    document.getElementById("element-genre-modal").style.display = "none";
+
+    // ガチャ確認モーダルを開く
     const confirmModal = document.getElementById("gacha-confirm-modal");
     confirmModal.style.display = "flex";
 
@@ -94,10 +227,37 @@ function onGachaButton() {
     okBtn.onclick = async () => {
         confirmModal.style.display = "none";
         clearGachaBox();
-        // gachaCore.js の runGacha() を使う
+
+        // プロンプト組み立て
+        // 舞台が複数の場合、つなげて表現する or 箇条書きにする
+        // 例："ファンタジー / SF / 現代" など
+        let stageLine = "";
+        if (storedStageArr.length > 0) {
+          stageLine = "【舞台】" + storedStageArr.join(" / ");
+        }
+
+        let themeLine = "";
+        if (storedTheme) {
+          themeLine = "【テーマ】" + storedTheme;
+        }
+
+        let moodLine = "";
+        if (storedMood) {
+          moodLine = "【雰囲気】" + storedMood;
+        }
+
+        const lines = [];
+        if (stageLine) lines.push(stageLine);
+        if (themeLine) lines.push(themeLine);
+        if (moodLine)  lines.push(moodLine);
+
+        const axisPrompt = lines.join("\n");
+
+        // ガチャ実行
         document.getElementById("gacha-modal").style.display = "flex";
-        await runGacha(10, "ランダムで");
+        await runGacha(10, axisPrompt);
         hideGachaModal();
+
         displayCharacterCards(window.characterData);
     };
 
@@ -105,6 +265,12 @@ function onGachaButton() {
         confirmModal.style.display = "none";
     };
 }
+
+/** 3軸モーダル: キャンセル */
+function onGenreSettingCancel() {
+    document.getElementById("element-genre-modal").style.display = "none";
+}
+
 
 /** ガチャ箱クリア */
 function clearGachaBox() {
@@ -135,7 +301,7 @@ async function onMoveGachaToWarehouse() {
     }
 }
 
-/** カード表示更新 */
+/** エレメント一覧の表示 */
 function displayCharacterCards(characters) {
     const container = document.getElementById("card-container");
     if (!container) return;
@@ -176,30 +342,33 @@ function createCardElement(char, index) {
 
     const cardFront = document.createElement("div");
     cardFront.className = "card-front";
-    const bgStyle = char.backgroundcss
+    const bgStyle = (char.backgroundcss || "")
         .replace("background-image:", "")
         .replace("background", "")
         .trim();
     cardFront.style = "background-image:" + bgStyle;
 
+    // レア度
     const rarityValue = (typeof char.rarity === "string") ? char.rarity.replace("★", "").trim() : "0";
     cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
+    // タイプ表示
     const typeEl = document.createElement("div");
     typeEl.className = "card-type";
     typeEl.textContent = char.type || "不明";
     cardFront.appendChild(typeEl);
 
+    // 画像
     const imageContainer = document.createElement("div");
     imageContainer.className = "card-image";
     if (char.imageData) {
-        // すでに画像がある場合
+        // すでに画像がある
         const imageEl = document.createElement("img");
         imageEl.src = char.imageData;
         imageEl.alt = char.name;
         imageContainer.appendChild(imageEl);
     } else {
-        // 画像がまだ無い場合、生成ボタンを設置
+        // 画像が無い → 生成ボタン
         const genImgBtn = document.createElement("button");
         genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
         genImgBtn.className = "gen-image-btn";
@@ -237,6 +406,7 @@ function createCardElement(char, index) {
 
     cardFront.appendChild(infoContainer);
 
+    // 裏面
     const cardBack = document.createElement("div");
     cardBack.className = "card-back";
     cardBack.innerHTML = `<strong>${DOMPurify.sanitize(char.type)}</strong>`;
@@ -248,21 +418,16 @@ function createCardElement(char, index) {
     return card;
 }
 
-/**
- * 画像生成関数
- * 押下されたボタンが終わるまで無効化し、適宜トーストを表示
- */
+/** 画像生成 */
 async function generateCharacterImage(char, index, btnElement) {
     if (!window.apiKey) {
         alert("APIキーが設定されていません。");
         return;
     }
-
     // ボタンを無効化
     if (btnElement) {
         btnElement.disabled = true;
     }
-    // 生成開始トースト
     showToast("画像を生成しています...");
 
     const promptText =
@@ -296,7 +461,6 @@ async function generateCharacterImage(char, index, btnElement) {
         window.characterData[index].imageData = dataUrl;
         await saveCharacterDataToIndexedDB(window.characterData);
 
-        // 生成完了トースト
         showToast("画像の生成が完了しました");
         displayCharacterCards(window.characterData);
 
@@ -304,7 +468,6 @@ async function generateCharacterImage(char, index, btnElement) {
         console.error("画像生成失敗:", err);
         showToast("画像生成に失敗しました:\n" + err.message);
     } finally {
-        // ボタン再度有効化
         if (btnElement) {
             btnElement.disabled = false;
         }
@@ -312,7 +475,7 @@ async function generateCharacterImage(char, index, btnElement) {
 }
 
 
-/* ===== 以下、選択モード関連処理 ===== */
+/* ===== 選択モード関連 ===== */
 
 function toggleSelectionMode() {
     isSelectionMode = !isSelectionMode;
