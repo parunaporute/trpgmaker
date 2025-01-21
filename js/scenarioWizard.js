@@ -1,3 +1,5 @@
+// scenarioWizard.js
+
 let wizardData = {
   genre: "",           // 「【舞台】...【テーマ】...【雰囲気】...」 or 自由入力
   scenarioType: "",    // "objective" or "exploration"
@@ -131,7 +133,13 @@ function renderWizardStageChips() {
 
 /* テーマ(単一) */
 function renderWizardThemeChips() {
-  const defaultList = ["アクション / 冒険","ミステリー / サスペンス","ロマンス / ドラマ","コメディ / ほのぼの","ホラー / スリラー"];
+  const defaultList = [
+    "アクション / 冒険",
+    "ミステリー / サスペンス",
+    "ロマンス / ドラマ",
+    "コメディ / ほのぼの",
+    "ホラー / スリラー"
+  ];
   const container = document.getElementById("wiz-theme-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -263,7 +271,7 @@ function addWizardRemoveButton(chip, label, category) {
 }
 
 /* =============================================
-   その他モーダル
+   「その他」モーダル
 ============================================= */
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
@@ -287,7 +295,14 @@ async function wizardOtherGenerate() {
   if (wizardCurrentOtherCategory==="stage") {
     existingList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク", ...wizCustomStageChips];
   } else if (wizardCurrentOtherCategory==="theme") {
-    existingList = ["アクション / 冒険","ミステリー / サスペンス","ロマンス / ドラマ","コメディ / ほのぼの","ホラー / スリラー", ...wizCustomThemeChips];
+    existingList = [
+      "アクション / 冒険",
+      "ミステリー / サスペンス",
+      "ロマンス / ドラマ",
+      "コメディ / ほのぼの",
+      "ホラー / スリラー",
+      ...wizCustomThemeChips
+    ];
   } else if (wizardCurrentOtherCategory==="mood") {
     existingList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス", ...wizCustomMoodChips];
   }
@@ -361,7 +376,7 @@ function wizardOtherCancel() {
 }
 
 /* =============================================
-   削除モーダル
+   「削除」モーダル
 ============================================= */
 function wizardDeleteConfirmOk() {
   if (wizardDeletingChipCategory==="stage") {
@@ -480,23 +495,48 @@ function onConfirmScenarioModalCancel() {
   document.getElementById("confirm-scenario-modal").style.display="none";
 }
 
+/**
+ * シナリオ生成のOKを押したとき:
+ *  1) モーダルを閉じる
+ *  2) ローディングモーダルを出しっぱなしにして
+ *  3) GPT呼び出しなど全て完了してからステップ3に画面切り替え
+ */
 async function onConfirmScenarioModalOK() {
-  document.getElementById("confirm-scenario-modal").style.display="none";
+  // ローディングモーダルを表示
+  showLoadingModal(true);
 
-  await storePartyInWizardData();  // パーティ情報(空でもOK)
+  // 確認モーダルを閉じる
+  document.getElementById("confirm-scenario-modal").style.display = "none";
 
-  if (wizardData.scenarioType==="objective") {
-    await generateScenarioSummaryAndClearCondition();
-  } else {
-    await generateScenarioSummary();
+  try {
+    // パーティ情報も保存（空なら空でOK）
+    await storePartyInWizardData();
+
+    // シナリオ概要＆クリア条件などをGPTで生成
+    if (wizardData.scenarioType === "objective") {
+      await generateScenarioSummaryAndClearCondition();
+    } else {
+      await generateScenarioSummary();
+    }
+
+    // セクションを作る
+    await generateSections();
+
+    // 導入シーンを作る
+    await generateIntroScene();
+
+    // すべて完了したらステップ2→ステップ3
+    document.getElementById("wizard-step2").style.display = "none";
+    document.getElementById("wizard-step3").style.display = "block";
+    updateSummaryUI();
+
+  } catch (err) {
+    console.error(err);
+    alert("シナリオ生成に失敗しました:\n" + err.message);
+  } finally {
+    // 最後にローディングモーダルを閉じる
+    showLoadingModal(false);
   }
-  await generateSections();
-  await generateIntroScene();
-
-  // STEP2->STEP3
-  document.getElementById("wizard-step2").style.display="none";
-  document.getElementById("wizard-step3").style.display="block";
-  updateSummaryUI();
 }
 
 /* =============================================
@@ -525,9 +565,9 @@ async function onStartScenario() {
 
 /* =============================================
    シナリオ要約(目的達成型)
+   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
 ============================================= */
 async function generateScenarioSummaryAndClearCondition(){
-  showLoadingModal(true);
   try {
     const apiKey = window.apiKey || "";
     if(!apiKey) throw new Error("APIキー未設定");
@@ -573,16 +613,14 @@ async function generateScenarioSummaryAndClearCondition(){
   } catch(err){
     console.error(err);
     alert("目的達成型シナリオ生成失敗: "+err.message);
-  } finally {
-    showLoadingModal(false);
   }
 }
 
 /* =============================================
    シナリオ要約(探索型)
+   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
 ============================================= */
 async function generateScenarioSummary() {
-  showLoadingModal(true);
   try {
     const apiKey = window.apiKey || "";
     if(!apiKey) throw new Error("APIキー未設定");
@@ -616,17 +654,16 @@ async function generateScenarioSummary() {
   } catch(err){
     console.error(err);
     alert("探索型シナリオ生成失敗: "+err.message);
-  } finally {
-    showLoadingModal(false);
   }
 }
 
 /* =============================================
    セクション(達成条件)を生成
+   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
 ============================================= */
 async function generateSections() {
   wizardData.sections = [];
-  const count = Math.floor(Math.random()*4)+2; //2..5
+  const count = Math.floor(Math.random() * 4) + 2; // 2..5
 
   const systemPrompt = `
 あなたはTRPGシナリオを小分けにして目標を作るエキスパートです。
@@ -662,22 +699,22 @@ async function generateSections() {
     const text = d.choices[0].message.content||"";
     const lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
 
-    for(let i=0;i<count;i++){
-      const raw = lines[i]||(`セクション${i+1}のダミー(動詞)`);
+    for(let i=0; i<count; i++){
+      const raw = lines[i] || (`セクション${i+1}のダミー(動詞)`);
       wizardData.sections.push({
-        number:(i+1),
+        number: (i+1),
         conditionZipped: zipString(raw),
-        cleared:false
+        cleared: false
       });
     }
   } catch(err) {
     console.error("セクション生成失敗:", err);
-    // ダミー
-    for(let i=0;i<count;i++){
+    // ダミー生成
+    for(let i=0; i<count; i++){
       wizardData.sections.push({
-        number:(i+1),
+        number: (i+1),
         conditionZipped: zipString(`セクション${i+1}ダミー(動詞形)`),
-        cleared:false
+        cleared: false
       });
     }
   }
@@ -692,6 +729,7 @@ function zipString(str){
 
 /* =============================================
    冒頭シーン
+   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
 ============================================= */
 async function generateIntroScene(){
   const apiKey = window.apiKey || "";
@@ -765,7 +803,7 @@ function updateSummaryUI(){
 function showLoadingModal(show){
   const m = document.getElementById("loading-modal");
   if(!m)return;
-  m.style.display = show?"flex":"none";
+  m.style.display = show ? "flex" : "none";
 }
 function onCancelFetch(){
   showLoadingModal(false);
