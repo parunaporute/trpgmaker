@@ -50,15 +50,6 @@
             </div>
           </div>
 
-          <!-- テーマ（単一・非表示） -->
-          <!-- 画面には出さないが、チップ形式で実装して display:none; -->
-          <div id="theme-chips-wrapper" style="display:none;">
-            <strong>テーマ(非表示・単一)</strong><br>
-            <div id="theme-chips-container" class="chips-container">
-              <!-- 例：アクション, ミステリー, ロマンス... -->
-            </div>
-          </div>
-
           <!-- 雰囲気（単一） -->
           <div style="margin-top:10px;">
             <strong>雰囲気（単一選択）</strong><br>
@@ -74,6 +65,40 @@
         </div>
       </div>
 
+      <!-- ▼ 「その他」登録用モーダル -->
+      <div id="other-input-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+          <h2>「その他」を追加</h2>
+          <p id="other-input-modal-category" style="font-weight:bold;"></p>
+          <textarea id="other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
+          <div style="margin-top:10px;">
+            <button id="other-generate-btn">生成</button>
+            <button id="other-ok-btn">OK</button>
+            <button id="other-cancel-btn">キャンセル</button>
+          </div>
+          <p style="font-size:0.8em; color:#666; margin-top:10px;">
+            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+            その結果を上のテキストボックスに自動入力します。
+          </p>
+        </div>
+      </div>
+
+      <!-- ▼ 「削除」確認モーダル -->
+      <div id="delete-confirm-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <p>この選択肢を削除しますが、よろしいですか？</p>
+          <button id="delete-confirm-ok">OK</button>
+          <button id="delete-confirm-cancel">キャンセル</button>
+        </div>
+      </div>
+
+      <!-- 「選んだジャンルの出力例」 -->
+      <div style="margin-top:20px;">
+        <p><strong>選んだジャンルの出力例：</strong></p>
+        <!-- テキストボックスをやめ、ラベルのみ -->
+        <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
+      </div>
+
       <div id="card-container"></div>
     </div>
 
@@ -83,7 +108,7 @@
     <!-- 先にgachaCore.jsを読み込む -->
     <script src="js/gachaCore.js"></script>
 
-    <!-- その後、characterCreate.jsを読み込む -->
+    <!-- その後、characterCreate.jsを読み込む（改変版） -->
     <script src="js/characterCreate.js"></script>
 
     <script>

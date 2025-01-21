@@ -17,21 +17,67 @@
     <!-- ステップ1：ジャンル選択 -->
     <div id="wizard-step1" style="display:block;">
       <h2>ステップ1：ジャンルを選択してください</h2>
-      <p>候補をChatGPTで生成します。</p>
+      <p style="font-size:0.9em; margin-bottom:10px;">下記の軸を選択、または自由入力してください。</p>
 
-      <!-- 生成した候補の表示領域 -->
-      <div id="genre-list" style="margin-top:10px;"></div>
-
-      <!-- 「ジャンル候補を作成」「ジャンルをクリア」ボタン群 -->
+      <!-- 舞台（複数可） -->
       <div style="margin-top:10px;">
-        <button id="generate-genre-button">ジャンル候補を作成</button>
-        <button id="clear-genre-button">候補クリア</button>
+        <strong>舞台（複数選択可）</strong><br>
+        <div id="wiz-stage-chips-container" class="chips-container"></div>
       </div>
 
-      <!-- 自由入力用テキストボックス＋ジャンル確定ボタン -->
+      <!-- テーマ（単一） -->
       <div style="margin-top:10px;">
-        <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." />
-        <button id="confirm-genre-button">ジャンル確定</button>
+        <strong>テーマ（単一選択）</strong><br>
+        <div id="wiz-theme-chips-container" class="chips-container"></div>
+      </div>
+
+      <!-- 雰囲気（単一） -->
+      <div style="margin-top:10px;">
+        <strong>雰囲気（単一選択）</strong><br>
+        <div id="wiz-mood-chips-container" class="chips-container"></div>
+      </div>
+
+      <!-- 「その他」登録用モーダル -->
+      <div id="wizard-other-input-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+          <h2>「その他」を追加</h2>
+          <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
+          <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
+          <div style="margin-top:10px;">
+            <button id="wizard-other-generate-btn">生成</button>
+            <button id="wizard-other-ok-btn">OK</button>
+            <button id="wizard-other-cancel-btn">キャンセル</button>
+          </div>
+          <p style="font-size:0.8em; color:#666; margin-top:10px;">
+            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+            その結果を上のテキストボックスに自動入力します。
+          </p>
+        </div>
+      </div>
+
+      <!-- 「削除」確認モーダル -->
+      <div id="wizard-delete-confirm-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <p>この選択肢を削除しますが、よろしいですか？</p>
+          <button id="wizard-delete-confirm-ok">OK</button>
+          <button id="wizard-delete-confirm-cancel">キャンセル</button>
+        </div>
+      </div>
+
+      <!-- 選択したジャンルの表示 -->
+      <div style="margin-top:10px;">
+        <strong>現在の選択：</strong>
+        <p id="wiz-genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
+      </div>
+
+      <!-- 自由入力欄 -->
+      <div style="margin-top:10px;">
+        <label for="free-genre-input">自由入力：</label>
+        <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
+      </div>
+
+      <div style="margin-top:20px;">
+        <button id="go-step2-btn">次へ</button>
       </div>
     </div>
 
@@ -92,12 +138,12 @@
     </div>
   </div>
 
-  <!-- ★ pakoを先に読み込む -->
+  <!-- pakoを先に読み込む -->
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 
   <!-- IndexedDBなどの共通スクリプト -->
   <script src="js/indexedDB.js"></script>
-  <!-- シナリオウィザード用スクリプト -->
+  <!-- シナリオウィザード用スクリプト(改変版) -->
   <script src="js/scenarioWizard.js"></script>
 
   <!-- 戻るボタン -->
