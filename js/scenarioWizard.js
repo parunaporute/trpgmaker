@@ -7,6 +7,7 @@ let wizardData = {
   scenarioSummary: "",
   introScene: "",
   party: [],
+  partyId: 0,          // ★追加: 紐づけるパーティID
   sections: []
 };
 
@@ -26,7 +27,6 @@ let wizardCurrentOtherCategory = "";
 let wizardDeletingChipLabel = "";
 let wizardDeletingChipCategory = "";
 
-/** ★追加：APIキーを読み込む */
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 window.addEventListener("load", async function () {
@@ -39,10 +39,8 @@ window.addEventListener("load", async function () {
     wizardData = storedWizard;
   }
 
-  // 舞台/テーマ/雰囲気 の初期化
   initWizardChips();
 
-  // イベント
   document.getElementById("go-step2-btn").addEventListener("click", onGoStep2);
   document.getElementById("back-to-step1-button").addEventListener("click", onBackToStep1);
   document.getElementById("back-to-step2-button").addEventListener("click", onBackToStep2FromStep3);
@@ -59,12 +57,12 @@ window.addEventListener("load", async function () {
     cancelReqBtn.addEventListener("click", onCancelFetch);
   }
 
-  // 「その他」モーダルボタン
+  // 「その他」モーダルのボタン
   document.getElementById("wizard-other-generate-btn").addEventListener("click", wizardOtherGenerate);
   document.getElementById("wizard-other-ok-btn").addEventListener("click", wizardOtherOk);
   document.getElementById("wizard-other-cancel-btn").addEventListener("click", wizardOtherCancel);
 
-  // 「削除」確認モーダルボタン
+  // 「削除」確認モーダルのボタン
   document.getElementById("wizard-delete-confirm-ok").addEventListener("click", wizardDeleteConfirmOk);
   document.getElementById("wizard-delete-confirm-cancel").addEventListener("click", wizardDeleteConfirmCancel);
 
@@ -72,12 +70,8 @@ window.addEventListener("load", async function () {
   updateSummaryUI();
 });
 
-/* =============================================
-   舞台/テーマ/雰囲気 のチップ初期描画
-============================================= */
 function initWizardChips() {
-  // 1) 共有の localStorage から取得
-  // 舞台
+  // localStorage 読み込み
   const sjson = localStorage.getItem("elementStageArr");
   if (sjson) {
     try {
@@ -88,22 +82,17 @@ function initWizardChips() {
   } else {
     wizStoredStageArr = [];
   }
-  // テーマ
   wizStoredTheme = localStorage.getItem("elementTheme") || "";
-  // 雰囲気
   wizStoredMood  = localStorage.getItem("elementMood")  || "";
 
-  // 2) カスタム
   wizCustomStageChips = loadWizardCustom("customStageChips");
   wizCustomThemeChips = loadWizardCustom("customThemeChips");
   wizCustomMoodChips  = loadWizardCustom("customMoodChips");
 
-  // 3) DOM生成
   renderWizardStageChips();
   renderWizardThemeChips();
   renderWizardMoodChips();
 
-  // 現在の選択テキスト
   updateWizGenreResultText();
 }
 
@@ -117,7 +106,7 @@ function loadWizardCustom(key) {
   }
 }
 
-/* 舞台(複数) */
+// 舞台(複数)
 function renderWizardStageChips() {
   const defaultList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク"];
   const container = document.getElementById("wiz-stage-chips-container");
@@ -131,7 +120,7 @@ function renderWizardStageChips() {
   });
 }
 
-/* テーマ(単一) */
+// テーマ(単一)
 function renderWizardThemeChips() {
   const defaultList = [
     "アクション / 冒険",
@@ -151,7 +140,7 @@ function renderWizardThemeChips() {
   });
 }
 
-/* 雰囲気(単一) */
+// 雰囲気(単一)
 function renderWizardMoodChips() {
   const defaultList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス"];
   const container = document.getElementById("wiz-mood-chips-container");
@@ -165,16 +154,12 @@ function renderWizardMoodChips() {
   });
 }
 
-/* =============================================
-   チップ要素作成 (トグル選択)
-============================================= */
 function createWizardChip(label, category) {
   const isOther = (label==="その他");
   const chip = document.createElement("div");
   chip.className = "chip";
   chip.textContent = label;
 
-  // 選択状態
   if (category==="stage") {
     if (wizStoredStageArr.includes(label)) {
       chip.classList.add("selected");
@@ -189,10 +174,8 @@ function createWizardChip(label, category) {
     }
   }
 
-  // クリック
   chip.addEventListener("click", () => {
     if (isOther) {
-      // その他モーダル
       openWizardOtherModal(category);
       return;
     }
@@ -208,31 +191,29 @@ function createWizardChip(label, category) {
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     } else if (category==="theme") {
-      // 単一トグル
+      // 単一
       if (chip.classList.contains("selected")) {
-        // 再クリックで未選択
         chip.classList.remove("selected");
         wizStoredTheme = "";
         localStorage.setItem("elementTheme", "");
       } else {
-        // 全オフ->クリックをON
         const cont = document.getElementById("wiz-theme-chips-container");
-        const allChips = cont.querySelectorAll(".chip");
-        allChips.forEach(c=> c.classList.remove("selected"));
+        const all = cont.querySelectorAll(".chip");
+        all.forEach(c=> c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredTheme = label;
         localStorage.setItem("elementTheme", wizStoredTheme);
       }
     } else if (category==="mood") {
-      // 単一トグル
+      // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
         wizStoredMood = "";
         localStorage.setItem("elementMood", "");
       } else {
         const cont = document.getElementById("wiz-mood-chips-container");
-        const allChips = cont.querySelectorAll(".chip");
-        allChips.forEach(c=> c.classList.remove("selected"));
+        const all = cont.querySelectorAll(".chip");
+        all.forEach(c=> c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredMood = label;
         localStorage.setItem("elementMood", wizStoredMood);
@@ -241,13 +222,13 @@ function createWizardChip(label, category) {
     updateWizGenreResultText();
   });
 
-  // カスタム削除ボタン
-  if (!isOther) {
-    if (category==="stage" && wizCustomStageChips.includes(label)) {
+  // カスタム削除
+  if(!isOther){
+    if(category==="stage" && wizCustomStageChips.includes(label)){
       addWizardRemoveButton(chip, label, "stage");
-    } else if (category==="theme" && wizCustomThemeChips.includes(label)) {
+    } else if(category==="theme" && wizCustomThemeChips.includes(label)){
       addWizardRemoveButton(chip, label, "theme");
-    } else if (category==="mood" && wizCustomMoodChips.includes(label)) {
+    } else if(category==="mood" && wizCustomMoodChips.includes(label)){
       addWizardRemoveButton(chip, label, "mood");
     }
   }
@@ -270,9 +251,6 @@ function addWizardRemoveButton(chip, label, category) {
   chip.appendChild(span);
 }
 
-/* =============================================
-   「その他」モーダル
-============================================= */
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   const catText =
@@ -290,7 +268,6 @@ async function wizardOtherGenerate() {
     alert("APIキーが設定されていません。");
     return;
   }
-
   let existingList = [];
   if (wizardCurrentOtherCategory==="stage") {
     existingList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク", ...wizCustomStageChips];
@@ -375,14 +352,10 @@ function wizardOtherCancel() {
   document.getElementById("wizard-other-input-modal").style.display="none";
 }
 
-/* =============================================
-   「削除」モーダル
-============================================= */
 function wizardDeleteConfirmOk() {
   if (wizardDeletingChipCategory==="stage") {
     wizCustomStageChips = wizCustomStageChips.filter(c=> c!==wizardDeletingChipLabel);
     localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
-    // 選択中なら外す
     wizStoredStageArr = wizStoredStageArr.filter(x=> x!==wizardDeletingChipLabel);
     localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     renderWizardStageChips();
@@ -403,7 +376,6 @@ function wizardDeleteConfirmOk() {
     }
     renderWizardMoodChips();
   }
-
   wizardDeletingChipLabel="";
   wizardDeletingChipCategory="";
   document.getElementById("wizard-delete-confirm-modal").style.display="none";
@@ -416,31 +388,22 @@ function wizardDeleteConfirmCancel() {
   document.getElementById("wizard-delete-confirm-modal").style.display="none";
 }
 
-/* =============================================
-   現在のチップ選択状況を文章化
-============================================= */
 function updateWizGenreResultText() {
   let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
   let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
   let moodPart  = wizStoredMood  ? "【雰囲気】"+wizStoredMood : "";
-
   let result = stagePart + themePart + moodPart;
   document.getElementById("wiz-genre-result-text").textContent = result;
 }
 
-/* =============================================
-   STEP1 -> STEP2 (自由入力 or チップ)
-============================================= */
+/* STEP1 -> STEP2 */
 async function onGoStep2() {
-  // まずテキスト入力欄を優先
   const freeVal = document.getElementById("free-genre-input").value.trim();
   if (freeVal) {
     wizardData.genre = freeVal;
   } else {
-    // チップを合成
     wizardData.genre = buildChipsGenre();
   }
-
   if (!wizardData.genre) {
     alert("ジャンルを入力または選択してください。");
     return;
@@ -448,7 +411,6 @@ async function onGoStep2() {
 
   await saveWizardDataToIndexedDB(wizardData);
 
-  // 次のステップへ
   document.getElementById("wizard-step1").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
   updateSelectedGenreDisplay();
@@ -457,11 +419,10 @@ async function onGoStep2() {
 function buildChipsGenre() {
   let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
   let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
+  let moodPart  = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
   return stagePart + themePart + moodPart;
 }
 
-/* STEP2 <- 戻る */
 function onBackToStep1() {
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step1").style.display = "block";
@@ -473,15 +434,11 @@ function updateSelectedGenreDisplay() {
   el.textContent = wizardData.genre || "(未選択)";
 }
 
-/* STEP3 <- 戻る */
 function onBackToStep2FromStep3() {
   document.getElementById("wizard-step3").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 }
 
-/* =============================================
-   シナリオタイプ選択
-============================================= */
 function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
   saveWizardDataToIndexedDB(wizardData);
@@ -492,40 +449,32 @@ function onSelectScenarioType(type) {
 }
 
 function onConfirmScenarioModalCancel() {
-  document.getElementById("confirm-scenario-modal").style.display="none";
+  document.getElementById("confirm-scenario-modal").style.display = "none";
 }
 
-/**
- * シナリオ生成のOKを押したとき:
- *  1) モーダルを閉じる
- *  2) ローディングモーダルを出しっぱなしにして
- *  3) GPT呼び出しなど全て完了してからステップ3に画面切り替え
- */
+/** シナリオ生成(ステップ2 OK) */
 async function onConfirmScenarioModalOK() {
-  // ローディングモーダルを表示
   showLoadingModal(true);
-
-  // 確認モーダルを閉じる
   document.getElementById("confirm-scenario-modal").style.display = "none";
 
   try {
-    // パーティ情報も保存（空なら空でOK）
+    // 1) カレントパーティをwizardDataに格納
     await storePartyInWizardData();
 
-    // シナリオ概要＆クリア条件などをGPTで生成
+    // 2) シナリオ概要＆クリア条件などをGPTで生成
     if (wizardData.scenarioType === "objective") {
       await generateScenarioSummaryAndClearCondition();
     } else {
       await generateScenarioSummary();
     }
 
-    // セクションを作る
+    // 3) セクション
     await generateSections();
 
-    // 導入シーンを作る
+    // 4) 導入シーン
     await generateIntroScene();
 
-    // すべて完了したらステップ2→ステップ3
+    // ステップ2->3
     document.getElementById("wizard-step2").style.display = "none";
     document.getElementById("wizard-step3").style.display = "block";
     updateSummaryUI();
@@ -534,14 +483,10 @@ async function onConfirmScenarioModalOK() {
     console.error(err);
     alert("シナリオ生成に失敗しました:\n" + err.message);
   } finally {
-    // 最後にローディングモーダルを閉じる
     showLoadingModal(false);
   }
 }
 
-/* =============================================
-   シナリオ開始
-============================================= */
 async function onStartScenario() {
   try {
     let title = wizardData.genre || "新シナリオ";
@@ -549,7 +494,7 @@ async function onStartScenario() {
 
     if (wizardData.introScene && wizardData.introScene.trim()) {
       const firstScene = {
-        scenarioId,
+        scenarioId: scenarioId,
         type:"scene",
         sceneId:"intro_"+Date.now(),
         content:wizardData.introScene
@@ -558,15 +503,11 @@ async function onStartScenario() {
     }
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
   } catch(err) {
-    console.error("シナリオ作成失敗:", err);
+    console.error("シナリオ開始失敗:", err);
     alert("シナリオ開始失敗: "+err.message);
   }
 }
 
-/* =============================================
-   シナリオ要約(目的達成型)
-   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
-============================================= */
 async function generateScenarioSummaryAndClearCondition(){
   try {
     const apiKey = window.apiKey || "";
@@ -616,10 +557,6 @@ async function generateScenarioSummaryAndClearCondition(){
   }
 }
 
-/* =============================================
-   シナリオ要約(探索型)
-   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
-============================================= */
 async function generateScenarioSummary() {
   try {
     const apiKey = window.apiKey || "";
@@ -657,10 +594,6 @@ async function generateScenarioSummary() {
   }
 }
 
-/* =============================================
-   セクション(達成条件)を生成
-   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
-============================================= */
 async function generateSections() {
   wizardData.sections = [];
   const count = Math.floor(Math.random() * 4) + 2; // 2..5
@@ -709,7 +642,7 @@ async function generateSections() {
     }
   } catch(err) {
     console.error("セクション生成失敗:", err);
-    // ダミー生成
+    // ダミー
     for(let i=0; i<count; i++){
       wizardData.sections.push({
         number: (i+1),
@@ -727,10 +660,6 @@ function zipString(str){
   return btoa(String.fromCharCode(...def));
 }
 
-/* =============================================
-   冒頭シーン
-   ※ showLoadingModal(...) は onConfirmScenarioModalOK() で一括管理
-============================================= */
 async function generateIntroScene(){
   const apiKey = window.apiKey || "";
   if(!apiKey){
@@ -771,40 +700,54 @@ async function generateIntroScene(){
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-/* =============================================
-   パーティ情報を wizardData に格納
-============================================= */
+/** ★カレントパーティ情報を wizardData に格納 */
 async function storePartyInWizardData(){
-  const charData = await loadCharacterDataFromIndexedDB();
-  if(!charData)return;
+  // currentPartyId
+  const cpidStr = localStorage.getItem("currentPartyId")||"";
+  if(!cpidStr){
+    // パーティ未設定の場合でもエラーにはしない
+    wizardData.party = [];
+    wizardData.partyId = 0;
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+  const pid = parseInt(cpidStr,10);
+  wizardData.partyId = pid;
 
-  const party = charData.filter(c=> c.group==="Party");
-  const stripped = party.map(c=>({
-    id:c.id, name:c.name, type:c.type,
-    rarity:c.rarity, state:c.state, special:c.special,
-    caption:c.caption, backgroundcss:c.backgroundcss
+  const charData = await loadCharacterDataFromIndexedDB();
+  if(!charData){
+    wizardData.party = [];
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+  const partyCards = charData.filter(c=> c.group==="Party" && c.partyId===pid);
+  const stripped = partyCards.map(c=>({
+    id:c.id,
+    name:c.name,
+    type:c.type,
+    rarity:c.rarity,
+    state:c.state,
+    special:c.special,
+    caption:c.caption,
+    backgroundcss:c.backgroundcss,
+    role:c.role
   }));
   wizardData.party = stripped;
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-/* =============================================
-   ステップ3表示更新
-============================================= */
 function updateSummaryUI(){
   const el = document.getElementById("scenario-summary");
   if(!el)return;
   el.textContent = wizardData.scenarioSummary || "(シナリオ概要なし)";
 }
 
-/* =============================================
-   ローディングモーダル
-============================================= */
 function showLoadingModal(show){
   const m = document.getElementById("loading-modal");
   if(!m)return;
   m.style.display = show ? "flex" : "none";
 }
+
 function onCancelFetch(){
   showLoadingModal(false);
 }

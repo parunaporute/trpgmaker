@@ -1,6 +1,9 @@
 貴方は会社の中で一番のエンジニアです。
-シナリオ生成の確認のモーダルにOKをした後、「応答を待っています...のモーダルは出てくる」が、「ステップ3：シナリオ要約」の画面が出てくる前にモーダルが閉じてしまっている。
-正しくは「ステップ3：シナリオ要約」の画面がが出てくるまでは「応答を待っています...のモーダル」を表示しておく
+・
+・
+・
+・
+・
 以上を実施し、編集しないファイルを除き完全なコードを下さい。
 characterCreate.html 
 <!DOCTYPE html>
@@ -152,11 +155,13 @@ index.html
     <div class="element-section">
       <!-- エレメント作成ボタン -->
       <button id="character-create">エレメント作成</button>
-      <!-- パーティ作成ボタン -->
-      <button id="party-create">パーティ作成</button>
+      <!-- パーティ一覧ボタン -->
+      <button id="party-list" style="margin-left:10px;">パーティ一覧</button>
+
       <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
-      <!-- ★ 追加：倉庫確認ボタン -->
+
+      <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn" style="margin-left:10px;">倉庫確認</button>
     </div>
 
@@ -221,18 +226,20 @@ index.html
     document.getElementById("character-create").addEventListener("click", function () {
       window.location.href = "characterCreate.html";
     });
-    // パーティ作成ボタン押下時
-    document.getElementById("party-create").addEventListener("click", function () {
-      window.location.href = "partyCreate.html";
+
+    // ★ 「パーティ作成」ボタンのイベントリスナーを削除
+
+    // ★ パーティ一覧ボタン
+    document.getElementById("party-list").addEventListener("click", function () {
+      window.location.href = "partyList.html";
     });
+
     // 新しいシナリオを始めるボタン押下時
     document.getElementById("start-new-scenario-button").addEventListener("click", function () {
       window.location.href = "scenarioWizard.html";
     });
   </script>
 
-  <!-- サンプルのテストボタン（任意） -->
-  <button id="sample-btn">hoge</button>
 </body>
 
 </html>
@@ -245,18 +252,29 @@ partyCreate.html
   <title>パーティ編成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- DOMPurifyはカード表示などで利用 -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>パーティ編成</h1>
+
+    <!-- パーティ名入力欄 -->
+    <div>
+      <label for="party-name-input">パーティ名：</label>
+      <input type="text" id="party-name-input" placeholder="例: 勇者一行" style="margin-bottom:10px;" />
+      <button id="save-party-name-btn">保存</button>
+    </div>
+
     <!-- 倉庫ボタン -->
     <button id="show-warehouse-btn">倉庫</button>
 
     <!-- パーティ側の選択モードボタン -->
     <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
     <!-- 選択したカードを倉庫に戻すボタン -->
-    <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">選択したカードを倉庫に戻す</button>
+    <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">
+      選択したカードを倉庫に戻す
+    </button>
 
     <!-- ▼ プレイヤーの分身（1つだけ選べる） -->
     <section style="margin-top:20px;">
@@ -264,22 +282,28 @@ partyCreate.html
       <p style="color:#555; font-size:14px;">
         ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
       </p>
-      <div id="avatar-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+      <div id="avatar-card-container"
+           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      </div>
     </section>
 
     <!-- ▼ パートナー（複数選べる） -->
     <section style="margin-top:20px;">
       <h2>パートナー（複数可）</h2>
-      <div id="partner-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+      <div id="partner-card-container"
+           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      </div>
     </section>
 
-    <!-- ▼ その他パーティ枠（アバターでもパートナーでもないもの） -->
+    <!-- ▼ その他パーティ枠 -->
     <section style="margin-top:20px;">
       <h2>その他パーティ枠</h2>
-      <div id="party-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+      <div id="party-card-container"
+           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      </div>
     </section>
 
-    <!-- 倉庫モーダル -->
+    <!-- ▼ 倉庫モーダル -->
     <div id="warehouse-modal" class="modal" style="display:none;">
       <div class="modal-content">
         <h2>倉庫</h2>
@@ -289,7 +313,9 @@ partyCreate.html
         <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
         
-        <div id="warehouse-card-container" style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+        <div id="warehouse-card-container"
+             style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+        </div>
       </div>
     </div>
 
@@ -297,9 +323,58 @@ partyCreate.html
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   </div>
 
-  <!-- スクリプト読み込み -->
+  <!-- 必要なJSを末尾に読み込む（※indexedDB.jsにはパーティ管理のcreateParty等を実装済み） -->
   <script src="js/indexedDB.js"></script>
   <script src="js/partyCreate.js"></script>
+</body>
+</html>
+--- 
+partyList.html 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>パーティ一覧</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>パーティ一覧</h1>
+    <p style="margin-bottom:20px;">
+      複数のパーティを作成して管理できます。<br>
+      「カレントのパーティ」に設定すると、<br>
+      以後の「パーティ編成」や「シナリオウィザード」画面でそれが使われます。
+    </p>
+
+    <!-- 新しいパーティを作成 -->
+    <div style="margin-bottom:20px;">
+      <label for="new-party-name">新しいパーティ名:</label>
+      <input type="text" id="new-party-name" placeholder="パーティ名..." />
+      <button id="create-party-button">作成</button>
+    </div>
+
+    <!-- パーティ一覧表示領域 -->
+    <div id="party-list-container" style="margin-bottom:30px;"></div>
+
+    <!-- 戻るボタン -->
+    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  </div>
+
+  <!-- パーティ名の変更用モーダル -->
+  <div id="edit-party-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>パーティ名の変更</h2>
+      <input type="text" id="edit-party-name" style="width:100%;" />
+      <button id="edit-party-save-button">保存</button>
+      <button id="edit-party-cancel-button">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- partyList.js -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/partyList.js"></script>
 </body>
 </html>
 --- 
@@ -2361,23 +2436,25 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン4:
+ * バージョン5:
  *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
  *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
  *  - characterData ストア (keyPath: 'id')
  *  - wizardState ストア (keyPath: 'id')
+ *  - parties ストア (keyPath: 'partyId', autoIncrement)
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 4);
+    const request = indexedDB.open("trpgDB", 5);  // ★ バージョンを5に
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
-      // 既存チェック
+      // characterData
       if (!db.objectStoreNames.contains("characterData")) {
         db.createObjectStore("characterData", { keyPath: "id" });
       }
 
+      // scenarios
       if (!db.objectStoreNames.contains("scenarios")) {
         const scenarioStore = db.createObjectStore("scenarios", {
           keyPath: "scenarioId",
@@ -2386,6 +2463,7 @@ function initIndexedDB() {
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
+      // sceneEntries
       if (!db.objectStoreNames.contains("sceneEntries")) {
         const sceneStore = db.createObjectStore("sceneEntries", {
           keyPath: "entryId",
@@ -2394,8 +2472,18 @@ function initIndexedDB() {
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
 
+      // wizardState
       if (!db.objectStoreNames.contains("wizardState")) {
         db.createObjectStore("wizardState", { keyPath: "id" });
+      }
+
+      // parties (new in version 5)
+      if (!db.objectStoreNames.contains("parties")) {
+        const partyStore = db.createObjectStore("parties", {
+          keyPath: "partyId",
+          autoIncrement: true
+        });
+        partyStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
     };
     request.onsuccess = (event) => {
@@ -2703,84 +2791,6 @@ function deleteScenarioById(scenarioId) {
   });
 }
 
-/* ★ユニークID生成ヘルパ */
-function generateUniqueId() {
-  return Date.now() + "_" + Math.random().toString(36).slice(2, 9);
-}
-
-/* ★シナリオコピー用（画像含む） */
-async function copyScenarioById(originalScenarioId) {
-  if (!db) {
-    throw new Error("DB未初期化");
-  }
-  try {
-    // 1) 元シナリオ取得
-    const original = await getScenarioById(originalScenarioId);
-    if (!original) {
-      throw new Error("コピー元シナリオが存在しません");
-    }
-
-    // 2) 新シナリオを作成（タイトルに「(コピー)」を付ける）
-    const newTitle = original.title + " (コピー)";
-    const newScenarioId = await createNewScenario(original.wizardData, newTitle);
-
-    // 3) 元シーンエントリをすべて取得
-    const originalEntries = await getSceneEntriesByScenarioId(originalScenarioId);
-
-    // 3.5) シーンIDのマッピングを作る (元シーンID → 新シーンID)
-    const sceneIdMap = {};
-    // まず sceneEntries のうち type==='scene' のものに対して、新しい sceneId を割り当てる
-    originalEntries.forEach(e => {
-      if (e.type === "scene") {
-        sceneIdMap[e.sceneId] = generateUniqueId();
-      }
-    });
-
-    // 4) すべて新シナリオIDに合わせて複製
-    const tx = db.transaction("sceneEntries", "readwrite");
-    const sceneStore = tx.objectStore("sceneEntries");
-
-    for (const e of originalEntries) {
-      // シーンまたは画像に紐づくsceneIdがあれば置き換える
-      let newSceneId = e.sceneId;
-      if (sceneIdMap[e.sceneId]) {
-        newSceneId = sceneIdMap[e.sceneId];
-      }
-
-      const copyEntry = {
-        scenarioId: newScenarioId,
-        type: e.type,
-        sceneId: newSceneId,
-        content: e.content,
-        dataUrl: e.dataUrl || null,
-        prompt: e.prompt || null
-      };
-      sceneStore.add(copyEntry);
-    }
-
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = () => {
-        resolve();
-      };
-      tx.onerror = (err) => {
-        reject(err);
-      };
-    });
-
-    // 5) 最後に scenarios.updatedAt を更新
-    const newScenario = await getScenarioById(newScenarioId);
-    if (newScenario) {
-      newScenario.updatedAt = new Date().toISOString();
-      await updateScenario(newScenario);
-    }
-
-    return newScenarioId;
-  } catch (err) {
-    console.error("copyScenarioById失敗:", err);
-    throw err;
-  }
-}
-
 /* -------------------------------------------
   エクスポート
 -------------------------------------------*/
@@ -2803,7 +2813,115 @@ window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
 
 window.deleteScenarioById = deleteScenarioById;
-window.copyScenarioById = copyScenarioById;  // 修正後エクスポート
+
+/* -------------------------------------------
+   ★ 新規: パーティ管理
+-------------------------------------------*/
+
+/** 新規パーティ作成 */
+window.createParty = function(name){
+  return new Promise((resolve, reject)=>{
+    if(!db){
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("parties","readwrite");
+    const store = tx.objectStore("parties");
+    const now = new Date().toISOString();
+    const rec = {
+      name: name,
+      createdAt: now,
+      updatedAt: now
+    };
+    const req = store.add(rec);
+    req.onsuccess = (evt)=>{
+      resolve(evt.target.result); // partyId
+    };
+    req.onerror = (err)=>{
+      reject(err);
+    };
+  });
+};
+
+/** パーティ1件取得 */
+window.getPartyById = function(partyId){
+  return new Promise((resolve, reject)=>{
+    if(!db){
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("parties","readonly");
+    const store = tx.objectStore("parties");
+    const req = store.get(partyId);
+    req.onsuccess = (evt)=>{
+      resolve(evt.target.result || null);
+    };
+    req.onerror = (err)=>{
+      reject(err);
+    };
+  });
+};
+
+/** パーティ一覧 */
+window.listAllParties = function(){
+  return new Promise((resolve, reject)=>{
+    if(!db){
+      return reject("DB未初期化");
+    }
+    const tx = db.transaction("parties","readonly");
+    const store = tx.objectStore("parties");
+    const req = store.getAll();
+    req.onsuccess = (evt)=>{
+      const list = evt.target.result || [];
+      // updatedAt降順
+      list.sort((a,b)=> (b.updatedAt||"").localeCompare(a.updatedAt||""));
+      resolve(list);
+    };
+    req.onerror = (err)=>{
+      reject(err);
+    };
+  });
+};
+
+/** パーティ更新 */
+window.updateParty = function(party){
+  return new Promise((resolve, reject)=>{
+    if(!db){
+      return reject("DB未初期化");
+    }
+    party.updatedAt = new Date().toISOString();
+    const tx = db.transaction("parties","readwrite");
+    const store = tx.objectStore("parties");
+    const req = store.put(party);
+    req.onsuccess = ()=>{
+      resolve();
+    };
+    req.onerror = (err)=>{
+      reject(err);
+    };
+  });
+};
+
+/** パーティ削除 */
+window.deletePartyById = function(partyId){
+  return new Promise((resolve, reject)=>{
+    if(!db){
+      return reject("DB未初期化");
+    }
+
+    const tx = db.transaction("parties","readwrite");
+    const store = tx.objectStore("parties");
+
+    // 実際にはパーティ削除時に紐づく characterData.group==="Party" + partyIdをどうするか要検討
+    // 今回は「削除してもキャラは倉庫などに移らず残る」またはユーザ判断で削除。
+    // ひとまずパーティ自体だけ削除する。
+    const req = store.delete(partyId);
+    req.onsuccess = ()=>{
+      resolve();
+    };
+    req.onerror = (err)=>{
+      reject(err);
+    };
+  });
+};
 --- 
 main.js 
 /********************************
@@ -3139,13 +3257,6 @@ document.getElementById("delete-scenario-cancel").addEventListener("click", () =
 });
 
 // -----------------------------------------
-// デモ用ボタン
-// -----------------------------------------
-document.getElementById("sample-btn").addEventListener("click", () => {
-  showToast("ほげ");
-});
-
-// -----------------------------------------
 // ▼ 倉庫表示関連 (新規機能)
 // -----------------------------------------
 
@@ -3337,11 +3448,40 @@ partyCreate.js
 // partyCreate.js
 
 // グローバル変数
-window.partySelectionMode = false;    // パーティ側の選択モードフラグ
-window.warehouseSelectionMode = false; // 倉庫側の選択モードフラグ
+window.partySelectionMode = false;    // パーティ側の選択モード
+window.warehouseSelectionMode = false; // 倉庫側の選択モード
+
+// 現在編集中のパーティID
+let currentPartyId = null;
+let currentParty = null;
 
 window.addEventListener("load", async function(){
+    // 1) IndexedDB 初期化
     await initIndexedDB();
+
+    // 2) URLパラメータで partyId 取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const pid = urlParams.get("partyId");
+    if(pid){
+      currentPartyId = parseInt(pid, 10);
+      if(Number.isNaN(currentPartyId)){
+        currentPartyId = null;
+      }
+    }
+
+    // 3) 既存パーティをロード (もしあれば)
+    if(currentPartyId){
+      currentParty = await getPartyById(currentPartyId);
+      if(currentParty){
+        // パーティ名を input.value に反映
+        document.getElementById("party-name-input").value = currentParty.name;
+      } else {
+        // partyId が無効なら新規扱い
+        currentPartyId = null;
+      }
+    }
+
+    // 4) characterData ロード
     const stored = await loadCharacterDataFromIndexedDB();
     if(stored) {
       window.characterData = stored;
@@ -3349,27 +3489,30 @@ window.addEventListener("load", async function(){
       window.characterData = [];
     }
 
-    // パーティ表示を初回レンダリング
+    // 5) 初回レンダリング
     renderAllParty();
 
-    // 倉庫モーダル管理
-    document.getElementById("show-warehouse-btn").addEventListener("click", () => {
-      showWarehouseModal();
-    });
+    // ---------------- イベント登録 ----------------
 
-    // 倉庫モーダルを閉じる
+    // パーティ名保存ボタン
+    document.getElementById("save-party-name-btn").addEventListener("click", onSavePartyName);
+
+    // 倉庫を開くボタン
+    document.getElementById("show-warehouse-btn").addEventListener("click", showWarehouseModal);
+
+    // 倉庫を閉じるボタン
     document.getElementById("close-warehouse-btn").addEventListener("click", () => {
       document.getElementById("warehouse-modal").style.display = "none";
-      // 倉庫側の選択をリセット
       warehouseSelectionMode = false;
       document.getElementById("toggle-warehouse-selection-mode-btn").textContent = "選択モード";
       document.getElementById("add-to-party-btn").style.display = "none";
-      // 全カードの selected を外す
+
+      // 選択カードをリセット
       const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
       selectedCards.forEach(el => el.classList.remove("selected"));
     });
 
-    // 「選択モード（パーティ側）」ボタン
+    // パーティ側の「選択モード」ボタン
     document.getElementById("toggle-party-selection-mode-btn").addEventListener("click", () => {
       window.partySelectionMode = !window.partySelectionMode;
       const btn = document.getElementById("toggle-party-selection-mode-btn");
@@ -3377,18 +3520,18 @@ window.addEventListener("load", async function(){
         btn.textContent = "選択モード解除";
       } else {
         btn.textContent = "選択モード";
-        // 解除時、選択を全リセット
-        const selectedCards = document.querySelectorAll(
+        // 解除時、選択をリセット
+        const selCards = document.querySelectorAll(
           "#avatar-card-container .card.selected, " +
           "#partner-card-container .card.selected, " +
           "#party-card-container .card.selected"
         );
-        selectedCards.forEach(el => el.classList.remove("selected"));
+        selCards.forEach(el => el.classList.remove("selected"));
       }
       updatePartyMoveButtonVisibility();
     });
 
-    // 「パーティ選択カードを倉庫に戻す」ボタン
+    // パーティ側の「倉庫に戻す」ボタン
     document.getElementById("move-selected-to-warehouse-btn").addEventListener("click", async () => {
       const selectedCards = document.querySelectorAll(
         "#avatar-card-container .card.selected, " +
@@ -3403,20 +3546,19 @@ window.addEventListener("load", async function(){
         const cardId = el.getAttribute("data-id");
         const idx = window.characterData.findIndex(c => c.id === cardId);
         if(idx !== -1) {
-          // グループを倉庫に戻す
           window.characterData[idx].group = "Warehouse";
-          // roleをリセット
           window.characterData[idx].role = "none";
+          window.characterData[idx].partyId = null;
         }
       });
       await saveCharacterDataToIndexedDB(window.characterData);
-      // 選択解除 & 再描画
+      // リセット & 再描画
       selectedCards.forEach(el => el.classList.remove("selected"));
       renderAllParty();
       updatePartyMoveButtonVisibility();
     });
 
-    // 「選択モード（倉庫側）」ボタン
+    // 倉庫側の「選択モード」ボタン
     document.getElementById("toggle-warehouse-selection-mode-btn").addEventListener("click", () => {
       window.warehouseSelectionMode = !window.warehouseSelectionMode;
       const btn = document.getElementById("toggle-warehouse-selection-mode-btn");
@@ -3424,15 +3566,19 @@ window.addEventListener("load", async function(){
         btn.textContent = "選択モード解除";
       } else {
         btn.textContent = "選択モード";
-        // 解除時、選択を全リセット
-        const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
-        selectedCards.forEach(el => el.classList.remove("selected"));
+        // リセット
+        const selCards = document.querySelectorAll("#warehouse-card-container .card.selected");
+        selCards.forEach(el => el.classList.remove("selected"));
       }
       updateWarehouseAddButtonVisibility();
     });
 
-    // 「倉庫選択カードをパーティへ」ボタン
+    // 倉庫の「パーティに入れる」ボタン
     document.getElementById("add-to-party-btn").addEventListener("click", async () => {
+      if(!currentPartyId){
+        alert("パーティIDが未確定です。先にパーティ名を保存してください。");
+        return;
+      }
       const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
       if(selectedCards.length === 0) {
         alert("カードが選択されていません。");
@@ -3443,52 +3589,67 @@ window.addEventListener("load", async function(){
         const realIndex = window.characterData.findIndex(c => c.id === cardId);
         if(realIndex !== -1){
           window.characterData[realIndex].group = "Party";
-          // roleは一旦 "none" にしておく（ユーザーが後からアバター/パートナーに設定可能）
           window.characterData[realIndex].role = "none";
+          window.characterData[realIndex].partyId = currentPartyId;
         }
       });
 
       await saveCharacterDataToIndexedDB(window.characterData);
-      // 選択解除
+      // 選択解除 & 再描画
       selectedCards.forEach(el => el.classList.remove("selected"));
-      // 倉庫再描画 & パーティ再描画
       showWarehouseModal();
       renderAllParty();
       updateWarehouseAddButtonVisibility();
     });
 
-    // 戻るボタン
+    // 「メニューに戻る」
     document.getElementById("back-to-menu").addEventListener("click", () => {
       window.location.href = "index.html";
     });
 });
 
 
-/** 
- * パーティ全体を再レンダリングする。
- *  - role==="avatar" → #avatar-card-container
- *  - role==="partner" → #partner-card-container
- *  - その他（none） → #party-card-container
- */
-function renderAllParty(){
-  // 対象は group==="Party"
-  const partyCards = window.characterData.filter(c => c.group === "Party");
+/** パーティ名保存 */
+async function onSavePartyName(){
+  const nameInput = document.getElementById("party-name-input");
+  const newName = nameInput.value.trim() || "名称未設定";
 
-  // 各コンテナをクリア
+  // まだパーティIDが無いなら createParty で作成
+  if(!currentPartyId){
+    const newId = await createParty(newName);
+    currentPartyId = newId;
+    currentParty = await getPartyById(newId);
+    alert("パーティを新規作成しました (ID:" + newId + ")");
+  } else {
+    // 既存パーティ名を更新
+    currentParty.name = newName;
+    await updateParty(currentParty);
+    alert("パーティ名を更新しました (ID:" + currentPartyId + ")");
+  }
+}
+
+/** 現在のパーティを再レンダリング (avatar, partner, none で分類表示) */
+function renderAllParty(){
+  // group==="Party" かつ partyId===currentPartyId のカードのみ
+  const partyCards = window.characterData.filter(
+    c => c.group==="Party" && c.partyId===currentPartyId
+  );
+
   const avatarContainer = document.getElementById("avatar-card-container");
   const partnerContainer = document.getElementById("partner-card-container");
   const partyContainer = document.getElementById("party-card-container");
 
+  // クリア
   avatarContainer.innerHTML = "";
   partnerContainer.innerHTML = "";
   partyContainer.innerHTML = "";
 
-  // 三分類して表示
-  const avatarCards = partyCards.filter(c => c.role === "avatar");
-  const partnerCards = partyCards.filter(c => c.role === "partner");
-  const noneCards   = partyCards.filter(c => !c.role || c.role === "none");
+  // role別に振り分け
+  const avatarCards = partyCards.filter(c => c.role==="avatar");
+  const partnerCards = partyCards.filter(c => c.role==="partner");
+  const noneCards   = partyCards.filter(c => !c.role || c.role==="none");
 
-  // それぞれの描画
+  // 生成
   avatarCards.forEach(card => {
     const el = createPartyCardElement(card);
     avatarContainer.appendChild(el);
@@ -3503,106 +3664,106 @@ function renderAllParty(){
   });
 }
 
-/** パーティカードDOM生成（クリック時のアバター/パートナー切り替え用ボタンを付与） */
+/** パーティカード生成 */
 function createPartyCardElement(card){
   const cardEl = document.createElement("div");
   cardEl.className = "card";
   cardEl.setAttribute("data-id", card.id);
 
-  // クリック時の選択モード対応
   cardEl.addEventListener("click", (e) => {
-    if(window.partySelectionMode) {
+    if(window.partySelectionMode){
       e.stopPropagation();
       cardEl.classList.toggle("selected");
       updatePartyMoveButtonVisibility();
     } else {
-      // 通常時はカードを反転
+      // 通常時は反転
       cardEl.classList.toggle("flipped");
     }
   });
 
-  // 内部構造
   const cardInner = document.createElement("div");
   cardInner.className = "card-inner";
 
   const cardFront = document.createElement("div");
   cardFront.className = "card-front";
 
+  // 背景
   const bgStyle = (card.backgroundcss || "")
-      .replace("background-image:", "")
-      .replace("background", "")
-      .trim();
+    .replace("background-image:", "")
+    .replace("background", "")
+    .trim();
   cardFront.style = "background-image:" + bgStyle;
 
   // レアリティ枠
-  const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
+  const rarityValue = (typeof card.rarity==="string")
+                        ? card.rarity.replace("★","").trim()
+                        : "0";
   cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
-  // カードタイプ表示
+  // タイプ
   const typeEl = document.createElement("div");
   typeEl.className = "card-type";
   typeEl.textContent = card.type || "不明";
   cardFront.appendChild(typeEl);
 
   // 画像
-  const imageContainer = document.createElement("div");
-  imageContainer.className = "card-image";
+  const imgCont = document.createElement("div");
+  imgCont.className = "card-image";
   if(card.imageData){
-    const imageEl = document.createElement("img");
-    imageEl.src = card.imageData;
-    imageEl.alt = card.name;
-    imageContainer.appendChild(imageEl);
+    const imgEl = document.createElement("img");
+    imgEl.src = card.imageData;
+    imgEl.alt = card.name;
+    imgCont.appendChild(imgEl);
   }
-  cardFront.appendChild(imageContainer);
+  cardFront.appendChild(imgCont);
 
-  // 下部テキスト情報
-  const infoContainer = document.createElement("div");
-  infoContainer.className = "card-info";
+  // 下部テキスト
+  const infoCont = document.createElement("div");
+  infoCont.className = "card-info";
 
   const nameEl = document.createElement("p");
   nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
-  infoContainer.appendChild(nameEl);
+  infoCont.appendChild(nameEl);
 
-  if (card.state) {
-    const stateEl = document.createElement("p");
-    stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
-    infoContainer.appendChild(stateEl);
+  if(card.state){
+    const st = document.createElement("p");
+    st.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
+    infoCont.appendChild(st);
   }
-  const specialEl = document.createElement("p");
-  specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
-  infoContainer.appendChild(specialEl);
+  const sp = document.createElement("p");
+  sp.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
+  infoCont.appendChild(sp);
 
-  const captionEl = document.createElement("p");
-  captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
-  infoContainer.appendChild(captionEl);
+  const cap = document.createElement("p");
+  cap.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
+  infoCont.appendChild(cap);
 
-  // ▼ role切り替えボタン (アバター/パートナー)
-  const roleContainer = document.createElement("div");
-  roleContainer.style.marginTop = "8px";
+  // role切り替えボタン
+  const roleDiv = document.createElement("div");
+  roleDiv.style.marginTop = "8px";
 
-  // アバターに設定
   const avatarBtn = document.createElement("button");
-  avatarBtn.textContent = (card.role === "avatar") ? "アバター解除" : "アバターに設定";
+  avatarBtn.textContent = (card.role==="avatar") ? "アバター解除" : "アバターに設定";
   avatarBtn.style.marginRight = "5px";
   avatarBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
     await toggleAvatar(card);
   });
-  roleContainer.appendChild(avatarBtn);
+  roleDiv.appendChild(avatarBtn);
 
-  // パートナーに設定
   const partnerBtn = document.createElement("button");
-  partnerBtn.textContent = (card.role === "partner") ? "パートナー解除" : "パートナーに設定";
+  partnerBtn.textContent = (card.role==="partner") ? "パートナー解除" : "パートナーに設定";
   partnerBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
     await togglePartner(card);
   });
-  roleContainer.appendChild(partnerBtn);
+  roleDiv.appendChild(partnerBtn);
 
-  infoContainer.appendChild(roleContainer);
-  cardFront.appendChild(infoContainer);
+  infoCont.appendChild(roleDiv);
 
-  // カード裏面
+  cardFront.appendChild(infoCont);
+
+  // 裏面
   const cardBack = document.createElement("div");
   cardBack.className = "card-back";
   cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type)}</strong>`;
@@ -3614,62 +3775,53 @@ function createPartyCardElement(card){
   return cardEl;
 }
 
-
-/** アバター切り替え処理 (1枚のみ許容) */
+/** アバター切り替え（1枚限定） */
 async function toggleAvatar(card) {
-  // もし既にアバターなら → 解除（none）にする
-  if(card.role === "avatar") {
-    card.role = "none";
+  // もし既にアバターなら解除
+  if(card.role==="avatar"){
+    card.role="none";
   } else {
-    // それ以外なら自分をアバターにして、他のアバターは解除する
-    // group="Party" の中で role="avatar" のものをすべて none に
+    // 他のavatarを解除
     window.characterData.forEach(c => {
-      if(c.group === "Party" && c.role === "avatar") {
-        c.role = "none";
+      if(c.group==="Party" && c.partyId===currentPartyId && c.role==="avatar"){
+        c.role="none";
       }
     });
-    card.role = "avatar";
+    card.role="avatar";
   }
   await saveCharacterDataToIndexedDB(window.characterData);
   renderAllParty();
 }
 
-/** パートナー切り替え処理 (複数可) */
-async function togglePartner(card) {
-  // もし既にパートナーなら → 解除（none）にする
-  if(card.role === "partner") {
-    card.role = "none";
+/** パートナー切り替え（複数可） */
+async function togglePartner(card){
+  if(card.role==="partner"){
+    card.role="none";
   } else {
-    // それ以外なら partner に設定
-    card.role = "partner";
-    // アバターとは排他しないので、他の設定はそのまま
-    if(card.role === "avatar") {
-      card.role = "none"; // …ということはないので特に処理不要
-    }
+    card.role="partner";
   }
   await saveCharacterDataToIndexedDB(window.characterData);
   renderAllParty();
 }
 
-
-/** 倉庫モーダルを表示 */
+/** 倉庫モーダル表示 */
 function showWarehouseModal(){
   const modal = document.getElementById("warehouse-modal");
   modal.style.display = "flex";
 
-  const warehouseContainer = document.getElementById("warehouse-card-container");
-  warehouseContainer.innerHTML = "";
+  const whContainer = document.getElementById("warehouse-card-container");
+  whContainer.innerHTML = "";
 
   // group==="Warehouse" のみ
-  const warehouseCards = window.characterData.filter(c => c.group === "Warehouse");
-  if(warehouseCards.length === 0) {
-    warehouseContainer.textContent = "倉庫にカードがありません。";
+  const warehouseCards = window.characterData.filter(c => c.group==="Warehouse");
+  if(warehouseCards.length===0){
+    whContainer.textContent = "倉庫にカードがありません。";
     return;
   }
-
-  warehouseCards.forEach((card) => {
+  // カード要素生成
+  warehouseCards.forEach(card => {
     const cardEl = createWarehouseCardElement(card);
-    warehouseContainer.appendChild(cardEl);
+    whContainer.appendChild(cardEl);
   });
   updateWarehouseAddButtonVisibility();
 }
@@ -3677,12 +3829,11 @@ function showWarehouseModal(){
 /** 倉庫カード生成 */
 function createWarehouseCardElement(card){
   const cardEl = document.createElement("div");
-  cardEl.className = "card";
+  cardEl.className="card";
   cardEl.setAttribute("data-id", card.id);
 
-  // クリック時
-  cardEl.addEventListener("click", (e) => {
-    if(window.warehouseSelectionMode) {
+  cardEl.addEventListener("click",(e)=>{
+    if(window.warehouseSelectionMode){
       e.stopPropagation();
       cardEl.classList.toggle("selected");
       updateWarehouseAddButtonVisibility();
@@ -3692,58 +3843,64 @@ function createWarehouseCardElement(card){
   });
 
   const cardInner = document.createElement("div");
-  cardInner.className = "card-inner";
+  cardInner.className="card-inner";
+
   const cardFront = document.createElement("div");
-  cardFront.className = "card-front";
+  cardFront.className="card-front";
 
-  const bgStyle = (card.backgroundcss || "")
-      .replace("background-image:", "")
-      .replace("background", "")
-      .trim();
-  cardFront.style = "background-image:" + bgStyle;
+  // 背景CSS
+  const bgStyle = (card.backgroundcss||"")
+    .replace("background-image:","")
+    .replace("background","")
+    .trim();
+  cardFront.style = "background-image:"+bgStyle;
 
-  const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
-  cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
+  // レアリティ
+  const rv = (typeof card.rarity==="string")? card.rarity.replace("★","").trim():"0";
+  cardFront.innerHTML = `<div class='bezel rarity${rv}'></div>`;
 
+  // タイプ
   const typeEl = document.createElement("div");
-  typeEl.className = "card-type";
-  typeEl.textContent = card.type || "不明";
+  typeEl.className="card-type";
+  typeEl.textContent = card.type||"不明";
   cardFront.appendChild(typeEl);
 
-  const imageContainer = document.createElement("div");
-  imageContainer.className = "card-image";
+  // 画像
+  const imgC = document.createElement("div");
+  imgC.className="card-image";
   if(card.imageData){
-    const imageEl = document.createElement("img");
-    imageEl.src = card.imageData;
-    imageEl.alt = card.name;
-    imageContainer.appendChild(imageEl);
+    const im = document.createElement("img");
+    im.src = card.imageData;
+    im.alt = card.name;
+    imgC.appendChild(im);
   }
-  cardFront.appendChild(imageContainer);
+  cardFront.appendChild(imgC);
 
-  const infoContainer = document.createElement("div");
-  infoContainer.className = "card-info";
+  // info
+  const info = document.createElement("div");
+  info.className="card-info";
 
-  const nameEl = document.createElement("p");
-  nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
-  infoContainer.appendChild(nameEl);
+  const nameP = document.createElement("p");
+  nameP.innerHTML = "<h3>"+DOMPurify.sanitize(card.name)+"</h3>";
+  info.appendChild(nameP);
 
-  if (card.state) {
-    const stateEl = document.createElement("p");
-    stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
-    infoContainer.appendChild(stateEl);
+  if(card.state){
+    const stP = document.createElement("p");
+    stP.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
+    info.appendChild(stP);
   }
-  const specialEl = document.createElement("p");
-  specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
-  infoContainer.appendChild(specialEl);
+  const spP = document.createElement("p");
+  spP.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
+  info.appendChild(spP);
 
-  const captionEl = document.createElement("p");
-  captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
-  infoContainer.appendChild(captionEl);
+  const capP = document.createElement("p");
+  capP.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
+  info.appendChild(capP);
 
-  cardFront.appendChild(infoContainer);
+  cardFront.appendChild(info);
 
   const cardBack = document.createElement("div");
-  cardBack.className = "card-back";
+  cardBack.className="card-back";
   cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type)}</strong>`;
 
   cardInner.appendChild(cardFront);
@@ -3753,40 +3910,226 @@ function createWarehouseCardElement(card){
   return cardEl;
 }
 
-/** パーティへ入れるボタンの表示・非表示制御（倉庫側） */
+/** 倉庫 -> パーティ追加ボタンの表示/非表示 */
 function updateWarehouseAddButtonVisibility(){
   const addBtn = document.getElementById("add-to-party-btn");
-  if(!warehouseSelectionMode) {
-    // 選択モードOFF時は非表示
-    addBtn.style.display = "none";
+  if(!warehouseSelectionMode){
+    addBtn.style.display="none";
     return;
   }
-  // 選択モードON
-  const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
-  if(selectedCards.length > 0){
-    addBtn.style.display = "inline-block";
-  } else {
-    addBtn.style.display = "none";
-  }
+  const sel = document.querySelectorAll("#warehouse-card-container .card.selected");
+  addBtn.style.display = (sel.length>0) ? "inline-block" : "none";
 }
 
-/** 倉庫に戻すボタンの表示・非表示制御（パーティ側） */
+/** パーティ -> 倉庫に戻すボタンの表示/非表示 */
 function updatePartyMoveButtonVisibility(){
   const moveBtn = document.getElementById("move-selected-to-warehouse-btn");
   if(!partySelectionMode){
-    moveBtn.style.display = "none";
+    moveBtn.style.display="none";
     return;
   }
-  const selectedCards = document.querySelectorAll(
+  const sel = document.querySelectorAll(
     "#avatar-card-container .card.selected, " +
     "#partner-card-container .card.selected, " +
     "#party-card-container .card.selected"
   );
-  if(selectedCards.length > 0) {
-    moveBtn.style.display = "inline-block";
-  } else {
-    moveBtn.style.display = "none";
+  moveBtn.style.display = (sel.length>0) ? "inline-block" : "none";
+}
+--- 
+partyList.js 
+// partyList.js
+
+let editingPartyId = null;
+
+window.addEventListener("load", async () => {
+  // IndexedDB初期化
+  await initIndexedDB();
+
+  // パーティ一覧を取得して描画
+  await renderPartyList();
+
+  // 新規作成ボタン
+  document.getElementById("create-party-button").addEventListener("click", async () => {
+    const newName = document.getElementById("new-party-name").value.trim();
+    if(!newName){
+      alert("パーティ名を入力してください。");
+      return;
+    }
+    try {
+      const newId = await createParty(newName);
+      document.getElementById("new-party-name").value = "";
+      await renderPartyList();
+    } catch(e){
+      console.error(e);
+      alert("パーティ作成に失敗しました:\n" + e.message);
+    }
+  });
+
+  // 戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+
+  // パーティ名変更モーダルのキャンセル
+  document.getElementById("edit-party-cancel-button").addEventListener("click", ()=>{
+    hideEditPartyModal();
+  });
+
+  // パーティ名変更モーダルの保存
+  document.getElementById("edit-party-save-button").addEventListener("click", async ()=>{
+    const newName = document.getElementById("edit-party-name").value.trim();
+    if(!newName){
+      alert("パーティ名を入力してください。");
+      return;
+    }
+    if(editingPartyId == null){
+      hideEditPartyModal();
+      return;
+    }
+    try{
+      const party = await getPartyById(editingPartyId);
+      if(!party){
+        alert("対象パーティが見つかりません。");
+        hideEditPartyModal();
+        return;
+      }
+      party.name = newName;
+      party.updatedAt = new Date().toISOString();
+      await updateParty(party);
+      editingPartyId = null;
+      hideEditPartyModal();
+      await renderPartyList();
+    } catch(e){
+      console.error(e);
+      alert("パーティ名の更新に失敗:\n" + e.message);
+    }
+  });
+});
+
+/** パーティ一覧を描画 */
+async function renderPartyList(){
+  const container = document.getElementById("party-list-container");
+  container.innerHTML = "";
+
+  let parties = [];
+  try {
+    parties = await listAllParties(); // indexedDB.js で実装
+  } catch(e){
+    console.error(e);
+    container.textContent = "パーティ一覧の取得に失敗しました。";
+    return;
   }
+
+  if(parties.length === 0){
+    container.textContent = "パーティがありません。";
+    return;
+  }
+
+  // 現在のカレントIDをlocalStorageから読む
+  const currentPartyIdStr = localStorage.getItem("currentPartyId") || "";
+  const currentPartyId = currentPartyIdStr ? parseInt(currentPartyIdStr,10) : null;
+
+  parties.forEach(party => {
+    const div = document.createElement("div");
+    div.style.marginBottom = "10px";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "10px";
+
+    const info = document.createElement("span");
+    info.textContent = `ID:${party.partyId} / ${party.name} (更新:${party.updatedAt || "なし"})`;
+    div.appendChild(info);
+
+    // カレント設定ボタン
+    const setBtn = document.createElement("button");
+    setBtn.textContent = "カレントに設定";
+    setBtn.style.marginLeft = "10px";
+    setBtn.addEventListener("click", () => {
+      localStorage.setItem("currentPartyId", party.partyId.toString());
+      alert(`パーティ「${party.name}」をカレントに設定しました。`);
+      renderPartyList();
+    });
+    div.appendChild(setBtn);
+
+    // もしカレントならラベル表示
+    if(currentPartyId === party.partyId){
+      const label = document.createElement("strong");
+      label.textContent = " (現在のパーティ)";
+      label.style.color = "#4CAF50";
+      div.appendChild(label);
+    }
+
+    // 名前変更ボタン
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "名前変更";
+    editBtn.style.marginLeft = "10px";
+    editBtn.addEventListener("click", () => {
+      editingPartyId = party.partyId;
+      showEditPartyModal(party.name);
+    });
+    div.appendChild(editBtn);
+
+    // ★ 追加: 編成ボタン( partyCreate.html?partyId=xxx へ遷移 )
+    const arrangeBtn = document.createElement("button");
+    arrangeBtn.textContent = "編成";
+    arrangeBtn.style.marginLeft = "10px";
+    arrangeBtn.addEventListener("click", () => {
+      window.location.href = `partyCreate.html?partyId=${party.partyId}`;
+    });
+    div.appendChild(arrangeBtn);
+
+    // 削除ボタン（削除時、該当パーティのキャラを倉庫に戻す）
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.style.marginLeft = "10px";
+    delBtn.style.backgroundColor = "#f44336";
+    delBtn.addEventListener("click", async ()=>{
+      if(!confirm(`パーティ「${party.name}」を削除します。よろしいですか？`)){
+        return;
+      }
+      try {
+        // 1) characterDataをロードして、このpartyIdを持つカードを倉庫へ戻す
+        const storedChars = await loadCharacterDataFromIndexedDB();
+        let changed = false;
+        for(const c of storedChars){
+          if(c.group === "Party" && c.partyId === party.partyId){
+            c.group = "Warehouse";
+            c.role = "none";
+            c.partyId = null;
+            changed = true;
+          }
+        }
+        if(changed){
+          await saveCharacterDataToIndexedDB(storedChars);
+        }
+
+        // 2) party本体を削除
+        await deletePartyById(party.partyId);
+
+        // もしカレントパーティならカレントをクリア
+        if(currentPartyId === party.partyId){
+          localStorage.removeItem("currentPartyId");
+        }
+
+        // 再描画
+        await renderPartyList();
+      } catch(e){
+        console.error(e);
+        alert("パーティ削除に失敗しました:\n" + e.message);
+      }
+    });
+    div.appendChild(delBtn);
+
+    container.appendChild(div);
+  });
+}
+
+function showEditPartyModal(currentName){
+  document.getElementById("edit-party-name").value = currentName;
+  document.getElementById("edit-party-modal").style.display = "flex";
+}
+function hideEditPartyModal(){
+  document.getElementById("edit-party-modal").style.display = "none";
+  editingPartyId = null;
 }
 --- 
 scenarioPage.js 
@@ -4177,6 +4520,8 @@ function onCancelFetch(){
 }
 --- 
 scenarioWizard.js 
+// scenarioWizard.js
+
 let wizardData = {
   genre: "",           // 「【舞台】...【テーマ】...【雰囲気】...」 or 自由入力
   scenarioType: "",    // "objective" or "exploration"
@@ -4184,6 +4529,7 @@ let wizardData = {
   scenarioSummary: "",
   introScene: "",
   party: [],
+  partyId: 0,          // ★追加: 紐づけるパーティID
   sections: []
 };
 
@@ -4203,7 +4549,6 @@ let wizardCurrentOtherCategory = "";
 let wizardDeletingChipLabel = "";
 let wizardDeletingChipCategory = "";
 
-/** ★追加：APIキーを読み込む */
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 window.addEventListener("load", async function () {
@@ -4216,10 +4561,8 @@ window.addEventListener("load", async function () {
     wizardData = storedWizard;
   }
 
-  // 舞台/テーマ/雰囲気 の初期化
   initWizardChips();
 
-  // イベント
   document.getElementById("go-step2-btn").addEventListener("click", onGoStep2);
   document.getElementById("back-to-step1-button").addEventListener("click", onBackToStep1);
   document.getElementById("back-to-step2-button").addEventListener("click", onBackToStep2FromStep3);
@@ -4236,12 +4579,12 @@ window.addEventListener("load", async function () {
     cancelReqBtn.addEventListener("click", onCancelFetch);
   }
 
-  // 「その他」モーダルボタン
+  // 「その他」モーダルのボタン
   document.getElementById("wizard-other-generate-btn").addEventListener("click", wizardOtherGenerate);
   document.getElementById("wizard-other-ok-btn").addEventListener("click", wizardOtherOk);
   document.getElementById("wizard-other-cancel-btn").addEventListener("click", wizardOtherCancel);
 
-  // 「削除」確認モーダルボタン
+  // 「削除」確認モーダルのボタン
   document.getElementById("wizard-delete-confirm-ok").addEventListener("click", wizardDeleteConfirmOk);
   document.getElementById("wizard-delete-confirm-cancel").addEventListener("click", wizardDeleteConfirmCancel);
 
@@ -4249,12 +4592,8 @@ window.addEventListener("load", async function () {
   updateSummaryUI();
 });
 
-/* =============================================
-   舞台/テーマ/雰囲気 のチップ初期描画
-============================================= */
 function initWizardChips() {
-  // 1) 共有の localStorage から取得
-  // 舞台
+  // localStorage 読み込み
   const sjson = localStorage.getItem("elementStageArr");
   if (sjson) {
     try {
@@ -4265,22 +4604,17 @@ function initWizardChips() {
   } else {
     wizStoredStageArr = [];
   }
-  // テーマ
   wizStoredTheme = localStorage.getItem("elementTheme") || "";
-  // 雰囲気
   wizStoredMood  = localStorage.getItem("elementMood")  || "";
 
-  // 2) カスタム
   wizCustomStageChips = loadWizardCustom("customStageChips");
   wizCustomThemeChips = loadWizardCustom("customThemeChips");
   wizCustomMoodChips  = loadWizardCustom("customMoodChips");
 
-  // 3) DOM生成
   renderWizardStageChips();
   renderWizardThemeChips();
   renderWizardMoodChips();
 
-  // 現在の選択テキスト
   updateWizGenreResultText();
 }
 
@@ -4294,7 +4628,7 @@ function loadWizardCustom(key) {
   }
 }
 
-/* 舞台(複数) */
+// 舞台(複数)
 function renderWizardStageChips() {
   const defaultList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク"];
   const container = document.getElementById("wiz-stage-chips-container");
@@ -4308,9 +4642,15 @@ function renderWizardStageChips() {
   });
 }
 
-/* テーマ(単一) */
+// テーマ(単一)
 function renderWizardThemeChips() {
-  const defaultList = ["アクション / 冒険","ミステリー / サスペンス","ロマンス / ドラマ","コメディ / ほのぼの","ホラー / スリラー"];
+  const defaultList = [
+    "アクション / 冒険",
+    "ミステリー / サスペンス",
+    "ロマンス / ドラマ",
+    "コメディ / ほのぼの",
+    "ホラー / スリラー"
+  ];
   const container = document.getElementById("wiz-theme-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -4322,7 +4662,7 @@ function renderWizardThemeChips() {
   });
 }
 
-/* 雰囲気(単一) */
+// 雰囲気(単一)
 function renderWizardMoodChips() {
   const defaultList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス"];
   const container = document.getElementById("wiz-mood-chips-container");
@@ -4336,16 +4676,12 @@ function renderWizardMoodChips() {
   });
 }
 
-/* =============================================
-   チップ要素作成 (トグル選択)
-============================================= */
 function createWizardChip(label, category) {
   const isOther = (label==="その他");
   const chip = document.createElement("div");
   chip.className = "chip";
   chip.textContent = label;
 
-  // 選択状態
   if (category==="stage") {
     if (wizStoredStageArr.includes(label)) {
       chip.classList.add("selected");
@@ -4360,10 +4696,8 @@ function createWizardChip(label, category) {
     }
   }
 
-  // クリック
   chip.addEventListener("click", () => {
     if (isOther) {
-      // その他モーダル
       openWizardOtherModal(category);
       return;
     }
@@ -4379,31 +4713,29 @@ function createWizardChip(label, category) {
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     } else if (category==="theme") {
-      // 単一トグル
+      // 単一
       if (chip.classList.contains("selected")) {
-        // 再クリックで未選択
         chip.classList.remove("selected");
         wizStoredTheme = "";
         localStorage.setItem("elementTheme", "");
       } else {
-        // 全オフ->クリックをON
         const cont = document.getElementById("wiz-theme-chips-container");
-        const allChips = cont.querySelectorAll(".chip");
-        allChips.forEach(c=> c.classList.remove("selected"));
+        const all = cont.querySelectorAll(".chip");
+        all.forEach(c=> c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredTheme = label;
         localStorage.setItem("elementTheme", wizStoredTheme);
       }
     } else if (category==="mood") {
-      // 単一トグル
+      // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
         wizStoredMood = "";
         localStorage.setItem("elementMood", "");
       } else {
         const cont = document.getElementById("wiz-mood-chips-container");
-        const allChips = cont.querySelectorAll(".chip");
-        allChips.forEach(c=> c.classList.remove("selected"));
+        const all = cont.querySelectorAll(".chip");
+        all.forEach(c=> c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredMood = label;
         localStorage.setItem("elementMood", wizStoredMood);
@@ -4412,13 +4744,13 @@ function createWizardChip(label, category) {
     updateWizGenreResultText();
   });
 
-  // カスタム削除ボタン
-  if (!isOther) {
-    if (category==="stage" && wizCustomStageChips.includes(label)) {
+  // カスタム削除
+  if(!isOther){
+    if(category==="stage" && wizCustomStageChips.includes(label)){
       addWizardRemoveButton(chip, label, "stage");
-    } else if (category==="theme" && wizCustomThemeChips.includes(label)) {
+    } else if(category==="theme" && wizCustomThemeChips.includes(label)){
       addWizardRemoveButton(chip, label, "theme");
-    } else if (category==="mood" && wizCustomMoodChips.includes(label)) {
+    } else if(category==="mood" && wizCustomMoodChips.includes(label)){
       addWizardRemoveButton(chip, label, "mood");
     }
   }
@@ -4441,9 +4773,6 @@ function addWizardRemoveButton(chip, label, category) {
   chip.appendChild(span);
 }
 
-/* =============================================
-   その他モーダル
-============================================= */
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   const catText =
@@ -4461,12 +4790,18 @@ async function wizardOtherGenerate() {
     alert("APIキーが設定されていません。");
     return;
   }
-
   let existingList = [];
   if (wizardCurrentOtherCategory==="stage") {
     existingList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク", ...wizCustomStageChips];
   } else if (wizardCurrentOtherCategory==="theme") {
-    existingList = ["アクション / 冒険","ミステリー / サスペンス","ロマンス / ドラマ","コメディ / ほのぼの","ホラー / スリラー", ...wizCustomThemeChips];
+    existingList = [
+      "アクション / 冒険",
+      "ミステリー / サスペンス",
+      "ロマンス / ドラマ",
+      "コメディ / ほのぼの",
+      "ホラー / スリラー",
+      ...wizCustomThemeChips
+    ];
   } else if (wizardCurrentOtherCategory==="mood") {
     existingList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス", ...wizCustomMoodChips];
   }
@@ -4539,14 +4874,10 @@ function wizardOtherCancel() {
   document.getElementById("wizard-other-input-modal").style.display="none";
 }
 
-/* =============================================
-   削除モーダル
-============================================= */
 function wizardDeleteConfirmOk() {
   if (wizardDeletingChipCategory==="stage") {
     wizCustomStageChips = wizCustomStageChips.filter(c=> c!==wizardDeletingChipLabel);
     localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
-    // 選択中なら外す
     wizStoredStageArr = wizStoredStageArr.filter(x=> x!==wizardDeletingChipLabel);
     localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     renderWizardStageChips();
@@ -4567,7 +4898,6 @@ function wizardDeleteConfirmOk() {
     }
     renderWizardMoodChips();
   }
-
   wizardDeletingChipLabel="";
   wizardDeletingChipCategory="";
   document.getElementById("wizard-delete-confirm-modal").style.display="none";
@@ -4580,31 +4910,22 @@ function wizardDeleteConfirmCancel() {
   document.getElementById("wizard-delete-confirm-modal").style.display="none";
 }
 
-/* =============================================
-   現在のチップ選択状況を文章化
-============================================= */
 function updateWizGenreResultText() {
   let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
   let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
   let moodPart  = wizStoredMood  ? "【雰囲気】"+wizStoredMood : "";
-
   let result = stagePart + themePart + moodPart;
   document.getElementById("wiz-genre-result-text").textContent = result;
 }
 
-/* =============================================
-   STEP1 -> STEP2 (自由入力 or チップ)
-============================================= */
+/* STEP1 -> STEP2 */
 async function onGoStep2() {
-  // まずテキスト入力欄を優先
   const freeVal = document.getElementById("free-genre-input").value.trim();
   if (freeVal) {
     wizardData.genre = freeVal;
   } else {
-    // チップを合成
     wizardData.genre = buildChipsGenre();
   }
-
   if (!wizardData.genre) {
     alert("ジャンルを入力または選択してください。");
     return;
@@ -4612,7 +4933,6 @@ async function onGoStep2() {
 
   await saveWizardDataToIndexedDB(wizardData);
 
-  // 次のステップへ
   document.getElementById("wizard-step1").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
   updateSelectedGenreDisplay();
@@ -4621,11 +4941,10 @@ async function onGoStep2() {
 function buildChipsGenre() {
   let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
   let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
+  let moodPart  = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
   return stagePart + themePart + moodPart;
 }
 
-/* STEP2 <- 戻る */
 function onBackToStep1() {
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step1").style.display = "block";
@@ -4637,15 +4956,11 @@ function updateSelectedGenreDisplay() {
   el.textContent = wizardData.genre || "(未選択)";
 }
 
-/* STEP3 <- 戻る */
 function onBackToStep2FromStep3() {
   document.getElementById("wizard-step3").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 }
 
-/* =============================================
-   シナリオタイプ選択
-============================================= */
 function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
   saveWizardDataToIndexedDB(wizardData);
@@ -4656,31 +4971,44 @@ function onSelectScenarioType(type) {
 }
 
 function onConfirmScenarioModalCancel() {
-  document.getElementById("confirm-scenario-modal").style.display="none";
+  document.getElementById("confirm-scenario-modal").style.display = "none";
 }
 
+/** シナリオ生成(ステップ2 OK) */
 async function onConfirmScenarioModalOK() {
-  document.getElementById("confirm-scenario-modal").style.display="none";
+  showLoadingModal(true);
+  document.getElementById("confirm-scenario-modal").style.display = "none";
 
-  await storePartyInWizardData();  // パーティ情報(空でもOK)
+  try {
+    // 1) カレントパーティをwizardDataに格納
+    await storePartyInWizardData();
 
-  if (wizardData.scenarioType==="objective") {
-    await generateScenarioSummaryAndClearCondition();
-  } else {
-    await generateScenarioSummary();
+    // 2) シナリオ概要＆クリア条件などをGPTで生成
+    if (wizardData.scenarioType === "objective") {
+      await generateScenarioSummaryAndClearCondition();
+    } else {
+      await generateScenarioSummary();
+    }
+
+    // 3) セクション
+    await generateSections();
+
+    // 4) 導入シーン
+    await generateIntroScene();
+
+    // ステップ2->3
+    document.getElementById("wizard-step2").style.display = "none";
+    document.getElementById("wizard-step3").style.display = "block";
+    updateSummaryUI();
+
+  } catch (err) {
+    console.error(err);
+    alert("シナリオ生成に失敗しました:\n" + err.message);
+  } finally {
+    showLoadingModal(false);
   }
-  await generateSections();
-  await generateIntroScene();
-
-  // STEP2->STEP3
-  document.getElementById("wizard-step2").style.display="none";
-  document.getElementById("wizard-step3").style.display="block";
-  updateSummaryUI();
 }
 
-/* =============================================
-   シナリオ開始
-============================================= */
 async function onStartScenario() {
   try {
     let title = wizardData.genre || "新シナリオ";
@@ -4688,7 +5016,7 @@ async function onStartScenario() {
 
     if (wizardData.introScene && wizardData.introScene.trim()) {
       const firstScene = {
-        scenarioId,
+        scenarioId: scenarioId,
         type:"scene",
         sceneId:"intro_"+Date.now(),
         content:wizardData.introScene
@@ -4697,16 +5025,12 @@ async function onStartScenario() {
     }
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
   } catch(err) {
-    console.error("シナリオ作成失敗:", err);
+    console.error("シナリオ開始失敗:", err);
     alert("シナリオ開始失敗: "+err.message);
   }
 }
 
-/* =============================================
-   シナリオ要約(目的達成型)
-============================================= */
 async function generateScenarioSummaryAndClearCondition(){
-  showLoadingModal(true);
   try {
     const apiKey = window.apiKey || "";
     if(!apiKey) throw new Error("APIキー未設定");
@@ -4752,16 +5076,10 @@ async function generateScenarioSummaryAndClearCondition(){
   } catch(err){
     console.error(err);
     alert("目的達成型シナリオ生成失敗: "+err.message);
-  } finally {
-    showLoadingModal(false);
   }
 }
 
-/* =============================================
-   シナリオ要約(探索型)
-============================================= */
 async function generateScenarioSummary() {
-  showLoadingModal(true);
   try {
     const apiKey = window.apiKey || "";
     if(!apiKey) throw new Error("APIキー未設定");
@@ -4795,17 +5113,12 @@ async function generateScenarioSummary() {
   } catch(err){
     console.error(err);
     alert("探索型シナリオ生成失敗: "+err.message);
-  } finally {
-    showLoadingModal(false);
   }
 }
 
-/* =============================================
-   セクション(達成条件)を生成
-============================================= */
 async function generateSections() {
   wizardData.sections = [];
-  const count = Math.floor(Math.random()*4)+2; //2..5
+  const count = Math.floor(Math.random() * 4) + 2; // 2..5
 
   const systemPrompt = `
 あなたはTRPGシナリオを小分けにして目標を作るエキスパートです。
@@ -4841,22 +5154,22 @@ async function generateSections() {
     const text = d.choices[0].message.content||"";
     const lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
 
-    for(let i=0;i<count;i++){
-      const raw = lines[i]||(`セクション${i+1}のダミー(動詞)`);
+    for(let i=0; i<count; i++){
+      const raw = lines[i] || (`セクション${i+1}のダミー(動詞)`);
       wizardData.sections.push({
-        number:(i+1),
+        number: (i+1),
         conditionZipped: zipString(raw),
-        cleared:false
+        cleared: false
       });
     }
   } catch(err) {
     console.error("セクション生成失敗:", err);
     // ダミー
-    for(let i=0;i<count;i++){
+    for(let i=0; i<count; i++){
       wizardData.sections.push({
-        number:(i+1),
+        number: (i+1),
         conditionZipped: zipString(`セクション${i+1}ダミー(動詞形)`),
-        cleared:false
+        cleared: false
       });
     }
   }
@@ -4869,9 +5182,6 @@ function zipString(str){
   return btoa(String.fromCharCode(...def));
 }
 
-/* =============================================
-   冒頭シーン
-============================================= */
 async function generateIntroScene(){
   const apiKey = window.apiKey || "";
   if(!apiKey){
@@ -4912,40 +5222,54 @@ async function generateIntroScene(){
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-/* =============================================
-   パーティ情報を wizardData に格納
-============================================= */
+/** ★カレントパーティ情報を wizardData に格納 */
 async function storePartyInWizardData(){
-  const charData = await loadCharacterDataFromIndexedDB();
-  if(!charData)return;
+  // currentPartyId
+  const cpidStr = localStorage.getItem("currentPartyId")||"";
+  if(!cpidStr){
+    // パーティ未設定の場合でもエラーにはしない
+    wizardData.party = [];
+    wizardData.partyId = 0;
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+  const pid = parseInt(cpidStr,10);
+  wizardData.partyId = pid;
 
-  const party = charData.filter(c=> c.group==="Party");
-  const stripped = party.map(c=>({
-    id:c.id, name:c.name, type:c.type,
-    rarity:c.rarity, state:c.state, special:c.special,
-    caption:c.caption, backgroundcss:c.backgroundcss
+  const charData = await loadCharacterDataFromIndexedDB();
+  if(!charData){
+    wizardData.party = [];
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+  const partyCards = charData.filter(c=> c.group==="Party" && c.partyId===pid);
+  const stripped = partyCards.map(c=>({
+    id:c.id,
+    name:c.name,
+    type:c.type,
+    rarity:c.rarity,
+    state:c.state,
+    special:c.special,
+    caption:c.caption,
+    backgroundcss:c.backgroundcss,
+    role:c.role
   }));
   wizardData.party = stripped;
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-/* =============================================
-   ステップ3表示更新
-============================================= */
 function updateSummaryUI(){
   const el = document.getElementById("scenario-summary");
   if(!el)return;
   el.textContent = wizardData.scenarioSummary || "(シナリオ概要なし)";
 }
 
-/* =============================================
-   ローディングモーダル
-============================================= */
 function showLoadingModal(show){
   const m = document.getElementById("loading-modal");
   if(!m)return;
-  m.style.display = show?"flex":"none";
+  m.style.display = show ? "flex" : "none";
 }
+
 function onCancelFetch(){
   showLoadingModal(false);
 }

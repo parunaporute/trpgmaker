@@ -216,13 +216,6 @@ document.getElementById("delete-scenario-cancel").addEventListener("click", () =
 });
 
 // -----------------------------------------
-// デモ用ボタン
-// -----------------------------------------
-document.getElementById("sample-btn").addEventListener("click", () => {
-  showToast("ほげ");
-});
-
-// -----------------------------------------
 // ▼ 倉庫表示関連 (新規機能)
 // -----------------------------------------
 

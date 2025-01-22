@@ -24,11 +24,13 @@
     <div class="element-section">
       <!-- エレメント作成ボタン -->
       <button id="character-create">エレメント作成</button>
-      <!-- パーティ作成ボタン -->
-      <button id="party-create">パーティ作成</button>
+      <!-- パーティ一覧ボタン -->
+      <button id="party-list" style="margin-left:10px;">パーティ一覧</button>
+
       <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;">全エレメントをクリア</button>
-      <!-- ★ 追加：倉庫確認ボタン -->
+
+      <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn" style="margin-left:10px;">倉庫確認</button>
     </div>
 
@@ -93,18 +95,20 @@
     document.getElementById("character-create").addEventListener("click", function () {
       window.location.href = "characterCreate.html";
     });
-    // パーティ作成ボタン押下時
-    document.getElementById("party-create").addEventListener("click", function () {
-      window.location.href = "partyCreate.html";
+
+    // ★ 「パーティ作成」ボタンのイベントリスナーを削除
+
+    // ★ パーティ一覧ボタン
+    document.getElementById("party-list").addEventListener("click", function () {
+      window.location.href = "partyList.html";
     });
+
     // 新しいシナリオを始めるボタン押下時
     document.getElementById("start-new-scenario-button").addEventListener("click", function () {
       window.location.href = "scenarioWizard.html";
     });
   </script>
 
-  <!-- サンプルのテストボタン（任意） -->
-  <button id="sample-btn">hoge</button>
 </body>
 
 </html>
