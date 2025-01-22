@@ -157,11 +157,12 @@ button:hover {
 
 /* カード関連 */
 #card-container,
-#party-modal-card-container {
+#party-modal-card-container,
+#warehouse-card-container {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .card {
@@ -171,7 +172,7 @@ button:hover {
   cursor: pointer;
   transition: transform 0.3s ease;
   position: relative;
-  max-width: 350px;
+  max-width: 300px;
 }
 
 .card:hover {
@@ -419,13 +420,6 @@ button:hover {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-}
-
-#warehouse-card-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
 }
 
 .card.selected {

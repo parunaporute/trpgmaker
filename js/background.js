@@ -8,24 +8,34 @@ let currentPageName = "index"; // デフォルトは index
 async function initBackground(pageName = "index") {
     currentPageName = pageName; 
 
-    // localStorage から そのページ専用の ID を読んでみる
+    // localStorage から そのページ専用の ID または "none" を読み取り
     let selectedId = localStorage.getItem("selectedBgId_" + pageName);
     
-    // なければ index 用にフォールバック
+    // なければ index 用にフォールバック（ただし "none" は除く）
     if (!selectedId) {
       const fallbackId = localStorage.getItem("selectedBgId_index");
-      if (fallbackId) {
+      // fallbackId が "none" なら背景なしにする
+      if (fallbackId && fallbackId !== "none") {
         selectedId = fallbackId;
       }
     }
 
-    // もし最終的に selectedId があれば 適用
+    // もし最終的に selectedId があれば適用
     if (selectedId) {
-      const img = await getBgImageById(parseInt(selectedId,10));
-      if (img && img.dataUrl) {
-        document.body.style.backgroundImage = `url(${img.dataUrl})`;
-        document.body.style.backgroundSize = "cover";
-        document.body.style.backgroundAttachment = "fixed";
+      // "none" がセットされていた場合は背景なし
+      if (selectedId === "none") {
+        document.body.style.backgroundImage = "none";
+      } else {
+        // DBからidに対応する画像を取得して適用
+        const imgId = parseInt(selectedId, 10);
+        if (!isNaN(imgId)) {
+          const img = await getBgImageById(imgId);
+          if (img && img.dataUrl) {
+            document.body.style.backgroundImage = `url(${img.dataUrl})`;
+            document.body.style.backgroundSize = "cover";
+            document.body.style.backgroundAttachment = "fixed";
+          }
+        }
       }
     }
 
@@ -49,16 +59,16 @@ async function initBackground(pageName = "index") {
     if (genBtn) {
       genBtn.addEventListener("click", async () => {
         await generateNewBackground();
-        await openBgModal(); // 再生成後、一覧更新
+        await openBgModal(); // 再生成後、一覧を更新してモーダルを開き直す
       });
     }
 }
 
-// 背景を変更するボタン
+// 「背景を変更する」ボタン
 async function onChangeBgButtonClick() {
     const all = await getAllBgImages();
     if (all.length === 0) {
-      // ストックが無ければ → 生成
+      // ストックが無ければ → 生成してから開く
       await generateNewBackground();
     } else {
       // あればモーダルを開く
@@ -77,7 +87,7 @@ async function generateNewBackground() {
         alert("APIキーが未設定です。");
         return;
       }
-      // DALL-E3 API呼び出し（例）
+      // 例として DALL-E3 API呼び出し
       const promptText = "A beautiful scenic landscape or architecture, highly detailed, no text";
       const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
@@ -110,6 +120,11 @@ async function generateNewBackground() {
 
       // 今ページ専用のキーに保存
       localStorage.setItem("selectedBgId_" + currentPageName, newId.toString());
+
+      // ▼ もし index で「背景なし」以外を設定したら、他ページの "none" 設定を削除
+      if (currentPageName === "index") {
+        removeAllNoneSettingsExceptIndex();
+      }
 
     } catch (err) {
       console.error("背景生成失敗:", err);
@@ -148,8 +163,14 @@ async function openBgModal() {
         document.body.style.backgroundImage = `url(${img.dataUrl})`;
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundAttachment = "fixed";
-        // 今ページ用
+
+        // 今ページ用に保存
         localStorage.setItem("selectedBgId_" + currentPageName, img.id.toString());
+
+        // ▼ index で背景を「none」以外にした場合、他ページの "none" 設定をクリア
+        if (currentPageName === "index") {
+          removeAllNoneSettingsExceptIndex();
+        }
       });
       wrap.appendChild(thumb);
 
@@ -163,12 +184,11 @@ async function openBgModal() {
         if (!ok) return;
         await deleteBgImage(img.id);
 
-        // この背景が各ページ用で選択中だった場合→ それらのページキーから消すかどうかはお好み
-        // （ここでは簡単に、選択中キーが同じIDなら削除）
+        // 削除したIDを使っているページキーがあれば削除
         for (const k of Object.keys(localStorage)) {
           if (k.startsWith("selectedBgId_")) {
             const stored = localStorage.getItem(k);
-            if (parseInt(stored,10) === img.id) {
+            if (stored === String(img.id)) {
               localStorage.removeItem(k);
             }
           }
@@ -183,11 +203,17 @@ async function openBgModal() {
     });
 }
 
-// 背景無し
+// 背景無しボタン
 function onBgNoneButton() {
+    // 現在ページの背景を消す
     document.body.style.backgroundImage = "none";
-    // 今ページのキーを消す
-    localStorage.removeItem("selectedBgId_" + currentPageName);
+    
+    // 選択キーに "none" をセット
+    localStorage.setItem("selectedBgId_" + currentPageName, "none");
+
+    // indexで「none」を選んだ場合は他ページの設定を消す？→仕様上、ユーザー要望は
+    // 「indexに“none”以外を設定した時に他ページの“none”を消す」なので、
+    // ここでは何もしない。
 }
 
 // モーダルを閉じる
@@ -196,8 +222,7 @@ function closeBgModal() {
     if (modal) modal.style.display = "none";
 }
 
-/* ----- 以降、IndexedDB操作ヘルパー ----- */
-
+/* ----- 以下、IndexedDB操作ヘルパー ----- */
 
 // 追加(保存)
 function addBgImage(dataUrl) {
@@ -214,7 +239,7 @@ function addBgImage(dataUrl) {
         };
         const req = store.add(record);
         req.onsuccess = evt => {
-            resolve(evt.target.result); // 生成ID
+            resolve(evt.target.result); // 生成されたID
         };
         req.onerror = err => reject(err);
     });
@@ -267,4 +292,19 @@ function deleteBgImage(id) {
         req.onsuccess = () => resolve();
         req.onerror = err => reject(err);
     });
+}
+
+/**
+ * indexページで「背景なし以外」を設定した場合、
+ * ほかのページが "none" を記録していたら削除する
+ */
+function removeAllNoneSettingsExceptIndex() {
+  for (const key of Object.keys(localStorage)) {
+    // indexは除外
+    if (key.startsWith("selectedBgId_") && key !== "selectedBgId_index") {
+      if (localStorage.getItem(key) === "none") {
+        localStorage.removeItem(key);
+      }
+    }
+  }
 }
