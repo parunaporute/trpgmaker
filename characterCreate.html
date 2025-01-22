@@ -1,121 +1,164 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>エレメント作成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- ▼ 追加: 背景管理スクリプト -->
+  <script src="js/background.js"></script>
 </head>
+
 <body>
-    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
-    <div class="container" style="max-width:800px;">
-      <h1>エレメント作成</h1>
-      <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
-      <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
-      <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
-      <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
+  <!-- ▼ 追加: 背景変更ボタン + モーダル -->
+  <button id="change-bg-button" style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    ">
+    背景を変更する
+  </button>
 
-      <!-- ▼ ガチャ前確認モーダル -->
-      <div id="gacha-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
-          <button id="gacha-confirm-ok">OK</button>
-          <button id="gacha-confirm-cancel">キャンセル</button>
-        </div>
+  <!-- 背景選択モーダル -->
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 背景生成中モーダル -->
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
+  <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  <div class="container">
+    <h1>エレメント作成</h1>
+    <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
+    <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
+    <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
+    <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
+
+    <!-- ▼ ガチャ前確認モーダル -->
+    <div id="gacha-confirm-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
+        <button id="gacha-confirm-ok">OK</button>
+        <button id="gacha-confirm-cancel">キャンセル</button>
       </div>
-
-      <!-- ▼ ガチャ生成中モーダル -->
-      <div id="gacha-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>生成中...</p>
-          <button id="cancel-gacha-btn">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- ▼ エレメントのジャンル設定モーダル -->
-      <div id="element-genre-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:600px;">
-          <h2>エレメントのジャンルを設定</h2>
-          <p style="font-size: 0.9em; margin-bottom: 10px;">
-            下記の軸を選択してください。<br>
-            一度選択すると、ストレージに保存され次回以降も復元されます。
-          </p>
-
-          <!-- 舞台（複数可） -->
-          <div style="margin-top:10px;">
-            <strong>舞台（複数選択可）</strong><br>
-            <div id="stage-chips-container" class="chips-container">
-              <!-- 例：ファンタジー, SF, 歴史・時代劇... -->
-            </div>
-          </div>
-
-          <!-- 雰囲気（単一） -->
-          <div style="margin-top:10px;">
-            <strong>雰囲気（単一選択）</strong><br>
-            <div id="mood-chips-container" class="chips-container">
-              <!-- 例：ライト/ポップ, 中間/バランス, ダーク/シリアス -->
-            </div>
-          </div>
-
-          <div style="margin-top:20px;">
-            <button id="genre-setting-ok-btn" style="margin-right:10px;">OK</button>
-            <button id="genre-setting-cancel-btn">キャンセル</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▼ 「その他」登録用モーダル -->
-      <div id="other-input-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:400px;">
-          <h2>「その他」を追加</h2>
-          <p id="other-input-modal-category" style="font-weight:bold;"></p>
-          <textarea id="other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
-          <div style="margin-top:10px;">
-            <button id="other-generate-btn">生成</button>
-            <button id="other-ok-btn">OK</button>
-            <button id="other-cancel-btn">キャンセル</button>
-          </div>
-          <p style="font-size:0.8em; color:#666; margin-top:10px;">
-            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
-            その結果を上のテキストボックスに自動入力します。
-          </p>
-        </div>
-      </div>
-
-      <!-- ▼ 「削除」確認モーダル -->
-      <div id="delete-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>この選択肢を削除しますが、よろしいですか？</p>
-          <button id="delete-confirm-ok">OK</button>
-          <button id="delete-confirm-cancel">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- 「選んだジャンルの出力例」 -->
-      <div style="margin-top:20px;">
-        <p><strong>選んだジャンルの出力例：</strong></p>
-        <!-- テキストボックスをやめ、ラベルのみ -->
-        <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
-      </div>
-
-      <div id="card-container"></div>
     </div>
 
-    <!-- IndexedDBなどの共通スクリプト -->
-    <script src="js/indexedDB.js"></script>
+    <!-- ▼ ガチャ生成中モーダル -->
+    <div id="gacha-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>生成中...</p>
+        <button id="cancel-gacha-btn">キャンセル</button>
+      </div>
+    </div>
 
-    <!-- 先にgachaCore.jsを読み込む -->
-    <script src="js/gachaCore.js"></script>
+    <!-- ▼ エレメントのジャンル設定モーダル -->
+    <div id="element-genre-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:600px;">
+        <h2>エレメントのジャンルを設定</h2>
+        <p style="font-size: 0.9em; margin-bottom: 10px;">
+          下記の軸を選択してください。<br>
+          一度選択すると、ストレージに保存され次回以降も復元されます。
+        </p>
 
-    <!-- その後、characterCreate.jsを読み込む（改変版） -->
-    <script src="js/characterCreate.js"></script>
+        <!-- 舞台（複数可） -->
+        <div style="margin-top:10px;">
+          <strong>舞台（複数選択可）</strong><br>
+          <div id="stage-chips-container" class="chips-container">
+            <!-- 例：ファンタジー, SF, 歴史・時代劇... -->
+          </div>
+        </div>
 
-    <script>
-      // メニューに戻るボタン
-      document.getElementById("back-to-menu").addEventListener("click", function () {
-        window.location.href = "index.html";
-      });
-    </script>
+        <!-- 雰囲気（単一） -->
+        <div style="margin-top:10px;">
+          <strong>雰囲気（単一選択）</strong><br>
+          <div id="mood-chips-container" class="chips-container">
+            <!-- 例：ライト/ポップ, 中間/バランス, ダーク/シリアス -->
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button id="genre-setting-ok-btn" style="margin-right:10px;">OK</button>
+          <button id="genre-setting-cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ▼ 「その他」登録用モーダル -->
+    <div id="other-input-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:400px;">
+        <h2>「その他」を追加</h2>
+        <p id="other-input-modal-category" style="font-weight:bold;"></p>
+        <textarea id="other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
+        <div style="margin-top:10px;">
+          <button id="other-generate-btn">生成</button>
+          <button id="other-ok-btn">OK</button>
+          <button id="other-cancel-btn">キャンセル</button>
+        </div>
+        <p style="font-size:0.8em; color:#666; margin-top:10px;">
+          ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+          その結果を上のテキストボックスに自動入力します。
+        </p>
+      </div>
+    </div>
+
+    <!-- ▼ 「削除」確認モーダル -->
+    <div id="delete-confirm-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>この選択肢を削除しますが、よろしいですか？</p>
+        <button id="delete-confirm-ok">OK</button>
+        <button id="delete-confirm-cancel">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 「選んだジャンルの出力例」 -->
+    <div style="margin-top:20px;">
+      <p><strong>選んだジャンルの出力例：</strong></p>
+      <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
+    </div>
+
+    <div id="card-container"></div>
+  </div>
+
+  <!-- IndexedDBなどの共通スクリプト -->
+  <script src="js/indexedDB.js"></script>
+  <!-- 先にgachaCore.jsを読み込む -->
+  <script src="js/gachaCore.js"></script>
+  <!-- その後、characterCreate.jsを読み込む（改変版） -->
+  <script src="js/characterCreate.js"></script>
+
+  <script>
+    // ページ読み込み時にDB初期化 & 背景適用
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("characterCreate");
+    });
+
+    // メニューに戻るボタン
+    document.getElementById("back-to-menu").addEventListener("click", function () {
+      window.location.href = "index.html";
+    });
+  </script>
 </body>
+
 </html>

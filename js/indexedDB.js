@@ -13,19 +13,20 @@ let db = null;
  *  - characterData ストア (keyPath: 'id')
  *  - wizardState ストア (keyPath: 'id')
  *  - parties ストア (keyPath: 'partyId', autoIncrement)
+ *  - ★追加: bgImages ストア (keyPath: 'id', autoIncrement)
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 5);  // ★ バージョンを5に
+    const request = indexedDB.open("trpgDB", 6);  // ★ バージョン5
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
-      // characterData
+      // 1) characterData
       if (!db.objectStoreNames.contains("characterData")) {
         db.createObjectStore("characterData", { keyPath: "id" });
       }
 
-      // scenarios
+      // 2) scenarios
       if (!db.objectStoreNames.contains("scenarios")) {
         const scenarioStore = db.createObjectStore("scenarios", {
           keyPath: "scenarioId",
@@ -34,7 +35,7 @@ function initIndexedDB() {
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
-      // sceneEntries
+      // 3) sceneEntries
       if (!db.objectStoreNames.contains("sceneEntries")) {
         const sceneStore = db.createObjectStore("sceneEntries", {
           keyPath: "entryId",
@@ -43,18 +44,27 @@ function initIndexedDB() {
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
 
-      // wizardState
+      // 4) wizardState
       if (!db.objectStoreNames.contains("wizardState")) {
         db.createObjectStore("wizardState", { keyPath: "id" });
       }
 
-      // parties (new in version 5)
+      // 5) parties
       if (!db.objectStoreNames.contains("parties")) {
         const partyStore = db.createObjectStore("parties", {
           keyPath: "partyId",
           autoIncrement: true
         });
         partyStore.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+
+      // 6) ★ 追加: 背景画像ストア
+      if (!db.objectStoreNames.contains("bgImages")) {
+        const bgStore = db.createObjectStore("bgImages", {
+          keyPath: "id",
+          autoIncrement: true
+        });
+        // 例: bgStore.createIndex("createdAt", "createdAt", { unique: false });
       }
     };
     request.onsuccess = (event) => {
@@ -160,7 +170,7 @@ function loadWizardDataFromIndexedDB() {
 
 /* -------------------------------------------
     新しいシナリオの追加・読み込み用API
-   -------------------------------------------*/
+-------------------------------------------*/
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -244,7 +254,7 @@ function updateScenario(scenario) {
 
 /* -------------------------------------------
     シーン履歴 (sceneEntries) の操作
-   -------------------------------------------*/
+-------------------------------------------*/
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -323,13 +333,12 @@ function deleteSceneEntry(entryId) {
   });
 }
 
-/* ★シナリオ削除用 */
+/* ★ シナリオ削除 */
 function deleteScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
       return reject("DB未初期化");
     }
-    // scenarios, sceneEntries両方をreadwrite
     const tx = db.transaction(["scenarios", "sceneEntries"], "readwrite");
     const scenarioStore = tx.objectStore("scenarios");
     const sceneEntriesStore = tx.objectStore("sceneEntries");
@@ -337,7 +346,7 @@ function deleteScenarioById(scenarioId) {
     // 1) シナリオ本体を削除
     const deleteReq = scenarioStore.delete(scenarioId);
     deleteReq.onsuccess = () => {
-      // 2) さらにsceneEntriesで scenarioId が一致するものを全削除
+      // 2) sceneEntriesで scenarioId === scenarioId のものを全削除
       const idx = sceneEntriesStore.index("scenarioId");
       const range = IDBKeyRange.only(scenarioId);
 
@@ -363,7 +372,7 @@ function deleteScenarioById(scenarioId) {
 }
 
 /* -------------------------------------------
-  エクスポート
+   パーティ管理
 -------------------------------------------*/
 window.initIndexedDB = initIndexedDB;
 
@@ -384,10 +393,6 @@ window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
 
 window.deleteScenarioById = deleteScenarioById;
-
-/* -------------------------------------------
-   ★ 新規: パーティ管理
--------------------------------------------*/
 
 /** 新規パーティ作成 */
 window.createParty = function(name){
@@ -413,7 +418,6 @@ window.createParty = function(name){
   });
 };
 
-/** パーティ1件取得 */
 window.getPartyById = function(partyId){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -431,7 +435,6 @@ window.getPartyById = function(partyId){
   });
 };
 
-/** パーティ一覧 */
 window.listAllParties = function(){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -442,7 +445,6 @@ window.listAllParties = function(){
     const req = store.getAll();
     req.onsuccess = (evt)=>{
       const list = evt.target.result || [];
-      // updatedAt降順
       list.sort((a,b)=> (b.updatedAt||"").localeCompare(a.updatedAt||""));
       resolve(list);
     };
@@ -452,7 +454,6 @@ window.listAllParties = function(){
   });
 };
 
-/** パーティ更新 */
 window.updateParty = function(party){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -471,19 +472,14 @@ window.updateParty = function(party){
   });
 };
 
-/** パーティ削除 */
 window.deletePartyById = function(partyId){
   return new Promise((resolve, reject)=>{
     if(!db){
       return reject("DB未初期化");
     }
-
     const tx = db.transaction("parties","readwrite");
     const store = tx.objectStore("parties");
 
-    // 実際にはパーティ削除時に紐づく characterData.group==="Party" + partyIdをどうするか要検討
-    // 今回は「削除してもキャラは倉庫などに移らず残る」またはユーザ判断で削除。
-    // ひとまずパーティ自体だけ削除する。
     const req = store.delete(partyId);
     req.onsuccess = ()=>{
       resolve();

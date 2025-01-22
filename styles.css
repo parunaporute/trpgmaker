@@ -5,15 +5,17 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  background-color: #3d3d3d;
 }
 
 .container {
-  max-width: 1000px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 40px);
   margin: 20px auto;
   padding: 20px;
-  background-color: #fff;
+  background-color:  rgba(0, 0, 0, 0.4);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #f0f0f0;
 }
 
 h1 {
@@ -31,11 +33,14 @@ h2 {
 
 input,
 textarea {
+  box-sizing: border-box;
   width: 100%;
   padding: 10px;
   font-size: 14px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  background-color: #434343;
+  color: #f0f0f0;
+  margin-bottom: 10px;
 }
 
 button {
@@ -58,7 +63,7 @@ button:hover {
   overflow-y: auto;
   border: 1px solid #ddd;
   padding: 10px;
-  background-color: #f9f9f9;
+  background-color: #000000;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -67,13 +72,10 @@ button:hover {
 
 .history-tile {
   padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  border-radius: 5px;
+  background-color: #000000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* テキスト編集領域 */
 .scene-text,
 .action-text,
 .scenario-text {
@@ -91,7 +93,6 @@ button:hover {
   outline: none;
 }
 
-/* メイン表示するシーン部分 */
 #story {
   font-size: 1.4rem;
   padding-bottom: 10px;
@@ -106,7 +107,7 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.8);
   display: none;
   justify-content: center;
   align-items: center;
@@ -116,7 +117,9 @@ button:hover {
 .modal-content {
   box-sizing: border-box;
   width: calc(100% - 20px);
-  background-color: #fff;
+  background-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #f0f0f0;
   padding: 20px 40px;
   border-radius: 5px;
   text-align: center;
@@ -124,38 +127,25 @@ button:hover {
   overflow-y: auto;
 }
 
-
-/* --- styles.css --- */
-
-/* 既存の共通部分はそのままで */
-
-/* カードコンテナをCSS Gridに変更 */
+/* カード関連 */
 #card-container {
   display: grid;
   gap: 20px;
-  /* 1列(スマホ)～3列(PC)になるようにレスポンシブに設定 */
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
-/* カードコンテナの共通設定 */
 .card {
-  /* 横幅はセル幅に合わせる */
   width: 100%;
-  /* ブラウザ対応の場合、aspect-ratioプロパティで比率を指定 */
   aspect-ratio: 63 / 88;
   perspective: 1000px;
-  /* 3D効果用 */
   cursor: pointer;
   transition: transform 0.3s ease;
   position: relative;
+  max-width: 350px;
 }
-
-/* マウスオーバー時に少し大きく */
 .card:hover {
   transform: scale(1.05);
 }
-
-/* 内部要素 */
 .card-inner {
   position: absolute;
   top: 0;
@@ -165,15 +155,12 @@ button:hover {
   transform-style: preserve-3d;
   transition: transform 0.6s;
 }
-
-/* クリックで反転 */
 .card.flipped .card-inner {
   transform: rotateY(180deg);
 }
-
-/* 表面 */
 .card-front,
 .card-back {
+  color: #222;
   position: absolute;
   top: 0;
   left: 0;
@@ -183,28 +170,19 @@ button:hover {
   backface-visibility: hidden;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
-
 .card-front {
   box-sizing: border-box;
   padding: 3%;
-  border-radius: 3%;
-}
-
-/* 表面のスタイル */
-.card-front {
   background-color: #fff;
   display: flex;
   flex-direction: column;
   position: relative;
 }
-
 .card-front h3 {
   padding: 0;
   margin: 0;
   font-size: 1rem;
 }
-
-/* 左上にタイプ表示用 */
 .card-front .card-type {
   position: absolute;
   right: 10px;
@@ -215,8 +193,6 @@ button:hover {
   font-size: 0.85rem;
   z-index: 2;
 }
-
-/* 画像エリア */
 .card-front .card-image {
   width: 100%;
   height: 40%;
@@ -226,16 +202,12 @@ button:hover {
   justify-content: center;
   position: relative;
 }
-
-/* 画像エリア内の実際の画像 */
 .card-front .card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top;
 }
-
-/* 画像生成ボタン（画像が無い場合のみ表示） */
 .card-front .gen-image-btn {
   position: absolute;
   bottom: 8px;
@@ -248,17 +220,12 @@ button:hover {
   font-size: 0.8rem;
   z-index: 2;
 }
-
-/* 例：画像生成ボタン(.gen-image-btn)が disable 時 */
 .gen-image-btn:disabled {
-  background-color: #999;    /* 背景色をやや暗めに */
-  color: #ccc;               /* 文字色も薄く */
-  cursor: not-allowed;       /* カーソルを禁止マークに */
-  opacity: 0.6;             /* 全体的に薄く */
+  background-color: #999;
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
-
-
-/* 下部テキスト情報 */
 .card-front .card-info {
   padding: 8px;
   display: flex;
@@ -268,12 +235,10 @@ button:hover {
   overflow: auto;
   background-color: rgba(255, 255, 255, 0.7);
 }
-
 .card-front .card-info p {
   margin: 0;
   font-size: 0.85rem;
 }
-
 .card-front .card-info p:last-child {
   padding: 0;
   height: 100%;
@@ -283,14 +248,11 @@ button:hover {
   background-color: #EEE;
   margin-top: 10px;
 }
-
 .card-front .card-info p:last-child span {
   transform: skew(-5deg);
   display: flex;
   padding: 10px;
 }
-
-/* 裏面：かっこよさげな背景 */
 .card-back {
   box-sizing: border-box;
   background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -303,8 +265,6 @@ button:hover {
   padding: 10px;
   text-align: center;
 }
-
-/* レスポンシブ */
 @media (max-width: 600px) {
   #card-container {
     grid-template-columns: repeat(1, 1fr);
@@ -323,7 +283,6 @@ button:hover {
   border-radius: 2%;
   padding: 3%;
 }
-
 .bezel.rarity0 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -331,7 +290,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity1 {
   background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -339,7 +297,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity2 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -347,7 +304,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -355,8 +311,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
-/* レアリティ4: プラチナ */
 .bezel.rarity4 {
   position: absolute;
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
@@ -367,8 +321,6 @@ button:hover {
   background-clip: padding-box, border-box;
   animation: platinum-shimmer 5s ease-in-out infinite;
 }
-
-/* レアリティ5: 宝石 */
 .bezel.rarity5 {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
@@ -378,53 +330,43 @@ button:hover {
   background-clip: padding-box, border-box;
   animation: jewel-glow 5s ease-in-out infinite;
 }
-
 @keyframes platinum-shimmer {
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
 }
-
 @keyframes jewel-glow {
   0% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
-
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
-
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
 }
 
-/* partyCreate.htmlのカードを3列に */
 #party-card-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-
-/* 倉庫モーダル内のカードも3列に */
 #warehouse-card-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
+  justify-content: center;
 }
-
-/* 選択状態 */
 .card.selected {
   outline: 4px solid #f44336;
   outline-offset: -4px;
@@ -432,150 +374,60 @@ button:hover {
   box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
 }
 
-/* ベース */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f5f5f5;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-  text-align: center;
-}
-
-h2 {
-  font-size: 1.5em;
-  margin-bottom: 10px;
-}
-
-.api-key-section {
-  margin-bottom: 20px;
-}
-
-input,
-textarea {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-button {
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-
-/* シーン履歴 */
-.scene-history {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 10px;
-  background-color: #f9f9f9;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.history-tile {
-  padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* scene, actionテキスト */
-.scene-text,
-.action-text {
-  margin: 0;
-  padding: 5px;
-  font-size: 14px;
-  border: 1px dashed transparent;
-  cursor: text;
-}
-
-.scene-text[contenteditable]:focus,
-.action-text[contenteditable]:focus {
-  border: 1px dashed #4CAF50;
-  outline: none;
-}
-
-/* メイン表示するシーン部分 */
-#story {
-  font-size: 1.4rem;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ccc;
-  min-height: 60px;
-}
-
-/* モーダル */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modal-content {
-  box-sizing: border-box;
-  width: calc(100% - 20px);
-  background-color: #fff;
-  padding: 20px 40px;
-  border-radius: 5px;
-  text-align: center;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
 .chips-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-
 .chip {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
   border-radius: 20px;
-  background-color: #e0e0e0;
+  background-color: rgba(227, 227, 227, 0.4);
+  color: #f0f0f0;
+  box-shadow: inset 0px 0px 4px #fff;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s;
+  min-width: 12rem;
+  justify-content: center;
 }
-
 .chip:hover {
   background-color: #cfcfcf;
 }
-
 .chip.selected {
   background-color: #8BC34A;
   color: #fff;
+}
+
+.bg-thumb {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.bg-thumb:hover {
+  transform: scale(1.02);
+}
+.bg-thumb-delete {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(200,0,0,0.7);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px;
+  display: none;
+}
+.bg-thumb:hover .bg-thumb-delete {
+  display: inline-block;
+}
+.bg-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
 }

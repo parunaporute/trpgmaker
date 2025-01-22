@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>パーティ編成</title>
@@ -7,8 +8,43 @@
   <link rel="stylesheet" href="styles.css" />
   <!-- DOMPurifyはカード表示などで利用 -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- ▼ 追加：背景管理スクリプト -->
+  <script src="js/background.js"></script>
 </head>
+
 <body>
+  <!-- ▼ 追加: 背景変更ボタン + モーダル -->
+  <button id="change-bg-button" style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    ">
+    背景を変更する
+  </button>
+
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
   <div class="container">
     <h1>パーティ編成</h1>
 
@@ -35,24 +71,21 @@
       <p style="color:#555; font-size:14px;">
         ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
       </p>
-      <div id="avatar-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="avatar-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
     <!-- ▼ パートナー（複数選べる） -->
     <section style="margin-top:20px;">
       <h2>パートナー（複数可）</h2>
-      <div id="partner-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="partner-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
     <!-- ▼ その他パーティ枠 -->
     <section style="margin-top:20px;">
       <h2>その他パーティ枠</h2>
-      <div id="party-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="party-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
@@ -65,9 +98,9 @@
         <!-- 倉庫選択カードをパーティに入れるボタン -->
         <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
-        
+
         <div id="warehouse-card-container"
-             style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+          style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
         </div>
       </div>
     </div>
@@ -76,8 +109,16 @@
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   </div>
 
-  <!-- 必要なJSを末尾に読み込む（※indexedDB.jsにはパーティ管理のcreateParty等を実装済み） -->
+  <!-- 必要なJSを末尾に読み込む -->
   <script src="js/indexedDB.js"></script>
   <script src="js/partyCreate.js"></script>
+
+  <script>
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      await initBackground("partyCreate");
+    });
+  </script>
 </body>
+
 </html>

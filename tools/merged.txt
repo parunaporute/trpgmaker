@@ -8,126 +8,168 @@
 characterCreate.html 
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>エレメント作成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- ▼ 追加: 背景管理スクリプト -->
+  <script src="js/background.js"></script>
 </head>
+
 <body>
-    <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
-    <div class="container" style="max-width:800px;">
-      <h1>エレメント作成</h1>
-      <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
-      <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
-      <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
-      <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
+  <!-- ▼ 追加: 背景変更ボタン + モーダル -->
+  <button id="change-bg-button" style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    ">
+    背景を変更する
+  </button>
 
-      <!-- ▼ ガチャ前確認モーダル -->
-      <div id="gacha-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
-          <button id="gacha-confirm-ok">OK</button>
-          <button id="gacha-confirm-cancel">キャンセル</button>
-        </div>
+  <!-- 背景選択モーダル -->
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 背景生成中モーダル -->
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
+  <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+  <div class="container">
+    <h1>エレメント作成</h1>
+    <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
+    <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
+    <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
+    <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
+
+    <!-- ▼ ガチャ前確認モーダル -->
+    <div id="gacha-confirm-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
+        <button id="gacha-confirm-ok">OK</button>
+        <button id="gacha-confirm-cancel">キャンセル</button>
       </div>
-
-      <!-- ▼ ガチャ生成中モーダル -->
-      <div id="gacha-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>生成中...</p>
-          <button id="cancel-gacha-btn">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- ▼ エレメントのジャンル設定モーダル -->
-      <div id="element-genre-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:600px;">
-          <h2>エレメントのジャンルを設定</h2>
-          <p style="font-size: 0.9em; margin-bottom: 10px;">
-            下記の軸を選択してください。<br>
-            一度選択すると、ストレージに保存され次回以降も復元されます。
-          </p>
-
-          <!-- 舞台（複数可） -->
-          <div style="margin-top:10px;">
-            <strong>舞台（複数選択可）</strong><br>
-            <div id="stage-chips-container" class="chips-container">
-              <!-- 例：ファンタジー, SF, 歴史・時代劇... -->
-            </div>
-          </div>
-
-          <!-- 雰囲気（単一） -->
-          <div style="margin-top:10px;">
-            <strong>雰囲気（単一選択）</strong><br>
-            <div id="mood-chips-container" class="chips-container">
-              <!-- 例：ライト/ポップ, 中間/バランス, ダーク/シリアス -->
-            </div>
-          </div>
-
-          <div style="margin-top:20px;">
-            <button id="genre-setting-ok-btn" style="margin-right:10px;">OK</button>
-            <button id="genre-setting-cancel-btn">キャンセル</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▼ 「その他」登録用モーダル -->
-      <div id="other-input-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:400px;">
-          <h2>「その他」を追加</h2>
-          <p id="other-input-modal-category" style="font-weight:bold;"></p>
-          <textarea id="other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
-          <div style="margin-top:10px;">
-            <button id="other-generate-btn">生成</button>
-            <button id="other-ok-btn">OK</button>
-            <button id="other-cancel-btn">キャンセル</button>
-          </div>
-          <p style="font-size:0.8em; color:#666; margin-top:10px;">
-            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
-            その結果を上のテキストボックスに自動入力します。
-          </p>
-        </div>
-      </div>
-
-      <!-- ▼ 「削除」確認モーダル -->
-      <div id="delete-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>この選択肢を削除しますが、よろしいですか？</p>
-          <button id="delete-confirm-ok">OK</button>
-          <button id="delete-confirm-cancel">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- 「選んだジャンルの出力例」 -->
-      <div style="margin-top:20px;">
-        <p><strong>選んだジャンルの出力例：</strong></p>
-        <!-- テキストボックスをやめ、ラベルのみ -->
-        <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
-      </div>
-
-      <div id="card-container"></div>
     </div>
 
-    <!-- IndexedDBなどの共通スクリプト -->
-    <script src="js/indexedDB.js"></script>
+    <!-- ▼ ガチャ生成中モーダル -->
+    <div id="gacha-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>生成中...</p>
+        <button id="cancel-gacha-btn">キャンセル</button>
+      </div>
+    </div>
 
-    <!-- 先にgachaCore.jsを読み込む -->
-    <script src="js/gachaCore.js"></script>
+    <!-- ▼ エレメントのジャンル設定モーダル -->
+    <div id="element-genre-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:600px;">
+        <h2>エレメントのジャンルを設定</h2>
+        <p style="font-size: 0.9em; margin-bottom: 10px;">
+          下記の軸を選択してください。<br>
+          一度選択すると、ストレージに保存され次回以降も復元されます。
+        </p>
 
-    <!-- その後、characterCreate.jsを読み込む（改変版） -->
-    <script src="js/characterCreate.js"></script>
+        <!-- 舞台（複数可） -->
+        <div style="margin-top:10px;">
+          <strong>舞台（複数選択可）</strong><br>
+          <div id="stage-chips-container" class="chips-container">
+            <!-- 例：ファンタジー, SF, 歴史・時代劇... -->
+          </div>
+        </div>
 
-    <script>
-      // メニューに戻るボタン
-      document.getElementById("back-to-menu").addEventListener("click", function () {
-        window.location.href = "index.html";
-      });
-    </script>
+        <!-- 雰囲気（単一） -->
+        <div style="margin-top:10px;">
+          <strong>雰囲気（単一選択）</strong><br>
+          <div id="mood-chips-container" class="chips-container">
+            <!-- 例：ライト/ポップ, 中間/バランス, ダーク/シリアス -->
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button id="genre-setting-ok-btn" style="margin-right:10px;">OK</button>
+          <button id="genre-setting-cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ▼ 「その他」登録用モーダル -->
+    <div id="other-input-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:400px;">
+        <h2>「その他」を追加</h2>
+        <p id="other-input-modal-category" style="font-weight:bold;"></p>
+        <textarea id="other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
+        <div style="margin-top:10px;">
+          <button id="other-generate-btn">生成</button>
+          <button id="other-ok-btn">OK</button>
+          <button id="other-cancel-btn">キャンセル</button>
+        </div>
+        <p style="font-size:0.8em; color:#666; margin-top:10px;">
+          ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+          その結果を上のテキストボックスに自動入力します。
+        </p>
+      </div>
+    </div>
+
+    <!-- ▼ 「削除」確認モーダル -->
+    <div id="delete-confirm-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>この選択肢を削除しますが、よろしいですか？</p>
+        <button id="delete-confirm-ok">OK</button>
+        <button id="delete-confirm-cancel">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 「選んだジャンルの出力例」 -->
+    <div style="margin-top:20px;">
+      <p><strong>選んだジャンルの出力例：</strong></p>
+      <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
+    </div>
+
+    <div id="card-container"></div>
+  </div>
+
+  <!-- IndexedDBなどの共通スクリプト -->
+  <script src="js/indexedDB.js"></script>
+  <!-- 先にgachaCore.jsを読み込む -->
+  <script src="js/gachaCore.js"></script>
+  <!-- その後、characterCreate.jsを読み込む（改変版） -->
+  <script src="js/characterCreate.js"></script>
+
+  <script>
+    // ページ読み込み時にDB初期化 & 背景適用
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("characterCreate");
+    });
+
+    // メニューに戻るボタン
+    document.getElementById("back-to-menu").addEventListener("click", function () {
+      window.location.href = "index.html";
+    });
+  </script>
 </body>
-</html>
---- 
+
+</html>--- 
 index.html 
 <!DOCTYPE html>
 <html lang="ja">
@@ -136,16 +178,64 @@ index.html
   <meta charset="UTF-8" />
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <!-- 黒背景 + 白文字ベースのcssを読み込む -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- 追加：カード表示などでDOMPurifyを使用するため -->
+  <!-- カード表示などでDOMPurifyを使用 -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- 背景管理用スクリプト（既存） -->
+  <script src="js/background.js"></script>
 </head>
 
 <body>
   <div class="container" style="text-align:center; margin-top:50px;">
     <h1>TRPG メニュー</h1>
-    <div class="api-key-section">
+
+    <!-- ▼ 追加：背景を変更するボタン（デザイン変更） -->
+    <button id="change-bg-button"
+      style="
+        color: #000;
+        background-color: #DDD;
+        border-radius: 2px;
+        box-shadow: inset 0 0 3px #000;
+        position: absolute;
+        top: 0;
+        right: 0;
+      "
+    >
+      背景を変更する
+    </button>
+
+    <!-- ▼ 背景選択モーダル -->
+    <div id="bg-modal" class="modal" style="display:none;">
+      <div class="modal-content bg-modal-content">
+        <h2>背景選択</h2>
+
+        <!-- ストック画像のサムネイルを並べる領域 -->
+        <div id="bg-stock-container" class="bg-stock-grid">
+          <!-- ここにIndexedDBから取得した背景画像サムネイルを並べる -->
+        </div>
+
+        <!-- 背景無しボタン -->
+        <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+
+        <!-- 生成ボタン -->
+        <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+
+        <!-- 閉じるボタン -->
+        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 生成中モーダル -->
+    <div id="bg-generate-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>背景画像を生成中...</p>
+      </div>
+    </div>
+
+    <div class="api-key-section" style="margin-top:20px;">
       <label for="api-key-input">ChatGPT APIキーを入力：</label>
       <input type="text" id="api-key-input" placeholder="APIキーを入力" />
       <button id="set-api-key-button">APIキー設定</button>
@@ -176,15 +266,15 @@ index.html
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
       <div id="active-scenarios-container">
-        <!-- 進行中シナリオのリンクがここに表示されます（現在未使用） -->
+        <!-- 進行中シナリオのリンクがここに表示される（現在未使用） -->
       </div>
       <div id="scenario-list-container">
-        <!-- JavaScriptで一覧表示 & 削除ボタンを付与 -->
+        <!-- JavaScriptで一覧表示 & 削除ボタン -->
       </div>
     </div>
   </div>
 
-  <!-- ▼ シナリオ削除用の確認モーダル -->
+  <!-- シナリオ削除用の確認モーダル -->
   <div id="delete-scenario-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h3>シナリオ削除の確認</h3>
@@ -194,7 +284,7 @@ index.html
     </div>
   </div>
 
-  <!-- ★ 倉庫モーダル（新規追加） -->
+  <!-- 倉庫モーダル -->
   <div id="warehouse-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h2>倉庫</h2>
@@ -208,34 +298,36 @@ index.html
     </div>
   </div>
 
-  <!-- 外部JavaScript -->
+  <!-- 外部JavaScript(IndexedDB) -->
   <script src="js/indexedDB.js"></script>
+  <!-- 新規: 背景管理用スクリプト（すでに<head>で読み込み済み） -->
+
   <script>
-    // ページ読み込み完了後にDB初期化 -> menu.js を動的に読み込む
+    
+    // ページ読み込み時
     window.addEventListener("load", async () => {
       await initIndexedDB();
+
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("index");
 
       const scriptEl = document.createElement("script");
       scriptEl.src = "js/menu.js";
       document.head.appendChild(scriptEl);
     });
-  </script>
 
-  <script>
-    // エレメント作成ボタン押下時
-    document.getElementById("character-create").addEventListener("click", function () {
+    // エレメント作成ページへ
+    document.getElementById("character-create").addEventListener("click", () => {
       window.location.href = "characterCreate.html";
     });
 
-    // ★ 「パーティ作成」ボタンのイベントリスナーを削除
-
-    // ★ パーティ一覧ボタン
-    document.getElementById("party-list").addEventListener("click", function () {
+    // パーティ一覧
+    document.getElementById("party-list").addEventListener("click", () => {
       window.location.href = "partyList.html";
     });
 
-    // 新しいシナリオを始めるボタン押下時
-    document.getElementById("start-new-scenario-button").addEventListener("click", function () {
+    // 新しいシナリオ
+    document.getElementById("start-new-scenario-button").addEventListener("click", () => {
       window.location.href = "scenarioWizard.html";
     });
   </script>
@@ -247,6 +339,7 @@ index.html
 partyCreate.html 
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>パーティ編成</title>
@@ -254,8 +347,43 @@ partyCreate.html
   <link rel="stylesheet" href="styles.css" />
   <!-- DOMPurifyはカード表示などで利用 -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- ▼ 追加：背景管理スクリプト -->
+  <script src="js/background.js"></script>
 </head>
+
 <body>
+  <!-- ▼ 追加: 背景変更ボタン + モーダル -->
+  <button id="change-bg-button" style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    ">
+    背景を変更する
+  </button>
+
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
   <div class="container">
     <h1>パーティ編成</h1>
 
@@ -282,24 +410,21 @@ partyCreate.html
       <p style="color:#555; font-size:14px;">
         ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
       </p>
-      <div id="avatar-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="avatar-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
     <!-- ▼ パートナー（複数選べる） -->
     <section style="margin-top:20px;">
       <h2>パートナー（複数可）</h2>
-      <div id="partner-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="partner-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
     <!-- ▼ その他パーティ枠 -->
     <section style="margin-top:20px;">
       <h2>その他パーティ枠</h2>
-      <div id="party-card-container"
-           style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="party-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
       </div>
     </section>
 
@@ -312,9 +437,9 @@ partyCreate.html
         <!-- 倉庫選択カードをパーティに入れるボタン -->
         <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
-        
+
         <div id="warehouse-card-container"
-             style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+          style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
         </div>
       </div>
     </div>
@@ -323,12 +448,19 @@ partyCreate.html
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   </div>
 
-  <!-- 必要なJSを末尾に読み込む（※indexedDB.jsにはパーティ管理のcreateParty等を実装済み） -->
+  <!-- 必要なJSを末尾に読み込む -->
   <script src="js/indexedDB.js"></script>
   <script src="js/partyCreate.js"></script>
+
+  <script>
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      await initBackground("partyCreate");
+    });
+  </script>
 </body>
-</html>
---- 
+
+</html>--- 
 partyList.html 
 <!DOCTYPE html>
 <html lang="ja">
@@ -338,8 +470,42 @@ partyList.html
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- ▼ 追加：背景管理用スクリプト -->
+  <script src="js/background.js"></script>
 </head>
 <body>
+  <!-- ▼ 背景を変更するボタン + モーダル -->
+  <button id="change-bg-button"
+    style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    "
+  >
+    背景を変更する
+  </button>
+
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
   <div class="container">
     <h1>パーティ一覧</h1>
     <p style="margin-bottom:20px;">
@@ -372,15 +538,22 @@ partyList.html
     </div>
   </div>
 
-  <!-- partyList.js -->
   <script src="js/indexedDB.js"></script>
   <script src="js/partyList.js"></script>
+
+  <script>
+    window.addEventListener("load", async()=>{
+      await initIndexedDB();
+      await initBackground("partyList");
+    });
+  </script>
 </body>
 </html>
 --- 
 scenario.html 
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
@@ -389,9 +562,41 @@ scenario.html
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
   <!-- 追加：内部的にZIP圧縮するためのpakoライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+
+  <!-- ▼ 背景管理用スクリプト -->
+  <script src="js/background.js"></script>
 </head>
 
 <body>
+  <!-- ▼ 背景を変更するボタン + モーダル -->
+  <button id="change-bg-button" style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    ">
+    背景を変更する
+  </button>
+
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
   <!-- メニューに戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
@@ -489,7 +694,8 @@ scenario.html
     <div class="modal-content" style="max-width:600px;">
       <h2>パーティ確認</h2>
       <button id="close-party-modal" style="margin:10px;">閉じる</button>
-      <div id="party-modal-card-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px;"></div>
+      <div id="party-modal-card-container"
+        style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px;"></div>
     </div>
   </div>
 
@@ -499,14 +705,17 @@ scenario.html
   <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
-  <!-- ★ 修正：scenarioPage.js を最後に読み込む（改変版） -->
   <script src="js/scenarioPage.js"></script>
+
+  <script>
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      await initBackground("scenario");
+    });
+  </script>
 </body>
 
-</html>
---- 
-scenarioSections.html 
---- 
+</html>--- 
 scenarioWizard.html 
 <!DOCTYPE html>
 <html lang="ja">
@@ -515,9 +724,43 @@ scenarioWizard.html
   <title>新しいシナリオ作成ウィザード</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- ▼ 背景管理用スクリプト -->
+  <script src="js/background.js"></script>
 </head>
 
 <body>
+  <!-- ▼ 背景変更ボタン + モーダル -->
+  <button id="change-bg-button"
+    style="
+      color: #000;
+      background-color: #DDD;
+      border-radius: 2px;
+      box-shadow: inset 0 0 3px #000;
+      position: absolute;
+      top: 0;
+      right: 0;
+    "
+  >
+    背景を変更する
+  </button>
+
+  <div id="bg-modal" class="modal" style="display:none;">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+      <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+      <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+      <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+  </div>
+
+  <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
   <!-- 戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
@@ -541,7 +784,7 @@ scenarioWizard.html
         <div id="wiz-theme-chips-container" class="chips-container"></div>
       </div>
 
-      <!-- 雰囲気（単一） -->
+      <!-- 雰囲気（単一選択） -->
       <div style="margin-top:10px;">
         <strong>雰囲気（単一選択）</strong><br>
         <div id="wiz-mood-chips-container" class="chips-container"></div>
@@ -595,17 +838,14 @@ scenarioWizard.html
     <div id="wizard-step2" style="display:none;">
       <h2>ステップ2：シナリオタイプ</h2>
 
-      <!-- 選択したジャンルの表示 -->
       <p>
         選択したジャンル：
         <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">（未選択）</span>
       </p>
 
-      <!-- シナリオタイプのボタン -->
       <button id="type-objective-btn">目的達成型</button>
       <button id="type-exploration-btn">探索型</button>
 
-      <!-- ステップ1に戻るボタン -->
       <div style="margin-top:10px;">
         <button id="back-to-step1-button">ステップ1に戻る</button>
       </div>
@@ -621,7 +861,6 @@ scenarioWizard.html
       <h2>ステップ3：シナリオ要約</h2>
       <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;"></div>
 
-      <!-- ステップ2に戻るボタン -->
       <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
       <button id="start-scenario-button" style="background-color:#4CAF50;">このシナリオで始める</button>
     </div>
@@ -635,7 +874,7 @@ scenarioWizard.html
     </div>
   </div>
 
-  <!-- シナリオ作成確認モーダル（ステップ2でタイプ選択時に出す） -->
+  <!-- シナリオ作成確認モーダル -->
   <div id="confirm-scenario-modal" class="modal" style="display:none;">
     <div class="modal-content" style="max-width:500px;">
       <h3>シナリオ生成の確認</h3>
@@ -656,10 +895,14 @@ scenarioWizard.html
   <!-- シナリオウィザード用スクリプト(改変版) -->
   <script src="js/scenarioWizard.js"></script>
 
-  <!-- 戻るボタン -->
   <script>
     document.getElementById("back-to-menu").addEventListener("click", function () {
       window.location.href = "index.html";
+    });
+
+    window.addEventListener("load", async()=>{
+      await initIndexedDB();
+      await initBackground();
     });
   </script>
 </body>
@@ -673,15 +916,17 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  background-color: #3d3d3d;
 }
 
 .container {
-  max-width: 1000px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 40px);
   margin: 20px auto;
   padding: 20px;
-  background-color: #fff;
+  background-color:  rgba(0, 0, 0, 0.4);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #f0f0f0;
 }
 
 h1 {
@@ -699,11 +944,14 @@ h2 {
 
 input,
 textarea {
+  box-sizing: border-box;
   width: 100%;
   padding: 10px;
   font-size: 14px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  background-color: #434343;
+  color: #f0f0f0;
+  margin-bottom: 10px;
 }
 
 button {
@@ -726,7 +974,7 @@ button:hover {
   overflow-y: auto;
   border: 1px solid #ddd;
   padding: 10px;
-  background-color: #f9f9f9;
+  background-color: #000000;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -735,13 +983,10 @@ button:hover {
 
 .history-tile {
   padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  border-radius: 5px;
+  background-color: #000000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* テキスト編集領域 */
 .scene-text,
 .action-text,
 .scenario-text {
@@ -759,7 +1004,6 @@ button:hover {
   outline: none;
 }
 
-/* メイン表示するシーン部分 */
 #story {
   font-size: 1.4rem;
   padding-bottom: 10px;
@@ -774,7 +1018,7 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.8);
   display: none;
   justify-content: center;
   align-items: center;
@@ -784,7 +1028,9 @@ button:hover {
 .modal-content {
   box-sizing: border-box;
   width: calc(100% - 20px);
-  background-color: #fff;
+  background-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #f0f0f0;
   padding: 20px 40px;
   border-radius: 5px;
   text-align: center;
@@ -792,38 +1038,25 @@ button:hover {
   overflow-y: auto;
 }
 
-
-/* --- styles.css --- */
-
-/* 既存の共通部分はそのままで */
-
-/* カードコンテナをCSS Gridに変更 */
+/* カード関連 */
 #card-container {
   display: grid;
   gap: 20px;
-  /* 1列(スマホ)～3列(PC)になるようにレスポンシブに設定 */
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
-/* カードコンテナの共通設定 */
 .card {
-  /* 横幅はセル幅に合わせる */
   width: 100%;
-  /* ブラウザ対応の場合、aspect-ratioプロパティで比率を指定 */
   aspect-ratio: 63 / 88;
   perspective: 1000px;
-  /* 3D効果用 */
   cursor: pointer;
   transition: transform 0.3s ease;
   position: relative;
+  max-width: 350px;
 }
-
-/* マウスオーバー時に少し大きく */
 .card:hover {
   transform: scale(1.05);
 }
-
-/* 内部要素 */
 .card-inner {
   position: absolute;
   top: 0;
@@ -833,15 +1066,12 @@ button:hover {
   transform-style: preserve-3d;
   transition: transform 0.6s;
 }
-
-/* クリックで反転 */
 .card.flipped .card-inner {
   transform: rotateY(180deg);
 }
-
-/* 表面 */
 .card-front,
 .card-back {
+  color: #222;
   position: absolute;
   top: 0;
   left: 0;
@@ -851,28 +1081,19 @@ button:hover {
   backface-visibility: hidden;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
-
 .card-front {
   box-sizing: border-box;
   padding: 3%;
-  border-radius: 3%;
-}
-
-/* 表面のスタイル */
-.card-front {
   background-color: #fff;
   display: flex;
   flex-direction: column;
   position: relative;
 }
-
 .card-front h3 {
   padding: 0;
   margin: 0;
   font-size: 1rem;
 }
-
-/* 左上にタイプ表示用 */
 .card-front .card-type {
   position: absolute;
   right: 10px;
@@ -883,8 +1104,6 @@ button:hover {
   font-size: 0.85rem;
   z-index: 2;
 }
-
-/* 画像エリア */
 .card-front .card-image {
   width: 100%;
   height: 40%;
@@ -894,16 +1113,12 @@ button:hover {
   justify-content: center;
   position: relative;
 }
-
-/* 画像エリア内の実際の画像 */
 .card-front .card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top;
 }
-
-/* 画像生成ボタン（画像が無い場合のみ表示） */
 .card-front .gen-image-btn {
   position: absolute;
   bottom: 8px;
@@ -916,17 +1131,12 @@ button:hover {
   font-size: 0.8rem;
   z-index: 2;
 }
-
-/* 例：画像生成ボタン(.gen-image-btn)が disable 時 */
 .gen-image-btn:disabled {
-  background-color: #999;    /* 背景色をやや暗めに */
-  color: #ccc;               /* 文字色も薄く */
-  cursor: not-allowed;       /* カーソルを禁止マークに */
-  opacity: 0.6;             /* 全体的に薄く */
+  background-color: #999;
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
-
-
-/* 下部テキスト情報 */
 .card-front .card-info {
   padding: 8px;
   display: flex;
@@ -936,12 +1146,10 @@ button:hover {
   overflow: auto;
   background-color: rgba(255, 255, 255, 0.7);
 }
-
 .card-front .card-info p {
   margin: 0;
   font-size: 0.85rem;
 }
-
 .card-front .card-info p:last-child {
   padding: 0;
   height: 100%;
@@ -951,14 +1159,11 @@ button:hover {
   background-color: #EEE;
   margin-top: 10px;
 }
-
 .card-front .card-info p:last-child span {
   transform: skew(-5deg);
   display: flex;
   padding: 10px;
 }
-
-/* 裏面：かっこよさげな背景 */
 .card-back {
   box-sizing: border-box;
   background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -971,8 +1176,6 @@ button:hover {
   padding: 10px;
   text-align: center;
 }
-
-/* レスポンシブ */
 @media (max-width: 600px) {
   #card-container {
     grid-template-columns: repeat(1, 1fr);
@@ -991,7 +1194,6 @@ button:hover {
   border-radius: 2%;
   padding: 3%;
 }
-
 .bezel.rarity0 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -999,7 +1201,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity1 {
   background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -1007,7 +1208,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity2 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -1015,7 +1215,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -1023,8 +1222,6 @@ button:hover {
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
-
-/* レアリティ4: プラチナ */
 .bezel.rarity4 {
   position: absolute;
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
@@ -1035,8 +1232,6 @@ button:hover {
   background-clip: padding-box, border-box;
   animation: platinum-shimmer 5s ease-in-out infinite;
 }
-
-/* レアリティ5: 宝石 */
 .bezel.rarity5 {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
@@ -1046,53 +1241,43 @@ button:hover {
   background-clip: padding-box, border-box;
   animation: jewel-glow 5s ease-in-out infinite;
 }
-
 @keyframes platinum-shimmer {
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
 }
-
 @keyframes jewel-glow {
   0% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
-
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
-
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
   }
 }
 
-/* partyCreate.htmlのカードを3列に */
 #party-card-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-
-/* 倉庫モーダル内のカードも3列に */
 #warehouse-card-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
+  justify-content: center;
 }
-
-/* 選択状態 */
 .card.selected {
   outline: 4px solid #f44336;
   outline-offset: -4px;
@@ -1100,152 +1285,334 @@ button:hover {
   box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
 }
 
-/* ベース */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f5f5f5;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-  text-align: center;
-}
-
-h2 {
-  font-size: 1.5em;
-  margin-bottom: 10px;
-}
-
-.api-key-section {
-  margin-bottom: 20px;
-}
-
-input,
-textarea {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-button {
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-
-/* シーン履歴 */
-.scene-history {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 10px;
-  background-color: #f9f9f9;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.history-tile {
-  padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* scene, actionテキスト */
-.scene-text,
-.action-text {
-  margin: 0;
-  padding: 5px;
-  font-size: 14px;
-  border: 1px dashed transparent;
-  cursor: text;
-}
-
-.scene-text[contenteditable]:focus,
-.action-text[contenteditable]:focus {
-  border: 1px dashed #4CAF50;
-  outline: none;
-}
-
-/* メイン表示するシーン部分 */
-#story {
-  font-size: 1.4rem;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ccc;
-  min-height: 60px;
-}
-
-/* モーダル */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modal-content {
-  box-sizing: border-box;
-  width: calc(100% - 20px);
-  background-color: #fff;
-  padding: 20px 40px;
-  border-radius: 5px;
-  text-align: center;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
 .chips-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-
 .chip {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
   border-radius: 20px;
-  background-color: #e0e0e0;
+  background-color: rgba(227, 227, 227, 0.4);
+  color: #f0f0f0;
+  box-shadow: inset 0px 0px 4px #fff;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s;
+  min-width: 12rem;
+  justify-content: center;
 }
-
 .chip:hover {
   background-color: #cfcfcf;
 }
-
 .chip.selected {
   background-color: #8BC34A;
   color: #fff;
+}
+
+.bg-thumb {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.bg-thumb:hover {
+  transform: scale(1.02);
+}
+.bg-thumb-delete {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(200,0,0,0.7);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px;
+  display: none;
+}
+.bg-thumb:hover .bg-thumb-delete {
+  display: inline-block;
+}
+.bg-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+--- 
+background.js 
+// js/background.js
+
+// グローバルに保持しておく
+let currentPageName = "index"; // デフォルトは index
+
+// 初期化処理：ページロード後に呼び出し
+// pageName は例："index", "characterCreate", "partyCreate"など
+async function initBackground(pageName = "index") {
+    currentPageName = pageName; 
+
+    // localStorage から そのページ専用の ID を読んでみる
+    let selectedId = localStorage.getItem("selectedBgId_" + pageName);
+    
+    // なければ index 用にフォールバック
+    if (!selectedId) {
+      const fallbackId = localStorage.getItem("selectedBgId_index");
+      if (fallbackId) {
+        selectedId = fallbackId;
+      }
+    }
+
+    // もし最終的に selectedId があれば 適用
+    if (selectedId) {
+      const img = await getBgImageById(parseInt(selectedId,10));
+      if (img && img.dataUrl) {
+        document.body.style.backgroundImage = `url(${img.dataUrl})`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+      }
+    }
+
+    // イベント
+    const changeBgBtn = document.getElementById("change-bg-button");
+    if (changeBgBtn) {
+      changeBgBtn.addEventListener("click", onChangeBgButtonClick);
+    }
+
+    const closeModalBtn = document.getElementById("bg-close-modal-button");
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener("click", closeBgModal);
+    }
+
+    const noneBtn = document.getElementById("bg-none-button");
+    if (noneBtn) {
+      noneBtn.addEventListener("click", onBgNoneButton);
+    }
+
+    const genBtn = document.getElementById("bg-generate-button");
+    if (genBtn) {
+      genBtn.addEventListener("click", async () => {
+        await generateNewBackground();
+        await openBgModal(); // 再生成後、一覧更新
+      });
+    }
+}
+
+// 背景を変更するボタン
+async function onChangeBgButtonClick() {
+    const all = await getAllBgImages();
+    if (all.length === 0) {
+      // ストックが無ければ → 生成
+      await generateNewBackground();
+    } else {
+      // あればモーダルを開く
+      openBgModal();
+    }
+}
+
+// 新規背景生成
+async function generateNewBackground() {
+    const genModal = document.getElementById("bg-generate-modal");
+    if (genModal) genModal.style.display = "flex";
+
+    try {
+      const apiKey = localStorage.getItem("apiKey") || "";
+      if (!apiKey) {
+        alert("APIキーが未設定です。");
+        return;
+      }
+      // DALL-E3 API呼び出し（例）
+      const promptText = "A beautiful scenic landscape or architecture, highly detailed, no text";
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: promptText,
+          n: 1,
+          size: "1024x1024",
+          response_format: "b64_json"
+        })
+      });
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      const base64 = data.data[0].b64_json;
+      const dataUrl = "data:image/png;base64," + base64;
+
+      // DBに保存
+      const newId = await addBgImage(dataUrl);
+
+      // 生成後、即適用
+      document.body.style.backgroundImage = `url(${dataUrl})`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundAttachment = "fixed";
+
+      // 今ページ専用のキーに保存
+      localStorage.setItem("selectedBgId_" + currentPageName, newId.toString());
+
+    } catch (err) {
+      console.error("背景生成失敗:", err);
+      alert("背景生成失敗: " + err.message);
+    } finally {
+      if (genModal) genModal.style.display = "none";
+    }
+}
+
+// 背景選択モーダルを開く
+async function openBgModal() {
+    const modal = document.getElementById("bg-modal");
+    if (!modal) return;
+    modal.style.display = "flex";
+
+    const container = document.getElementById("bg-stock-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const all = await getAllBgImages();
+    if (all.length === 0) {
+      container.textContent = "ストックが空です。";
+      return;
+    }
+    all.forEach(img => {
+      const wrap = document.createElement("div");
+      wrap.className = "bg-thumb";
+
+      const thumb = document.createElement("img");
+      thumb.src = img.dataUrl;
+      thumb.style.width = "100%";
+      thumb.alt = "背景候補";
+
+      thumb.addEventListener("click", () => {
+        // 選択 → 即適用
+        document.body.style.backgroundImage = `url(${img.dataUrl})`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+        // 今ページ用
+        localStorage.setItem("selectedBgId_" + currentPageName, img.id.toString());
+      });
+      wrap.appendChild(thumb);
+
+      // 削除ボタン
+      const delBtn = document.createElement("button");
+      delBtn.className = "bg-thumb-delete";
+      delBtn.textContent = "×";
+      delBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = confirm("この背景を削除しますか？");
+        if (!ok) return;
+        await deleteBgImage(img.id);
+
+        // この背景が各ページ用で選択中だった場合→ それらのページキーから消すかどうかはお好み
+        // （ここでは簡単に、選択中キーが同じIDなら削除）
+        for (const k of Object.keys(localStorage)) {
+          if (k.startsWith("selectedBgId_")) {
+            const stored = localStorage.getItem(k);
+            if (parseInt(stored,10) === img.id) {
+              localStorage.removeItem(k);
+            }
+          }
+        }
+
+        // 再描画
+        await openBgModal();
+      });
+      wrap.appendChild(delBtn);
+
+      container.appendChild(wrap);
+    });
+}
+
+// 背景無し
+function onBgNoneButton() {
+    document.body.style.backgroundImage = "none";
+    // 今ページのキーを消す
+    localStorage.removeItem("selectedBgId_" + currentPageName);
+}
+
+// モーダルを閉じる
+function closeBgModal() {
+    const modal = document.getElementById("bg-modal");
+    if (modal) modal.style.display = "none";
+}
+
+/* ----- 以降、IndexedDB操作ヘルパー ----- */
+
+
+// 追加(保存)
+function addBgImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("DB未初期化");
+            return;
+        }
+        const tx = db.transaction("bgImages", "readwrite");
+        const store = tx.objectStore("bgImages");
+        const record = {
+            dataUrl,
+            createdAt: new Date().toISOString()
+        };
+        const req = store.add(record);
+        req.onsuccess = evt => {
+            resolve(evt.target.result); // 生成ID
+        };
+        req.onerror = err => reject(err);
+    });
+}
+
+// 全件取得
+function getAllBgImages() {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("DB未初期化");
+            return;
+        }
+        const tx = db.transaction("bgImages", "readonly");
+        const store = tx.objectStore("bgImages");
+        const req = store.getAll();
+        req.onsuccess = evt => {
+            resolve(evt.target.result || []);
+        };
+        req.onerror = err => reject(err);
+    });
+}
+
+// 1件取得
+function getBgImageById(id) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("DB未初期化");
+            return;
+        }
+        const tx = db.transaction("bgImages", "readonly");
+        const store = tx.objectStore("bgImages");
+        const req = store.get(id);
+        req.onsuccess = evt => {
+            resolve(evt.target.result || null);
+        };
+        req.onerror = err => reject(err);
+    });
+}
+
+// 削除
+function deleteBgImage(id) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("DB未初期化");
+            return;
+        }
+        const tx = db.transaction("bgImages", "readwrite");
+        const store = tx.objectStore("bgImages");
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = err => reject(err);
+    });
 }
 --- 
 backToMenu.js 
@@ -2442,19 +2809,20 @@ let db = null;
  *  - characterData ストア (keyPath: 'id')
  *  - wizardState ストア (keyPath: 'id')
  *  - parties ストア (keyPath: 'partyId', autoIncrement)
+ *  - ★追加: bgImages ストア (keyPath: 'id', autoIncrement)
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 5);  // ★ バージョンを5に
+    const request = indexedDB.open("trpgDB", 6);  // ★ バージョン5
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
-      // characterData
+      // 1) characterData
       if (!db.objectStoreNames.contains("characterData")) {
         db.createObjectStore("characterData", { keyPath: "id" });
       }
 
-      // scenarios
+      // 2) scenarios
       if (!db.objectStoreNames.contains("scenarios")) {
         const scenarioStore = db.createObjectStore("scenarios", {
           keyPath: "scenarioId",
@@ -2463,7 +2831,7 @@ function initIndexedDB() {
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
-      // sceneEntries
+      // 3) sceneEntries
       if (!db.objectStoreNames.contains("sceneEntries")) {
         const sceneStore = db.createObjectStore("sceneEntries", {
           keyPath: "entryId",
@@ -2472,18 +2840,27 @@ function initIndexedDB() {
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
 
-      // wizardState
+      // 4) wizardState
       if (!db.objectStoreNames.contains("wizardState")) {
         db.createObjectStore("wizardState", { keyPath: "id" });
       }
 
-      // parties (new in version 5)
+      // 5) parties
       if (!db.objectStoreNames.contains("parties")) {
         const partyStore = db.createObjectStore("parties", {
           keyPath: "partyId",
           autoIncrement: true
         });
         partyStore.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+
+      // 6) ★ 追加: 背景画像ストア
+      if (!db.objectStoreNames.contains("bgImages")) {
+        const bgStore = db.createObjectStore("bgImages", {
+          keyPath: "id",
+          autoIncrement: true
+        });
+        // 例: bgStore.createIndex("createdAt", "createdAt", { unique: false });
       }
     };
     request.onsuccess = (event) => {
@@ -2589,7 +2966,7 @@ function loadWizardDataFromIndexedDB() {
 
 /* -------------------------------------------
     新しいシナリオの追加・読み込み用API
-   -------------------------------------------*/
+-------------------------------------------*/
 function createNewScenario(wizardData, title = "新シナリオ") {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2673,7 +3050,7 @@ function updateScenario(scenario) {
 
 /* -------------------------------------------
     シーン履歴 (sceneEntries) の操作
-   -------------------------------------------*/
+-------------------------------------------*/
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -2752,13 +3129,12 @@ function deleteSceneEntry(entryId) {
   });
 }
 
-/* ★シナリオ削除用 */
+/* ★ シナリオ削除 */
 function deleteScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
       return reject("DB未初期化");
     }
-    // scenarios, sceneEntries両方をreadwrite
     const tx = db.transaction(["scenarios", "sceneEntries"], "readwrite");
     const scenarioStore = tx.objectStore("scenarios");
     const sceneEntriesStore = tx.objectStore("sceneEntries");
@@ -2766,7 +3142,7 @@ function deleteScenarioById(scenarioId) {
     // 1) シナリオ本体を削除
     const deleteReq = scenarioStore.delete(scenarioId);
     deleteReq.onsuccess = () => {
-      // 2) さらにsceneEntriesで scenarioId が一致するものを全削除
+      // 2) sceneEntriesで scenarioId === scenarioId のものを全削除
       const idx = sceneEntriesStore.index("scenarioId");
       const range = IDBKeyRange.only(scenarioId);
 
@@ -2792,7 +3168,7 @@ function deleteScenarioById(scenarioId) {
 }
 
 /* -------------------------------------------
-  エクスポート
+   パーティ管理
 -------------------------------------------*/
 window.initIndexedDB = initIndexedDB;
 
@@ -2813,10 +3189,6 @@ window.updateSceneEntry = updateSceneEntry;
 window.deleteSceneEntry = deleteSceneEntry;
 
 window.deleteScenarioById = deleteScenarioById;
-
-/* -------------------------------------------
-   ★ 新規: パーティ管理
--------------------------------------------*/
 
 /** 新規パーティ作成 */
 window.createParty = function(name){
@@ -2842,7 +3214,6 @@ window.createParty = function(name){
   });
 };
 
-/** パーティ1件取得 */
 window.getPartyById = function(partyId){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -2860,7 +3231,6 @@ window.getPartyById = function(partyId){
   });
 };
 
-/** パーティ一覧 */
 window.listAllParties = function(){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -2871,7 +3241,6 @@ window.listAllParties = function(){
     const req = store.getAll();
     req.onsuccess = (evt)=>{
       const list = evt.target.result || [];
-      // updatedAt降順
       list.sort((a,b)=> (b.updatedAt||"").localeCompare(a.updatedAt||""));
       resolve(list);
     };
@@ -2881,7 +3250,6 @@ window.listAllParties = function(){
   });
 };
 
-/** パーティ更新 */
 window.updateParty = function(party){
   return new Promise((resolve, reject)=>{
     if(!db){
@@ -2900,19 +3268,14 @@ window.updateParty = function(party){
   });
 };
 
-/** パーティ削除 */
 window.deletePartyById = function(partyId){
   return new Promise((resolve, reject)=>{
     if(!db){
       return reject("DB未初期化");
     }
-
     const tx = db.transaction("parties","readwrite");
     const store = tx.objectStore("parties");
 
-    // 実際にはパーティ削除時に紐づく characterData.group==="Party" + partyIdをどうするか要検討
-    // 今回は「削除してもキャラは倉庫などに移らず残る」またはユーザ判断で削除。
-    // ひとまずパーティ自体だけ削除する。
     const req = store.delete(partyId);
     req.onsuccess = ()=>{
       resolve();

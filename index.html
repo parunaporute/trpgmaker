@@ -5,16 +5,64 @@
   <meta charset="UTF-8" />
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <!-- 黒背景 + 白文字ベースのcssを読み込む -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- 追加：カード表示などでDOMPurifyを使用するため -->
+  <!-- カード表示などでDOMPurifyを使用 -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+
+  <!-- 背景管理用スクリプト（既存） -->
+  <script src="js/background.js"></script>
 </head>
 
 <body>
   <div class="container" style="text-align:center; margin-top:50px;">
     <h1>TRPG メニュー</h1>
-    <div class="api-key-section">
+
+    <!-- ▼ 追加：背景を変更するボタン（デザイン変更） -->
+    <button id="change-bg-button"
+      style="
+        color: #000;
+        background-color: #DDD;
+        border-radius: 2px;
+        box-shadow: inset 0 0 3px #000;
+        position: absolute;
+        top: 0;
+        right: 0;
+      "
+    >
+      背景を変更する
+    </button>
+
+    <!-- ▼ 背景選択モーダル -->
+    <div id="bg-modal" class="modal" style="display:none;">
+      <div class="modal-content bg-modal-content">
+        <h2>背景選択</h2>
+
+        <!-- ストック画像のサムネイルを並べる領域 -->
+        <div id="bg-stock-container" class="bg-stock-grid">
+          <!-- ここにIndexedDBから取得した背景画像サムネイルを並べる -->
+        </div>
+
+        <!-- 背景無しボタン -->
+        <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
+
+        <!-- 生成ボタン -->
+        <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
+
+        <!-- 閉じるボタン -->
+        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 生成中モーダル -->
+    <div id="bg-generate-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <p>背景画像を生成中...</p>
+      </div>
+    </div>
+
+    <div class="api-key-section" style="margin-top:20px;">
       <label for="api-key-input">ChatGPT APIキーを入力：</label>
       <input type="text" id="api-key-input" placeholder="APIキーを入力" />
       <button id="set-api-key-button">APIキー設定</button>
@@ -45,15 +93,15 @@
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
       <div id="active-scenarios-container">
-        <!-- 進行中シナリオのリンクがここに表示されます（現在未使用） -->
+        <!-- 進行中シナリオのリンクがここに表示される（現在未使用） -->
       </div>
       <div id="scenario-list-container">
-        <!-- JavaScriptで一覧表示 & 削除ボタンを付与 -->
+        <!-- JavaScriptで一覧表示 & 削除ボタン -->
       </div>
     </div>
   </div>
 
-  <!-- ▼ シナリオ削除用の確認モーダル -->
+  <!-- シナリオ削除用の確認モーダル -->
   <div id="delete-scenario-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h3>シナリオ削除の確認</h3>
@@ -63,7 +111,7 @@
     </div>
   </div>
 
-  <!-- ★ 倉庫モーダル（新規追加） -->
+  <!-- 倉庫モーダル -->
   <div id="warehouse-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h2>倉庫</h2>
@@ -77,34 +125,36 @@
     </div>
   </div>
 
-  <!-- 外部JavaScript -->
+  <!-- 外部JavaScript(IndexedDB) -->
   <script src="js/indexedDB.js"></script>
+  <!-- 新規: 背景管理用スクリプト（すでに<head>で読み込み済み） -->
+
   <script>
-    // ページ読み込み完了後にDB初期化 -> menu.js を動的に読み込む
+    
+    // ページ読み込み時
     window.addEventListener("load", async () => {
       await initIndexedDB();
+
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("index");
 
       const scriptEl = document.createElement("script");
       scriptEl.src = "js/menu.js";
       document.head.appendChild(scriptEl);
     });
-  </script>
 
-  <script>
-    // エレメント作成ボタン押下時
-    document.getElementById("character-create").addEventListener("click", function () {
+    // エレメント作成ページへ
+    document.getElementById("character-create").addEventListener("click", () => {
       window.location.href = "characterCreate.html";
     });
 
-    // ★ 「パーティ作成」ボタンのイベントリスナーを削除
-
-    // ★ パーティ一覧ボタン
-    document.getElementById("party-list").addEventListener("click", function () {
+    // パーティ一覧
+    document.getElementById("party-list").addEventListener("click", () => {
       window.location.href = "partyList.html";
     });
 
-    // 新しいシナリオを始めるボタン押下時
-    document.getElementById("start-new-scenario-button").addEventListener("click", function () {
+    // 新しいシナリオ
+    document.getElementById("start-new-scenario-button").addEventListener("click", () => {
       window.location.href = "scenarioWizard.html";
     });
   </script>
