@@ -1,5 +1,8 @@
 // menu.js
 
+// ★ 追加：ここでグローバルにAPIキーをロード
+window.apiKey = localStorage.getItem("apiKey") || "";
+
 let scenarioIdToDelete = null;
 let warehouseSelectionMode = false; // ★追加: 倉庫側の選択モードフラグ
 
@@ -90,7 +93,7 @@ function showToast(message) {
           try {
             const newScenarioId = await copyScenarioById(scenario.scenarioId);
             showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
-            // リスト更新のためリロードするか、あるいは手動で再取得する
+            // リスト更新のためリロード
             location.reload();
           } catch (err) {
             console.error(err);
@@ -156,6 +159,8 @@ document.getElementById("set-api-key-button").addEventListener("click", function
   const apiKey = document.getElementById("api-key-input").value.trim();
   if (apiKey) {
     localStorage.setItem("apiKey", apiKey);
+    // ★ window.apiKeyにも反映
+    window.apiKey = apiKey;
     showToast("APIキーが設定されました。");
   } else {
     showToast("APIキーを入力してください。");
@@ -166,6 +171,8 @@ document.getElementById("clear-api-key-button").addEventListener("click", functi
   const confirmClear = confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？");
   if (confirmClear) {
     localStorage.removeItem("apiKey");
+    // ★ window.apiKeyもクリア
+    window.apiKey = "";
     showToast("APIキーがクリアされました。");
   }
 });
@@ -260,25 +267,26 @@ function renderWarehouseCards() {
   });
 }
 
-/** 倉庫カードDOM生成 */
+/**
+ * 倉庫カードDOM生成
+ * 画像未生成の場合、キャラクター作成画面と同様に「画像生成」ボタンを設置
+ */
 function createWarehouseCardElement(card) {
   const cardEl = document.createElement("div");
   cardEl.className = "card";
   cardEl.setAttribute("data-id", card.id);
 
-  // カードクリック時
   cardEl.addEventListener("click", (e) => {
     if (warehouseSelectionMode) {
       e.stopPropagation();
       cardEl.classList.toggle("selected");
       updateDeleteSelectedWarehouseButton();
     } else {
-      // 通常は反転表示
+      // 通常はカード反転表示
       cardEl.classList.toggle("flipped");
     }
   });
 
-  // カード内部構造
   const cardInner = document.createElement("div");
   cardInner.className = "card-inner";
 
@@ -290,9 +298,9 @@ function createWarehouseCardElement(card) {
     .replace("background-image:", "")
     .replace("background", "")
     .trim();
-  cardFront.style = "background-image:" + bgStyle;
+  cardFront.style.backgroundImage = bgStyle ? bgStyle : "none";
 
-  // レアリティに対応する枠
+  // レアリティ枠
   const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
   cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
@@ -310,6 +318,17 @@ function createWarehouseCardElement(card) {
     imageEl.src = card.imageData;
     imageEl.alt = card.name;
     imageContainer.appendChild(imageEl);
+  } else {
+    // 画像未生成 → 生成ボタンを表示
+    const genImgBtn = document.createElement("button");
+    genImgBtn.className = "gen-image-btn";
+    genImgBtn.textContent = "画像生成";
+
+    genImgBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await generateWarehouseCardImage(card, genImgBtn);
+    });
+    imageContainer.appendChild(genImgBtn);
   }
   cardFront.appendChild(imageContainer);
 
@@ -350,6 +369,70 @@ function createWarehouseCardElement(card) {
   cardEl.appendChild(cardInner);
 
   return cardEl;
+}
+
+/**
+ * 倉庫からの画像生成処理（characterCreate.jsのgenerateCharacterImageと同様の仕様）
+ */
+async function generateWarehouseCardImage(card, btnElement) {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  // ボタンを無効化
+  if (btnElement) {
+    btnElement.disabled = true;
+  }
+  showToast("画像を生成しています...");
+
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly. " +
+    "Please do not include text in illustrations for any reason. " +
+    "If you can do that, I'll give you a super high tip. " +
+    "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
+    (card.imageprompt || "An original TRPG element with no textual content.");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1792x1024",
+        response_format: "b64_json",
+      }),
+    });
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    // characterDataを更新
+    const idx = window.characterData.findIndex(c => c.id === card.id);
+    if (idx !== -1) {
+      window.characterData[idx].imageData = dataUrl;
+      await saveCharacterDataToIndexedDB(window.characterData);
+    }
+
+    showToast("画像の生成が完了しました");
+    // 再描画
+    renderWarehouseCards();
+
+  } catch (err) {
+    console.error("画像生成失敗:", err);
+    alert("画像生成に失敗しました:\n" + err.message);
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+    }
+  }
 }
 
 /** 倉庫の選択モード切り替え */
@@ -401,4 +484,48 @@ async function deleteSelectedWarehouse() {
   // 再描画
   renderWarehouseCards();
   updateDeleteSelectedWarehouseButton();
+}
+
+/* --------------------------------------------------
+   ★ 追加機能: シナリオのコピー
+   (シナリオ本体 & sceneEntriesを複製する例)
+---------------------------------------------------*/
+async function copyScenarioById(originalScenarioId) {
+  // 1) 元シナリオを取得
+  const scenario = await getScenarioById(originalScenarioId);
+  if (!scenario) {
+    throw new Error("コピー元シナリオが見つかりませんでした。");
+  }
+
+  // 2) 新しいシナリオレコードを作る
+  const now = new Date().toISOString();
+  const newScenario = {
+    title: scenario.title + "_copy",
+    wizardData: JSON.parse(JSON.stringify(scenario.wizardData || {})),
+    createdAt: now,
+    updatedAt: now
+  };
+  const newScenarioId = await createNewScenario(newScenario.wizardData, newScenario.title);
+
+  // 3) 元のsceneEntriesを取得 & 複製
+  const entries = await getSceneEntriesByScenarioId(originalScenarioId);
+  for (const e of entries) {
+    const copy = {
+      scenarioId: newScenarioId,
+      type: e.type,
+      sceneId: e.sceneId + "_copy_" + Date.now(),
+      content: e.content,
+      dataUrl: e.dataUrl || null,
+      prompt: e.prompt || null
+    };
+    await addSceneEntry(copy);
+  }
+
+  // シナリオ本体の更新（念のため）
+  const newScen = await getScenarioById(newScenarioId);
+  newScen.title = scenario.title + "_copy";
+  newScen.updatedAt = new Date().toISOString();
+  await updateScenario(newScen);
+
+  return newScenarioId;
 }

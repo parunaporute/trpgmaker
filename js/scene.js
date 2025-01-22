@@ -73,7 +73,7 @@ async function getNextScene(){
   showLoadingModal(true);
 
   // システムプロンプト
-  let systemText="あなたはTRPGのゲームマスターです。HTMLタグOK。";
+  let systemText="あなたはTRPGのゲームマスターです。HTMLタグを積極的に使って装飾してください。";
   const msgs=[{role:"system",content:systemText}];
 
   // シナリオ概要 + パーティ情報

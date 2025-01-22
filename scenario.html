@@ -54,7 +54,7 @@
 
   <!-- ネタバレ（クリア条件）表示モーダル -->
   <div id="spoiler-modal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:600px;">
+    <div class="modal-content">
       <h2>クリア条件</h2>
       <p id="clear-condition-text" style="white-space:pre-wrap;"></p>
       <button id="close-spoiler-modal">閉じる</button>
@@ -62,8 +62,6 @@
   </div>
 
   <div class="container">
-    <!-- ★ 追加: パーティーを確認ボタン (scene-historyより上に配置) -->
-    <button id="show-party-button">パーティーを確認</button>
 
     <!-- シーン履歴 -->
     <div id="scene-history" class="scene-history"></div>
@@ -83,6 +81,8 @@
       <div id="action-candidates-container" style="margin-top:10px;"></div>
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
+    <!-- ★ 追加: パーティーを確認ボタン (scene-historyより上に配置) -->
+    <button id="show-party-button">パーティーを確認</button>
 
       <!-- 探索型なら表示する「カードを取得する」ボタン -->
       <button id="get-card-button" style="display:none; margin-top:20px;">
@@ -96,7 +96,7 @@
 
   <!-- ▼ 追加: 全セクション表示モーダル -->
   <div id="all-sections-modal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:600px;">
+    <div class="modal-content">
       <h2>全セクション一覧</h2>
       <div id="all-sections-content" style="white-space:pre-wrap; text-align:left;"></div>
       <button id="close-all-sections-modal" style="margin-top:10px;">閉じる</button>
@@ -138,11 +138,10 @@
 
   <!-- ★ 追加: パーティ表示用モーダル -->
   <div id="party-modal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:600px;">
+    <div class="modal-content">
       <h2>パーティ確認</h2>
       <button id="close-party-modal" style="margin:10px;">閉じる</button>
-      <div id="party-modal-card-container"
-        style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px;"></div>
+      <div id="party-modal-card-container" class="container"></div>
     </div>
   </div>
 
