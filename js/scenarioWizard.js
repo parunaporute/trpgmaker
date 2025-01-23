@@ -604,7 +604,7 @@ async function generateScenarioSummaryAndClearCondition() {
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンル:${wizardData.genre}, タイプ:目的達成型。
-      1) シナリオ概要(短め)
+      1) シナリオ概要(短めで背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:red"等)あり)
       2) 【クリア条件】(非公開,プレイヤー非表示)。必ず明示してください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -651,7 +651,7 @@ async function generateScenarioSummary() {
 
     const prompt = `
       あなたはTRPGシナリオ作成のプロ。ジャンル:${wizardData.genre}, タイプ:探索型。
-      エレメント取得可能。短めの概要を作ってください。
+      エレメント取得可能。短めで背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:aqua"等)ありの概要を作ってください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -755,7 +755,7 @@ async function generateIntroScene() {
   try {
     const pro = `
       あなたはTRPGのゲームマスターです。
-      次のシナリオ概要を踏まえ、プレイヤーが行動したくなる導入シーン(300字程度)を作ってください。
+      次のシナリオ概要を踏まえ、プレイヤーが何らかの行動したくなる導入シーン(300字程度)を背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:aqua"等)ありで作ってください。
       シナリオ概要:
       ${wizardData.scenarioSummary}
     `;
@@ -824,7 +824,16 @@ async function storePartyInWizardData() {
 function updateSummaryUI() {
   const el = document.getElementById("scenario-summary");
   if (!el) return;
-  el.textContent = wizardData.scenarioSummary || "(シナリオ概要なし)";
+
+  // タグやstyle属性を許可する例:
+  const config = {
+    ALLOWED_TAGS: ["p", "br", "hr", "h3", "h4", "h5", "span", "div", "strong", "em"],
+    ALLOWED_ATTR: ["style"]
+  };
+
+  // sanitize結果をinnerHTMLに反映
+  const sanitized = DOMPurify.sanitize(wizardData.scenarioSummary, config);
+  el.innerHTML = sanitized || "(シナリオ概要なし)";
 }
 
 function showLoadingModal(show) {

@@ -15,6 +15,10 @@ window.scenarioType = null;
 window.clearCondition = null;
 window.sections = [];
 
+const DOMPURIFY_CONFIG = {
+  ALLOWED_TAGS: ["p", "br", "hr", "h3", "h4", "h5", "span", "div", "strong", "em"],
+  ALLOWED_ATTR: ["style"]
+};
 /** DBからシナリオ情報を読み込み */
 async function loadScenarioData(scenarioId){
   try{
@@ -73,7 +77,7 @@ async function getNextScene(){
   showLoadingModal(true);
 
   // システムプロンプト
-  let systemText="あなたはTRPGのゲームマスターです。HTMLタグを積極的に使って装飾してください。";
+  let systemText="あなたはTRPGのゲームマスターです。背景黒が前提の装飾のタグ(br,h3,h4,h5,p style=\"color:aqua\"等)を使って装飾しても良いです。";
   const msgs=[{role:"system",content:systemText}];
 
   // シナリオ概要 + パーティ情報
@@ -352,7 +356,7 @@ function updateSceneHistory(){
       st.innerHTML=DOMPurify.sanitize(e.content);
       st.addEventListener("blur", async()=>{
         if(!window.apiKey)return;
-        e.content=st.innerText.trim();
+        e.content=st.innerHTML.trim();
         const up={
           entryId:e.entryId,
           scenarioId:window.currentScenarioId||0,
@@ -388,7 +392,7 @@ function updateSceneHistory(){
       at.innerHTML=DOMPurify.sanitize(e.content);
       at.addEventListener("blur", async()=>{
         if(!window.apiKey)return;
-        e.content=at.innerText.trim();
+        e.content=at.innerHTML.trim();
         const up={
           entryId:e.entryId,
           scenarioId:window.currentScenarioId||0,
@@ -456,10 +460,10 @@ function showLastScene(){
     const st=document.createElement("p");
     st.className="scene-text";
     st.setAttribute("contenteditable", window.apiKey?"true":"false");
-    st.innerHTML=DOMPurify.sanitize(lastScene.content);
+    st.innerHTML=DOMPurify.sanitize(lastScene.content, DOMPURIFY_CONFIG);
     st.addEventListener("blur",async()=>{
       if(!window.apiKey)return;
-      lastScene.content=st.innerText.trim();
+      lastScene.content=st.innerHTML.trim();
       const up={
         entryId:lastScene.entryId,
         scenarioId:window.currentScenarioId||0,
