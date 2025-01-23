@@ -56,7 +56,7 @@
         ジャンルの軸を選択しますか？それともジャンルを自由入力しますか？
       </p>
 
-      <div class="chips-container" id="wiz-genre-choice" style="margin-bottom:10px;">
+      <div class="chips-container" id="wiz-genre-choice" style="margin-bottom:20px;">
         <div class="chip" id="choice-axis">選択して入力</div>
         <div class="chip" id="choice-free">自由入力</div>
       </div>
@@ -82,15 +82,13 @@
         </div>
 
         <!-- 選択したジャンルの表示 -->
-        <div style="margin-top:10px;">
-          <strong>現在の選択：</strong>
-          <p id="wiz-genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
+        <div style="margin-top:30px;">
+          <p id="wiz-genre-result-text" style="border: 1px solid;padding: 10px;font-size: 1.5rem;background-color: #434343;"></p>
         </div>
       </div>
 
       <!-- 自由入力コンテナ -->
       <div id="free-input-group" style="margin-top:10px; opacity:0.5; pointer-events:none;">
-        <label for="free-genre-input">自由入力：</label>
         <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
       </div>
       <!-- ▲ ここまで改変部分 ▲ -->
