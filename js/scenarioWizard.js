@@ -27,6 +27,9 @@ let wizardCurrentOtherCategory = "";
 let wizardDeletingChipLabel = "";
 let wizardDeletingChipCategory = "";
 
+// 軸選択 or 自由入力 の選択状態 ("axis" | "free" | "")
+let wizardChoice = "";
+
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 window.addEventListener("load", async function () {
@@ -41,6 +44,7 @@ window.addEventListener("load", async function () {
 
   initWizardChips();
 
+  // Stepボタン
   document.getElementById("go-step2-btn").addEventListener("click", onGoStep2);
   document.getElementById("back-to-step1-button").addEventListener("click", onBackToStep1);
   document.getElementById("back-to-step2-button").addEventListener("click", onBackToStep2FromStep3);
@@ -66,9 +70,64 @@ window.addEventListener("load", async function () {
   document.getElementById("wizard-delete-confirm-ok").addEventListener("click", wizardDeleteConfirmOk);
   document.getElementById("wizard-delete-confirm-cancel").addEventListener("click", wizardDeleteConfirmCancel);
 
+  // ▼ 軸or自由入力のチップにイベント付与
+  const axisChip = document.getElementById("choice-axis");
+  const freeChip = document.getElementById("choice-free");
+  axisChip.addEventListener("click", () => {
+    wizardChoice = "axis";
+    axisChip.classList.add("selected");
+    freeChip.classList.remove("selected");
+    enableAxisInput(true);
+    enableFreeInput(false);
+  });
+  freeChip.addEventListener("click", () => {
+    wizardChoice = "free";
+    freeChip.classList.add("selected");
+    axisChip.classList.remove("selected");
+    enableAxisInput(false);
+    enableFreeInput(true);
+  });
+
+  // 初期状態は未選択
+  wizardChoice = "";
+  axisChip.classList.remove("selected");
+  freeChip.classList.remove("selected");
+  enableAxisInput(false);
+  enableFreeInput(false);
+
   updateSelectedGenreDisplay();
   updateSummaryUI();
 });
+
+/** 軸入力を有効/無効にする */
+function enableAxisInput(flag) {
+  const group = document.getElementById("axis-input-group");
+  if (!group) return;
+  if (flag) {
+    group.style.opacity = "1.0";
+    group.style.display = "block";
+    group.style.pointerEvents = "auto";
+  } else {
+    group.style.opacity = "0.2";
+    group.style.display = "none";
+    group.style.pointerEvents = "none";
+  }
+}
+
+/** 自由入力を有効/無効にする */
+function enableFreeInput(flag) {
+  const group = document.getElementById("free-input-group");
+  if (!group) return;
+  if (flag) {
+    group.style.opacity = "1.0";
+    group.style.display = "block";
+    group.style.pointerEvents = "auto";
+  } else {
+    group.style.opacity = "0.2";
+    group.style.display = "none";
+    group.style.pointerEvents = "none";
+  }
+}
 
 function initWizardChips() {
   // localStorage 読み込み
@@ -175,6 +234,7 @@ function createWizardChip(label, category) {
   }
 
   chip.addEventListener("click", () => {
+    if (!canEditAxisInput()) return; // 軸入力が無効な場合はクリックしても反応しない
     if (isOther) {
       openWizardOtherModal(category);
       return;
@@ -234,6 +294,11 @@ function createWizardChip(label, category) {
   }
 
   return chip;
+}
+
+/** 軸入力が有効なときのみチップを操作できるようにするための判定 */
+function canEditAxisInput() {
+  return (wizardChoice==="axis");
 }
 
 function addWizardRemoveButton(chip, label, category) {
@@ -398,15 +463,27 @@ function updateWizGenreResultText() {
 
 /* STEP1 -> STEP2 */
 async function onGoStep2() {
-  const freeVal = document.getElementById("free-genre-input").value.trim();
-  if (freeVal) {
-    wizardData.genre = freeVal;
-  } else {
-    wizardData.genre = buildChipsGenre();
-  }
-  if (!wizardData.genre) {
-    alert("ジャンルを入力または選択してください。");
+  // 軸 or 自由入力 の選択必須
+  if (!wizardChoice) {
+    alert("「選択して入力」か「自由入力」を選んでください。");
     return;
+  }
+
+  if (wizardChoice === "axis") {
+    const result = buildChipsGenre();
+    if (!result) {
+      alert("舞台・テーマ・雰囲気のどれかを入力してください。");
+      return;
+    }
+    wizardData.genre = result;
+  } else {
+    // "free"の場合
+    const freeVal = document.getElementById("free-genre-input").value.trim();
+    if (!freeVal) {
+      alert("自由入力ジャンルを入力してください。");
+      return;
+    }
+    wizardData.genre = freeVal;
   }
 
   await saveWizardDataToIndexedDB(wizardData);

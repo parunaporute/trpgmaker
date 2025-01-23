@@ -51,64 +51,49 @@
     <!-- ステップ1：ジャンル選択 -->
     <div id="wizard-step1" style="display:block;">
       <h2>ステップ1：ジャンルを選択してください</h2>
-      <p style="font-size:0.9em; margin-bottom:10px;">下記の軸を選択、または自由入力してください。</p>
+      <!-- ▼ ここから改変部分 ▼ -->
+      <p style="font-size:0.9em; margin-bottom:10px;">
+        ジャンルの軸を選択しますか？それともジャンルを自由入力しますか？
+      </p>
 
-      <!-- 舞台（複数可） -->
-      <div style="margin-top:10px;">
-        <strong>舞台（複数選択可）</strong><br>
-        <div id="wiz-stage-chips-container" class="chips-container"></div>
+      <div class="chips-container" id="wiz-genre-choice" style="margin-bottom:10px;">
+        <div class="chip" id="choice-axis">選択して入力</div>
+        <div class="chip" id="choice-free">自由入力</div>
       </div>
 
-      <!-- テーマ（単一） -->
-      <div style="margin-top:10px;">
-        <strong>テーマ（単一選択）</strong><br>
-        <div id="wiz-theme-chips-container" class="chips-container"></div>
-      </div>
+      <!-- 軸入力（舞台・テーマ・雰囲気）をまとめるコンテナ -->
+      <div id="axis-input-group" style="opacity:0.5; pointer-events:none;">
+        <!-- 舞台（複数可） -->
+        <div style="margin-top:10px;">
+          <strong>舞台（複数選択可）</strong><br>
+          <div id="wiz-stage-chips-container" class="chips-container"></div>
+        </div>
 
-      <!-- 雰囲気（単一選択） -->
-      <div style="margin-top:10px;">
-        <strong>雰囲気（単一選択）</strong><br>
-        <div id="wiz-mood-chips-container" class="chips-container"></div>
-      </div>
+        <!-- テーマ（単一選択） -->
+        <div style="margin-top:10px;">
+          <strong>テーマ（単一選択）</strong><br>
+          <div id="wiz-theme-chips-container" class="chips-container"></div>
+        </div>
 
-      <!-- 「その他」登録用モーダル -->
-      <div id="wizard-other-input-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:400px;">
-          <h2>「その他」を追加</h2>
-          <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
-          <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
-          <div style="margin-top:10px;">
-            <button id="wizard-other-generate-btn">生成</button>
-            <button id="wizard-other-ok-btn">OK</button>
-            <button id="wizard-other-cancel-btn">キャンセル</button>
-          </div>
-          <p style="font-size:0.8em; color:#666; margin-top:10px;">
-            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
-            その結果を上のテキストボックスに自動入力します。
-          </p>
+        <!-- 雰囲気（単一選択） -->
+        <div style="margin-top:10px;">
+          <strong>雰囲気（単一選択）</strong><br>
+          <div id="wiz-mood-chips-container" class="chips-container"></div>
+        </div>
+
+        <!-- 選択したジャンルの表示 -->
+        <div style="margin-top:10px;">
+          <strong>現在の選択：</strong>
+          <p id="wiz-genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
         </div>
       </div>
 
-      <!-- 「削除」確認モーダル -->
-      <div id="wizard-delete-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>この選択肢を削除しますが、よろしいですか？</p>
-          <button id="wizard-delete-confirm-ok">OK</button>
-          <button id="wizard-delete-confirm-cancel">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- 選択したジャンルの表示 -->
-      <div style="margin-top:10px;">
-        <strong>現在の選択：</strong>
-        <p id="wiz-genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
-      </div>
-
-      <!-- 自由入力欄 -->
-      <div style="margin-top:10px;">
+      <!-- 自由入力コンテナ -->
+      <div id="free-input-group" style="margin-top:10px; opacity:0.5; pointer-events:none;">
         <label for="free-genre-input">自由入力：</label>
         <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
       </div>
+      <!-- ▲ ここまで改変部分 ▲ -->
 
       <div style="margin-top:20px;">
         <button id="go-step2-btn">次へ</button>
@@ -137,6 +122,19 @@
       </p>
     </div>
 
+    <!-- シナリオ作成確認モーダル -->
+    <div id="confirm-scenario-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:500px;">
+        <h3>シナリオ生成の確認</h3>
+        <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
+        <p>これでシナリオを作成します。よろしいですか？</p>
+        <div style="margin-top:10px;">
+          <button id="confirm-scenario-ok">OK</button>
+          <button id="confirm-scenario-cancel">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ステップ3：最終確認(シナリオ要約表示) -->
     <div id="wizard-step3" style="display:none;">
       <h2>ステップ3：シナリオ要約</h2>
@@ -155,16 +153,30 @@
     </div>
   </div>
 
-  <!-- シナリオ作成確認モーダル -->
-  <div id="confirm-scenario-modal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:500px;">
-      <h3>シナリオ生成の確認</h3>
-      <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
-      <p>これでシナリオを作成します。よろしいですか？</p>
+  <!-- 「その他」登録用モーダル -->
+  <div id="wizard-other-input-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>「その他」を追加</h2>
+      <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
+      <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
       <div style="margin-top:10px;">
-        <button id="confirm-scenario-ok">OK</button>
-        <button id="confirm-scenario-cancel">キャンセル</button>
+        <button id="wizard-other-generate-btn">生成</button>
+        <button id="wizard-other-ok-btn">OK</button>
+        <button id="wizard-other-cancel-btn">キャンセル</button>
       </div>
+      <p style="font-size:0.8em; color:#666; margin-top:10px;">
+        ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+        その結果を上のテキストボックスに自動入力します。
+      </p>
+    </div>
+  </div>
+
+  <!-- 「削除」確認モーダル -->
+  <div id="wizard-delete-confirm-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>この選択肢を削除しますが、よろしいですか？</p>
+      <button id="wizard-delete-confirm-ok">OK</button>
+      <button id="wizard-delete-confirm-cancel">キャンセル</button>
     </div>
   </div>
 
