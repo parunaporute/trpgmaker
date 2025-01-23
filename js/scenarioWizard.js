@@ -135,18 +135,18 @@ function initWizardChips() {
   if (sjson) {
     try {
       wizStoredStageArr = JSON.parse(sjson);
-    } catch(e) {
+    } catch (e) {
       wizStoredStageArr = [];
     }
   } else {
     wizStoredStageArr = [];
   }
   wizStoredTheme = localStorage.getItem("elementTheme") || "";
-  wizStoredMood  = localStorage.getItem("elementMood")  || "";
+  wizStoredMood = localStorage.getItem("elementMood") || "";
 
   wizCustomStageChips = loadWizardCustom("customStageChips");
   wizCustomThemeChips = loadWizardCustom("customThemeChips");
-  wizCustomMoodChips  = loadWizardCustom("customMoodChips");
+  wizCustomMoodChips = loadWizardCustom("customMoodChips");
 
   renderWizardStageChips();
   renderWizardThemeChips();
@@ -160,14 +160,14 @@ function loadWizardCustom(key) {
     const j = localStorage.getItem(key);
     if (!j) return [];
     return JSON.parse(j);
-  } catch(e) {
+  } catch (e) {
     return [];
   }
 }
 
 // 舞台(複数)
 function renderWizardStageChips() {
-  const defaultList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク"];
+  const defaultList = ["ファンタジー", "SF", "歴史・時代劇", "現代", "ホラー / ダーク"];
   const container = document.getElementById("wiz-stage-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -201,7 +201,7 @@ function renderWizardThemeChips() {
 
 // 雰囲気(単一)
 function renderWizardMoodChips() {
-  const defaultList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス"];
+  const defaultList = ["ライト / ポップ", "中間 / バランス型", "ダーク / シリアス"];
   const container = document.getElementById("wiz-mood-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -214,21 +214,21 @@ function renderWizardMoodChips() {
 }
 
 function createWizardChip(label, category) {
-  const isOther = (label==="その他");
+  const isOther = (label === "その他");
   const chip = document.createElement("div");
   chip.className = "chip";
   chip.textContent = label;
 
-  if (category==="stage") {
+  if (category === "stage") {
     if (wizStoredStageArr.includes(label)) {
       chip.classList.add("selected");
     }
-  } else if (category==="theme") {
-    if (wizStoredTheme===label) {
+  } else if (category === "theme") {
+    if (wizStoredTheme === label) {
       chip.classList.add("selected");
     }
-  } else if (category==="mood") {
-    if (wizStoredMood===label) {
+  } else if (category === "mood") {
+    if (wizStoredMood === label) {
       chip.classList.add("selected");
     }
   }
@@ -240,17 +240,17 @@ function createWizardChip(label, category) {
       return;
     }
 
-    if (category==="stage") {
+    if (category === "stage") {
       // 複数トグル
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
-        wizStoredStageArr = wizStoredStageArr.filter(x=> x!==label);
+        wizStoredStageArr = wizStoredStageArr.filter(x => x !== label);
       } else {
         chip.classList.add("selected");
         wizStoredStageArr.push(label);
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
-    } else if (category==="theme") {
+    } else if (category === "theme") {
       // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
@@ -259,12 +259,12 @@ function createWizardChip(label, category) {
       } else {
         const cont = document.getElementById("wiz-theme-chips-container");
         const all = cont.querySelectorAll(".chip");
-        all.forEach(c=> c.classList.remove("selected"));
+        all.forEach(c => c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredTheme = label;
         localStorage.setItem("elementTheme", wizStoredTheme);
       }
-    } else if (category==="mood") {
+    } else if (category === "mood") {
       // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
@@ -273,7 +273,7 @@ function createWizardChip(label, category) {
       } else {
         const cont = document.getElementById("wiz-mood-chips-container");
         const all = cont.querySelectorAll(".chip");
-        all.forEach(c=> c.classList.remove("selected"));
+        all.forEach(c => c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredMood = label;
         localStorage.setItem("elementMood", wizStoredMood);
@@ -283,12 +283,12 @@ function createWizardChip(label, category) {
   });
 
   // カスタム削除
-  if(!isOther){
-    if(category==="stage" && wizCustomStageChips.includes(label)){
+  if (!isOther) {
+    if (category === "stage" && wizCustomStageChips.includes(label)) {
       addWizardRemoveButton(chip, label, "stage");
-    } else if(category==="theme" && wizCustomThemeChips.includes(label)){
+    } else if (category === "theme" && wizCustomThemeChips.includes(label)) {
       addWizardRemoveButton(chip, label, "theme");
-    } else if(category==="mood" && wizCustomMoodChips.includes(label)){
+    } else if (category === "mood" && wizCustomMoodChips.includes(label)) {
       addWizardRemoveButton(chip, label, "mood");
     }
   }
@@ -298,7 +298,7 @@ function createWizardChip(label, category) {
 
 /** 軸入力が有効なときのみチップを操作できるようにするための判定 */
 function canEditAxisInput() {
-  return (wizardChoice==="axis");
+  return (wizardChoice === "axis");
 }
 
 function addWizardRemoveButton(chip, label, category) {
@@ -307,11 +307,11 @@ function addWizardRemoveButton(chip, label, category) {
   span.style.marginLeft = "4px";
   span.style.cursor = "pointer";
   span.style.color = "red";
-  span.addEventListener("click", (e)=>{
+  span.addEventListener("click", (e) => {
     e.stopPropagation();
     wizardDeletingChipLabel = label;
     wizardDeletingChipCategory = category;
-    document.getElementById("wizard-delete-confirm-modal").style.display="flex";
+    document.getElementById("wizard-delete-confirm-modal").style.display = "flex";
   });
   chip.appendChild(span);
 }
@@ -319,13 +319,13 @@ function addWizardRemoveButton(chip, label, category) {
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   const catText =
-    (category==="stage") ? "舞台に追加する「その他」" :
-    (category==="theme") ? "テーマに追加する「その他」" :
-    "雰囲気に追加する「その他」";
+    (category === "stage") ? "舞台に追加する「その他」" :
+      (category === "theme") ? "テーマに追加する「その他」" :
+        "雰囲気に追加する「その他」";
 
   document.getElementById("wizard-other-input-modal-category").textContent = catText;
   document.getElementById("wizard-other-input-text").value = "";
-  document.getElementById("wizard-other-input-modal").style.display="flex";
+  document.getElementById("wizard-other-input-modal").style.display = "flex";
 }
 
 async function wizardOtherGenerate() {
@@ -334,9 +334,9 @@ async function wizardOtherGenerate() {
     return;
   }
   let existingList = [];
-  if (wizardCurrentOtherCategory==="stage") {
-    existingList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク", ...wizCustomStageChips];
-  } else if (wizardCurrentOtherCategory==="theme") {
+  if (wizardCurrentOtherCategory === "stage") {
+    existingList = ["ファンタジー", "SF", "歴史・時代劇", "現代", "ホラー / ダーク", ...wizCustomStageChips];
+  } else if (wizardCurrentOtherCategory === "theme") {
     existingList = [
       "アクション / 冒険",
       "ミステリー / サスペンス",
@@ -345,8 +345,8 @@ async function wizardOtherGenerate() {
       "ホラー / スリラー",
       ...wizCustomThemeChips
     ];
-  } else if (wizardCurrentOtherCategory==="mood") {
-    existingList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス", ...wizCustomMoodChips];
+  } else if (wizardCurrentOtherCategory === "mood") {
+    existingList = ["ライト / ポップ", "中間 / バランス型", "ダーク / シリアス", ...wizCustomMoodChips];
   }
 
   showLoadingModal(true);
@@ -355,26 +355,26 @@ async function wizardOtherGenerate() {
     const userPrompt = `既存候補:${existingList.join(" / ")}\nこれらに無い新しい案を1つ提案してください。`;
 
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${window.apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          {role:"system", content:systemPrompt},
-          {role:"user", content:userPrompt}
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
 
-    const newCandidate = (data.choices[0].message.content||"").trim();
+    const newCandidate = (data.choices[0].message.content || "").trim();
     document.getElementById("wizard-other-input-text").value = newCandidate;
-  } catch(err) {
+  } catch (err) {
     console.error(err);
     alert("その他生成失敗:\n" + err.message);
   } finally {
@@ -385,23 +385,23 @@ async function wizardOtherGenerate() {
 function wizardOtherOk() {
   const val = document.getElementById("wizard-other-input-text").value.trim();
   if (!val) {
-    document.getElementById("wizard-other-input-modal").style.display="none";
+    document.getElementById("wizard-other-input-modal").style.display = "none";
     return;
   }
 
-  if (wizardCurrentOtherCategory==="stage") {
+  if (wizardCurrentOtherCategory === "stage") {
     if (!wizCustomStageChips.includes(val)) {
       wizCustomStageChips.push(val);
       localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
     }
     renderWizardStageChips();
-  } else if (wizardCurrentOtherCategory==="theme") {
+  } else if (wizardCurrentOtherCategory === "theme") {
     if (!wizCustomThemeChips.includes(val)) {
       wizCustomThemeChips.push(val);
       localStorage.setItem("customThemeChips", JSON.stringify(wizCustomThemeChips));
     }
     renderWizardThemeChips();
-  } else if (wizardCurrentOtherCategory==="mood") {
+  } else if (wizardCurrentOtherCategory === "mood") {
     if (!wizCustomMoodChips.includes(val)) {
       wizCustomMoodChips.push(val);
       localStorage.setItem("customMoodChips", JSON.stringify(wizCustomMoodChips));
@@ -409,54 +409,54 @@ function wizardOtherOk() {
     renderWizardMoodChips();
   }
 
-  document.getElementById("wizard-other-input-modal").style.display="none";
+  document.getElementById("wizard-other-input-modal").style.display = "none";
   updateWizGenreResultText();
 }
 
 function wizardOtherCancel() {
-  document.getElementById("wizard-other-input-modal").style.display="none";
+  document.getElementById("wizard-other-input-modal").style.display = "none";
 }
 
 function wizardDeleteConfirmOk() {
-  if (wizardDeletingChipCategory==="stage") {
-    wizCustomStageChips = wizCustomStageChips.filter(c=> c!==wizardDeletingChipLabel);
+  if (wizardDeletingChipCategory === "stage") {
+    wizCustomStageChips = wizCustomStageChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
-    wizStoredStageArr = wizStoredStageArr.filter(x=> x!==wizardDeletingChipLabel);
+    wizStoredStageArr = wizStoredStageArr.filter(x => x !== wizardDeletingChipLabel);
     localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     renderWizardStageChips();
-  } else if (wizardDeletingChipCategory==="theme") {
-    wizCustomThemeChips = wizCustomThemeChips.filter(c=> c!==wizardDeletingChipLabel);
+  } else if (wizardDeletingChipCategory === "theme") {
+    wizCustomThemeChips = wizCustomThemeChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customThemeChips", JSON.stringify(wizCustomThemeChips));
-    if (wizStoredTheme===wizardDeletingChipLabel) {
-      wizStoredTheme="";
+    if (wizStoredTheme === wizardDeletingChipLabel) {
+      wizStoredTheme = "";
       localStorage.setItem("elementTheme", "");
     }
     renderWizardThemeChips();
-  } else if (wizardDeletingChipCategory==="mood") {
-    wizCustomMoodChips = wizCustomMoodChips.filter(c=> c!==wizardDeletingChipLabel);
+  } else if (wizardDeletingChipCategory === "mood") {
+    wizCustomMoodChips = wizCustomMoodChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customMoodChips", JSON.stringify(wizCustomMoodChips));
-    if (wizStoredMood===wizardDeletingChipLabel) {
-      wizStoredMood="";
+    if (wizStoredMood === wizardDeletingChipLabel) {
+      wizStoredMood = "";
       localStorage.setItem("elementMood", "");
     }
     renderWizardMoodChips();
   }
-  wizardDeletingChipLabel="";
-  wizardDeletingChipCategory="";
-  document.getElementById("wizard-delete-confirm-modal").style.display="none";
+  wizardDeletingChipLabel = "";
+  wizardDeletingChipCategory = "";
+  document.getElementById("wizard-delete-confirm-modal").style.display = "none";
   updateWizGenreResultText();
 }
 
 function wizardDeleteConfirmCancel() {
-  wizardDeletingChipLabel="";
-  wizardDeletingChipCategory="";
-  document.getElementById("wizard-delete-confirm-modal").style.display="none";
+  wizardDeletingChipLabel = "";
+  wizardDeletingChipCategory = "";
+  document.getElementById("wizard-delete-confirm-modal").style.display = "none";
 }
 
 function updateWizGenreResultText() {
-  let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
-  let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart  = wizStoredMood  ? "【雰囲気】"+wizStoredMood : "";
+  let stagePart = (wizStoredStageArr.length > 0) ? "【舞台】" + wizStoredStageArr.join("/") : "";
+  let themePart = wizStoredTheme ? "【テーマ】" + wizStoredTheme : "";
+  let moodPart = wizStoredMood ? "【雰囲気】" + wizStoredMood : "";
   let result = stagePart + themePart + moodPart;
   document.getElementById("wiz-genre-result-text").textContent = result;
 }
@@ -494,9 +494,9 @@ async function onGoStep2() {
 }
 
 function buildChipsGenre() {
-  let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
-  let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart  = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
+  let stagePart = (wizStoredStageArr.length > 0) ? "【舞台】" + wizStoredStageArr.join("/") : "";
+  let themePart = wizStoredTheme ? "【テーマ】" + wizStoredTheme : "";
+  let moodPart = wizStoredMood ? "【雰囲気】" + wizStoredMood : "";
   return stagePart + themePart + moodPart;
 }
 
@@ -519,10 +519,17 @@ function onBackToStep2FromStep3() {
 function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
   saveWizardDataToIndexedDB(wizardData);
+  // 英語→日本語に変換するラベルを用意
+  let typeLabel = "";
+  if (type === "objective") {
+    typeLabel = "目的達成型";
+  } else {
+    typeLabel = "探索型";
+  }
 
   const textEl = document.getElementById("confirm-genre-type-text");
-  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type}`;
-  document.getElementById("confirm-scenario-modal").style.display="flex";
+  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${typeLabel}`;
+  document.getElementById("confirm-scenario-modal").style.display = "flex";
 }
 
 function onConfirmScenarioModalCancel() {
@@ -572,23 +579,23 @@ async function onStartScenario() {
     if (wizardData.introScene && wizardData.introScene.trim()) {
       const firstScene = {
         scenarioId: scenarioId,
-        type:"scene",
-        sceneId:"intro_"+Date.now(),
-        content:wizardData.introScene
+        type: "scene",
+        sceneId: "intro_" + Date.now(),
+        content: wizardData.introScene
       };
       await addSceneEntry(firstScene);
     }
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
-  } catch(err) {
+  } catch (err) {
     console.error("シナリオ開始失敗:", err);
-    alert("シナリオ開始失敗: "+err.message);
+    alert("シナリオ開始失敗: " + err.message);
   }
 }
 
-async function generateScenarioSummaryAndClearCondition(){
+async function generateScenarioSummaryAndClearCondition() {
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     wizardData.scenarioSummary = "";
     wizardData.clearCondition = "";
@@ -600,44 +607,44 @@ async function generateScenarioSummaryAndClearCondition(){
       2) 【クリア条件】(非公開,プレイヤー非表示)。必ず明示してください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
-          { role:"user", content: prompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "user", content: prompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
 
-    const text = data.choices[0].message.content||"";
+    const text = data.choices[0].message.content || "";
     let sum = text;
     let cc = "";
     if (text.includes("【クリア条件】")) {
       const arr = text.split("【クリア条件】");
       sum = arr[0].trim();
-      cc = arr[1]? arr[1].trim():"";
+      cc = arr[1] ? arr[1].trim() : "";
     }
     wizardData.scenarioSummary = sum;
     wizardData.clearCondition = cc;
     await saveWizardDataToIndexedDB(wizardData);
-  } catch(err){
+  } catch (err) {
     console.error(err);
-    alert("目的達成型シナリオ生成失敗: "+err.message);
+    alert("目的達成型シナリオ生成失敗: " + err.message);
   }
 }
 
 async function generateScenarioSummary() {
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     wizardData.scenarioSummary = "";
 
@@ -646,28 +653,28 @@ async function generateScenarioSummary() {
       エレメント取得可能。短めの概要を作ってください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
-          { role:"user", content: prompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "user", content: prompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    wizardData.scenarioSummary = data.choices[0].message.content||"(概要なし)";
+    wizardData.scenarioSummary = data.choices[0].message.content || "(概要なし)";
     await saveWizardDataToIndexedDB(wizardData);
-  } catch(err){
+  } catch (err) {
     console.error(err);
-    alert("探索型シナリオ生成失敗: "+err.message);
+    alert("探索型シナリオ生成失敗: " + err.message);
   }
 }
 
@@ -686,44 +693,44 @@ async function generateSections() {
 
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content: systemPrompt },
-          { role:"user", content: userPrompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const d = await r.json();
-    if(d.error) throw new Error(d.error.message);
+    if (d.error) throw new Error(d.error.message);
 
-    const text = d.choices[0].message.content||"";
-    const lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
+    const text = d.choices[0].message.content || "";
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
 
-    for(let i=0; i<count; i++){
-      const raw = lines[i] || (`セクション${i+1}のダミー(動詞)`);
+    for (let i = 0; i < count; i++) {
+      const raw = lines[i] || (`セクション${i + 1}のダミー(動詞)`);
       wizardData.sections.push({
-        number: (i+1),
+        number: (i + 1),
         conditionZipped: zipString(raw),
         cleared: false
       });
     }
-  } catch(err) {
+  } catch (err) {
     console.error("セクション生成失敗:", err);
     // ダミー
-    for(let i=0; i<count; i++){
+    for (let i = 0; i < count; i++) {
       wizardData.sections.push({
-        number: (i+1),
-        conditionZipped: zipString(`セクション${i+1}ダミー(動詞形)`),
+        number: (i + 1),
+        conditionZipped: zipString(`セクション${i + 1}ダミー(動詞形)`),
         cleared: false
       });
     }
@@ -731,20 +738,20 @@ async function generateSections() {
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-function zipString(str){
+function zipString(str) {
   const utf8 = new TextEncoder().encode(str);
   const def = pako.deflate(utf8);
   return btoa(String.fromCharCode(...def));
 }
 
-async function generateIntroScene(){
+async function generateIntroScene() {
   const apiKey = window.apiKey || "";
-  if(!apiKey){
+  if (!apiKey) {
     wizardData.introScene = "(導入生成失敗：APIキー無し)";
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  try{
+  try {
     const pro = `
       あなたはTRPGのゲームマスターです。
       次のシナリオ概要を踏まえ、プレイヤーが行動したくなる導入シーン(300字程度)を作ってください。
@@ -752,79 +759,79 @@ async function generateIntroScene(){
       ${wizardData.scenarioSummary}
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオライターです。" },
-          { role:"user", content: pro }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオライターです。" },
+          { role: "user", content: pro }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    wizardData.introScene = data.choices[0].message.content||"(導入空)";
-  } catch(err){
+    wizardData.introScene = data.choices[0].message.content || "(導入空)";
+  } catch (err) {
     console.error(err);
-    wizardData.introScene="(導入生成失敗)";
+    wizardData.introScene = "(導入生成失敗)";
   }
   await saveWizardDataToIndexedDB(wizardData);
 }
 
 /** ★カレントパーティ情報を wizardData に格納 */
-async function storePartyInWizardData(){
+async function storePartyInWizardData() {
   // currentPartyId
-  const cpidStr = localStorage.getItem("currentPartyId")||"";
-  if(!cpidStr){
+  const cpidStr = localStorage.getItem("currentPartyId") || "";
+  if (!cpidStr) {
     // パーティ未設定の場合でもエラーにはしない
     wizardData.party = [];
     wizardData.partyId = 0;
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  const pid = parseInt(cpidStr,10);
+  const pid = parseInt(cpidStr, 10);
   wizardData.partyId = pid;
 
   const charData = await loadCharacterDataFromIndexedDB();
-  if(!charData){
+  if (!charData) {
     wizardData.party = [];
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  const partyCards = charData.filter(c=> c.group==="Party" && c.partyId===pid);
-  const stripped = partyCards.map(c=>({
-    id:c.id,
-    name:c.name,
-    type:c.type,
-    rarity:c.rarity,
-    state:c.state,
-    special:c.special,
-    caption:c.caption,
-    backgroundcss:c.backgroundcss,
-    role:c.role
+  const partyCards = charData.filter(c => c.group === "Party" && c.partyId === pid);
+  const stripped = partyCards.map(c => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    rarity: c.rarity,
+    state: c.state,
+    special: c.special,
+    caption: c.caption,
+    backgroundcss: c.backgroundcss,
+    role: c.role
   }));
   wizardData.party = stripped;
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-function updateSummaryUI(){
+function updateSummaryUI() {
   const el = document.getElementById("scenario-summary");
-  if(!el)return;
+  if (!el) return;
   el.textContent = wizardData.scenarioSummary || "(シナリオ概要なし)";
 }
 
-function showLoadingModal(show){
+function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
-  if(!m)return;
+  if (!m) return;
   m.style.display = show ? "flex" : "none";
 }
 
-function onCancelFetch(){
+function onCancelFetch() {
   showLoadingModal(false);
 }
