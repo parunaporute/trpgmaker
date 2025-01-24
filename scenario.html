@@ -70,19 +70,24 @@
     <div class="game-section" style="display:none;">
       <div id="story" style="margin-bottom:20px;"></div>
       <div id="last-scene-images" style="margin-bottom:20px;"></div>
+
+      <!-- ★ ボタン2つ: 自動生成 & カスタム -->
       <div>
         <button id="image-auto-generate-button">自動生成(現シーンから)</button>
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
+
       <div id="player-action" style="margin-top:20px;">プレイヤーの行動を入力してください</div>
       <div style="margin-top:10px;">
         <button id="generate-action-candidates-button">回答候補を生成</button>
       </div>
       <div id="action-candidates-container" style="margin-top:10px;"></div>
+
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
-    <!-- ★ 追加: パーティーを確認ボタン (scene-historyより上に配置) -->
-    <button id="show-party-button">パーティーを確認</button>
+
+      <!-- ★ 追加: パーティーを確認ボタン -->
+      <button id="show-party-button">パーティーを確認</button>
 
       <!-- 探索型なら表示する「カードを取得する」ボタン -->
       <button id="get-card-button" style="display:none; margin-top:20px;">
@@ -136,7 +141,7 @@
     </div>
   </div>
 
-  <!-- ★ 追加: パーティ表示用モーダル -->
+  <!-- ★ パーティ表示用モーダル -->
   <div id="party-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h2>パーティ確認</h2>
@@ -148,7 +153,6 @@
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
-  <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
   <script src="js/scenarioPage.js"></script>

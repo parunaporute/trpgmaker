@@ -17,7 +17,7 @@ let db = null;
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 6);  // ★ バージョン5
+    const request = indexedDB.open("trpgDB", 7);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 

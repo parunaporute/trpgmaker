@@ -623,19 +623,24 @@ scenario.html
     <div class="game-section" style="display:none;">
       <div id="story" style="margin-bottom:20px;"></div>
       <div id="last-scene-images" style="margin-bottom:20px;"></div>
+
+      <!-- ★ ボタン2つ: 自動生成 & カスタム -->
       <div>
         <button id="image-auto-generate-button">自動生成(現シーンから)</button>
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
       </div>
+
       <div id="player-action" style="margin-top:20px;">プレイヤーの行動を入力してください</div>
       <div style="margin-top:10px;">
         <button id="generate-action-candidates-button">回答候補を生成</button>
       </div>
       <div id="action-candidates-container" style="margin-top:10px;"></div>
+
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
-    <!-- ★ 追加: パーティーを確認ボタン (scene-historyより上に配置) -->
-    <button id="show-party-button">パーティーを確認</button>
+
+      <!-- ★ 追加: パーティーを確認ボタン -->
+      <button id="show-party-button">パーティーを確認</button>
 
       <!-- 探索型なら表示する「カードを取得する」ボタン -->
       <button id="get-card-button" style="display:none; margin-top:20px;">
@@ -689,7 +694,7 @@ scenario.html
     </div>
   </div>
 
-  <!-- ★ 追加: パーティ表示用モーダル -->
+  <!-- ★ パーティ表示用モーダル -->
   <div id="party-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <h2>パーティ確認</h2>
@@ -701,7 +706,6 @@ scenario.html
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
-  <script src="js/image.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
   <script src="js/scenarioPage.js"></script>
@@ -714,7 +718,8 @@ scenario.html
   </script>
 </body>
 
-</html>--- 
+</html>
+--- 
 scenarioWizard.html 
 <!DOCTYPE html>
 <html lang="ja">
@@ -723,6 +728,7 @@ scenarioWizard.html
   <title>新しいシナリオ作成ウィザード</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 
   <!-- ▼ 背景管理用スクリプト -->
   <script src="js/background.js"></script>
@@ -769,64 +775,47 @@ scenarioWizard.html
     <!-- ステップ1：ジャンル選択 -->
     <div id="wizard-step1" style="display:block;">
       <h2>ステップ1：ジャンルを選択してください</h2>
-      <p style="font-size:0.9em; margin-bottom:10px;">下記の軸を選択、または自由入力してください。</p>
+      <!-- ▼ ここから改変部分 ▼ -->
+      <p style="font-size:0.9em; margin-bottom:10px;">
+        ジャンルの軸を選択しますか？それともジャンルを自由入力しますか？
+      </p>
 
-      <!-- 舞台（複数可） -->
-      <div style="margin-top:10px;">
-        <strong>舞台（複数選択可）</strong><br>
-        <div id="wiz-stage-chips-container" class="chips-container"></div>
+      <div class="chips-container" id="wiz-genre-choice" style="margin-bottom:20px;">
+        <div class="chip" id="choice-axis">選択して入力</div>
+        <div class="chip" id="choice-free">自由入力</div>
       </div>
 
-      <!-- テーマ（単一） -->
-      <div style="margin-top:10px;">
-        <strong>テーマ（単一選択）</strong><br>
-        <div id="wiz-theme-chips-container" class="chips-container"></div>
-      </div>
+      <!-- 軸入力（舞台・テーマ・雰囲気）をまとめるコンテナ -->
+      <div id="axis-input-group" style="opacity:0.5; pointer-events:none;">
+        <!-- 舞台（複数可） -->
+        <div style="margin-top:10px;">
+          <strong>舞台（複数選択可）</strong><br>
+          <div id="wiz-stage-chips-container" class="chips-container"></div>
+        </div>
 
-      <!-- 雰囲気（単一選択） -->
-      <div style="margin-top:10px;">
-        <strong>雰囲気（単一選択）</strong><br>
-        <div id="wiz-mood-chips-container" class="chips-container"></div>
-      </div>
+        <!-- テーマ（単一選択） -->
+        <div style="margin-top:10px;">
+          <strong>テーマ（単一選択）</strong><br>
+          <div id="wiz-theme-chips-container" class="chips-container"></div>
+        </div>
 
-      <!-- 「その他」登録用モーダル -->
-      <div id="wizard-other-input-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:400px;">
-          <h2>「その他」を追加</h2>
-          <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
-          <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
-          <div style="margin-top:10px;">
-            <button id="wizard-other-generate-btn">生成</button>
-            <button id="wizard-other-ok-btn">OK</button>
-            <button id="wizard-other-cancel-btn">キャンセル</button>
-          </div>
-          <p style="font-size:0.8em; color:#666; margin-top:10px;">
-            ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
-            その結果を上のテキストボックスに自動入力します。
-          </p>
+        <!-- 雰囲気（単一選択） -->
+        <div style="margin-top:10px;">
+          <strong>雰囲気（単一選択）</strong><br>
+          <div id="wiz-mood-chips-container" class="chips-container"></div>
+        </div>
+
+        <!-- 選択したジャンルの表示 -->
+        <div style="margin-top:30px;">
+          <p id="wiz-genre-result-text" style="border: 1px solid;padding: 10px;font-size: 1.5rem;background-color: #434343;"></p>
         </div>
       </div>
 
-      <!-- 「削除」確認モーダル -->
-      <div id="wizard-delete-confirm-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-          <p>この選択肢を削除しますが、よろしいですか？</p>
-          <button id="wizard-delete-confirm-ok">OK</button>
-          <button id="wizard-delete-confirm-cancel">キャンセル</button>
-        </div>
-      </div>
-
-      <!-- 選択したジャンルの表示 -->
-      <div style="margin-top:10px;">
-        <strong>現在の選択：</strong>
-        <p id="wiz-genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
-      </div>
-
-      <!-- 自由入力欄 -->
-      <div style="margin-top:10px;">
-        <label for="free-genre-input">自由入力：</label>
+      <!-- 自由入力コンテナ -->
+      <div id="free-input-group" style="margin-top:10px; opacity:0.5; pointer-events:none;">
         <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
       </div>
+      <!-- ▲ ここまで改変部分 ▲ -->
 
       <div style="margin-top:20px;">
         <button id="go-step2-btn">次へ</button>
@@ -855,6 +844,19 @@ scenarioWizard.html
       </p>
     </div>
 
+    <!-- シナリオ作成確認モーダル -->
+    <div id="confirm-scenario-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:500px;">
+        <h3>シナリオ生成の確認</h3>
+        <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
+        <p>これでシナリオを作成します。よろしいですか？</p>
+        <div style="margin-top:10px;">
+          <button id="confirm-scenario-ok">OK</button>
+          <button id="confirm-scenario-cancel">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ステップ3：最終確認(シナリオ要約表示) -->
     <div id="wizard-step3" style="display:none;">
       <h2>ステップ3：シナリオ要約</h2>
@@ -873,16 +875,30 @@ scenarioWizard.html
     </div>
   </div>
 
-  <!-- シナリオ作成確認モーダル -->
-  <div id="confirm-scenario-modal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:500px;">
-      <h3>シナリオ生成の確認</h3>
-      <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
-      <p>これでシナリオを作成します。よろしいですか？</p>
+  <!-- 「その他」登録用モーダル -->
+  <div id="wizard-other-input-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>「その他」を追加</h2>
+      <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
+      <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
       <div style="margin-top:10px;">
-        <button id="confirm-scenario-ok">OK</button>
-        <button id="confirm-scenario-cancel">キャンセル</button>
+        <button id="wizard-other-generate-btn">生成</button>
+        <button id="wizard-other-ok-btn">OK</button>
+        <button id="wizard-other-cancel-btn">キャンセル</button>
       </div>
+      <p style="font-size:0.8em; color:#666; margin-top:10px;">
+        ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+        その結果を上のテキストボックスに自動入力します。
+      </p>
+    </div>
+  </div>
+
+  <!-- 「削除」確認モーダル -->
+  <div id="wizard-delete-confirm-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <p>この選択肢を削除しますが、よろしいですか？</p>
+      <button id="wizard-delete-confirm-ok">OK</button>
+      <button id="wizard-delete-confirm-cancel">キャンセル</button>
     </div>
   </div>
 
@@ -946,7 +962,7 @@ textarea {
   box-sizing: border-box;
   width: 100%;
   padding: 10px;
-  font-size: 14px;
+  font-size: 1.5rem;
   border: 1px solid #ccc;
   background-color: #434343;
   color: #f0f0f0;
@@ -961,6 +977,7 @@ button {
   border-radius: 4px;
   cursor: pointer;
   margin-bottom: 10px;
+  min-height: 2.5rem;
 }
 
 button:hover {
@@ -1244,6 +1261,7 @@ button:hover {
 
 .bezel.rarity0 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -1252,6 +1270,7 @@ button:hover {
 
 .bezel.rarity1 {
   background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -1260,6 +1279,7 @@ button:hover {
 
 .bezel.rarity2 {
   background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -1268,6 +1288,7 @@ button:hover {
 
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -1278,6 +1299,7 @@ button:hover {
   position: absolute;
   background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
   background-size: 400% 400%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -1288,6 +1310,7 @@ button:hover {
 .bezel.rarity5 {
   background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
   background-size: 150% 150%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
@@ -2681,218 +2704,6 @@ function makeRarityCountMap(rarities) {
 // ↑ これらをまとめて gachaCore.js として管理
 // ----------------------------------------------
 --- 
-image.js 
-/********************************
- * image.js - 画像生成関連
- ********************************/
-
-/**
- * DALL·E API からBase64形式で直接画像を受け取り、CORSを回避する方法。
- * OpenAIの画像生成では以下のパラメータを指定することで、直接base64を返してもらうことが可能。
- *   response_format: "b64_json"
- */
-
-/** 自動生成(現シーン) */
-async function generateImageFromCurrentScene() {
-  if (!window.apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-  const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
-  if (!lastSceneEntry) {
-    alert("まだシーンがありません。");
-    return;
-  }
-  const promptText = `シーンのイメージ: ${lastSceneEntry.content}`;
-  const sceneId = lastSceneEntry.sceneId;
-
-  window.cancelRequested = false;
-  showLoadingModal(true);
-
-  try {
-    window.currentRequestController = new AbortController();
-    const signal = window.currentRequestController.signal;
-
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${window.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json"
-      }),
-      signal,
-    });
-
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-
-    const data = await response.json();
-
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-
-    // Base64文字列を取り出し、data:image/png;base64, に変換
-    const base64 = data.data[0].b64_json;
-    const dataUrl = "data:image/png;base64," + base64;
-
-    window.sceneHistory.push({
-      type: "image",
-      sceneId,
-      prompt: promptText,
-      dataUrl: dataUrl,
-    });
-
-    // IndexedDBに保存
-    await saveSceneHistoryToIndexedDB(window.sceneHistory);
-
-    updateSceneHistory();
-    showLastScene();
-  } catch (error) {
-    if (error.name === "AbortError") {
-      console.warn("画像生成キャンセル");
-    } else {
-      console.error("画像生成失敗:", error);
-      alert("画像生成に失敗:\n" + error.message);
-    }
-  } finally {
-    showLoadingModal(false);
-  }
-}
-
-/** カスタム画像生成モーダルを開く */
-function openImagePromptModal(prompt = "", index = null) {
-  window.editingImageEntry = null;
-  if (index !== null) {
-    // 再生成の場合
-    window.editingImageEntry = { index };
-    const entry = window.sceneHistory[index];
-    if (entry && entry.type === "image") {
-      prompt = entry.prompt;
-    }
-  } else {
-    // 新規
-    const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
-    if (lastSceneEntry) {
-      prompt = lastSceneEntry.content;
-    } else {
-      prompt = window.scenario || "Fantasy scene";
-    }
-  }
-  document.getElementById("image-custom-prompt").value = prompt;
-  document.getElementById("image-prompt-modal").style.display = "flex";
-}
-
-/** カスタム画像生成モーダルを閉じる */
-function closeImagePromptModal() {
-  document.getElementById("image-prompt-modal").style.display = "none";
-  window.editingImageEntry = null;
-}
-
-/** カスタム画像生成ボタン押下 */
-async function onCustomImageGenerate() {
-  if (!window.apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-  const promptText = document.getElementById("image-custom-prompt").value.trim() || "Fantasy scene";
-
-  window.cancelRequested = false;
-  showLoadingModal(true);
-  closeImagePromptModal();
-
-  try {
-    window.currentRequestController = new AbortController();
-    const signal = window.currentRequestController.signal;
-
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${window.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json"
-      }),
-      signal,
-    });
-
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-
-    const data = await response.json();
-
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-
-    // Base64文字列を取り出し、data:image/png;base64, に変換
-    const base64 = data.data[0].b64_json;
-    const dataUrl = "data:image/png;base64," + base64;
-
-    if (window.editingImageEntry) {
-      // 既存画像を再生成
-      const idx = window.editingImageEntry.index;
-      const entry = window.sceneHistory[idx];
-      if (entry && entry.type === "image") {
-        entry.dataUrl = dataUrl;
-        entry.prompt = promptText;
-      }
-    } else {
-      // 新規
-      const lastSceneEntry = [...window.sceneHistory].reverse().find((e) => e.type === "scene");
-      if (!lastSceneEntry) {
-        alert("シーンがありません。");
-        showLoadingModal(false);
-        return;
-      }
-      window.sceneHistory.push({
-        type: "image",
-        sceneId: lastSceneEntry.sceneId,
-        prompt: promptText,
-        dataUrl: dataUrl,
-      });
-    }
-
-    // IndexedDBに保存
-    await saveSceneHistoryToIndexedDB(window.sceneHistory);
-
-    updateSceneHistory();
-    showLastScene();
-  } catch (error) {
-    if (error.name === "AbortError") {
-      console.warn("カスタム画像生成キャンセル");
-    } else {
-      console.error("カスタム画像生成失敗:", error);
-      alert("カスタム画像生成失敗:\n" + error.message);
-    }
-  } finally {
-    showLoadingModal(false);
-  }
-}
---- 
 indexedDB.js 
 /********************************
  * indexedDB.js
@@ -2913,7 +2724,7 @@ let db = null;
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 6);  // ★ バージョン5
+    const request = indexedDB.open("trpgDB", 7);  // ★ バージョン5
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -5139,6 +4950,9 @@ let wizardCurrentOtherCategory = "";
 let wizardDeletingChipLabel = "";
 let wizardDeletingChipCategory = "";
 
+// 軸選択 or 自由入力 の選択状態 ("axis" | "free" | "")
+let wizardChoice = "";
+
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 window.addEventListener("load", async function () {
@@ -5153,6 +4967,7 @@ window.addEventListener("load", async function () {
 
   initWizardChips();
 
+  // Stepボタン
   document.getElementById("go-step2-btn").addEventListener("click", onGoStep2);
   document.getElementById("back-to-step1-button").addEventListener("click", onBackToStep1);
   document.getElementById("back-to-step2-button").addEventListener("click", onBackToStep2FromStep3);
@@ -5178,9 +4993,64 @@ window.addEventListener("load", async function () {
   document.getElementById("wizard-delete-confirm-ok").addEventListener("click", wizardDeleteConfirmOk);
   document.getElementById("wizard-delete-confirm-cancel").addEventListener("click", wizardDeleteConfirmCancel);
 
+  // ▼ 軸or自由入力のチップにイベント付与
+  const axisChip = document.getElementById("choice-axis");
+  const freeChip = document.getElementById("choice-free");
+  axisChip.addEventListener("click", () => {
+    wizardChoice = "axis";
+    axisChip.classList.add("selected");
+    freeChip.classList.remove("selected");
+    enableAxisInput(true);
+    enableFreeInput(false);
+  });
+  freeChip.addEventListener("click", () => {
+    wizardChoice = "free";
+    freeChip.classList.add("selected");
+    axisChip.classList.remove("selected");
+    enableAxisInput(false);
+    enableFreeInput(true);
+  });
+
+  // 初期状態は未選択
+  wizardChoice = "";
+  axisChip.classList.remove("selected");
+  freeChip.classList.remove("selected");
+  enableAxisInput(false);
+  enableFreeInput(false);
+
   updateSelectedGenreDisplay();
   updateSummaryUI();
 });
+
+/** 軸入力を有効/無効にする */
+function enableAxisInput(flag) {
+  const group = document.getElementById("axis-input-group");
+  if (!group) return;
+  if (flag) {
+    group.style.opacity = "1.0";
+    group.style.display = "block";
+    group.style.pointerEvents = "auto";
+  } else {
+    group.style.opacity = "0.2";
+    group.style.display = "none";
+    group.style.pointerEvents = "none";
+  }
+}
+
+/** 自由入力を有効/無効にする */
+function enableFreeInput(flag) {
+  const group = document.getElementById("free-input-group");
+  if (!group) return;
+  if (flag) {
+    group.style.opacity = "1.0";
+    group.style.display = "block";
+    group.style.pointerEvents = "auto";
+  } else {
+    group.style.opacity = "0.2";
+    group.style.display = "none";
+    group.style.pointerEvents = "none";
+  }
+}
 
 function initWizardChips() {
   // localStorage 読み込み
@@ -5188,18 +5058,18 @@ function initWizardChips() {
   if (sjson) {
     try {
       wizStoredStageArr = JSON.parse(sjson);
-    } catch(e) {
+    } catch (e) {
       wizStoredStageArr = [];
     }
   } else {
     wizStoredStageArr = [];
   }
   wizStoredTheme = localStorage.getItem("elementTheme") || "";
-  wizStoredMood  = localStorage.getItem("elementMood")  || "";
+  wizStoredMood = localStorage.getItem("elementMood") || "";
 
   wizCustomStageChips = loadWizardCustom("customStageChips");
   wizCustomThemeChips = loadWizardCustom("customThemeChips");
-  wizCustomMoodChips  = loadWizardCustom("customMoodChips");
+  wizCustomMoodChips = loadWizardCustom("customMoodChips");
 
   renderWizardStageChips();
   renderWizardThemeChips();
@@ -5213,14 +5083,14 @@ function loadWizardCustom(key) {
     const j = localStorage.getItem(key);
     if (!j) return [];
     return JSON.parse(j);
-  } catch(e) {
+  } catch (e) {
     return [];
   }
 }
 
 // 舞台(複数)
 function renderWizardStageChips() {
-  const defaultList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク"];
+  const defaultList = ["ファンタジー", "SF", "歴史・時代劇", "現代", "ホラー / ダーク"];
   const container = document.getElementById("wiz-stage-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -5254,7 +5124,7 @@ function renderWizardThemeChips() {
 
 // 雰囲気(単一)
 function renderWizardMoodChips() {
-  const defaultList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス"];
+  const defaultList = ["ライト / ポップ", "中間 / バランス型", "ダーク / シリアス"];
   const container = document.getElementById("wiz-mood-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -5267,42 +5137,43 @@ function renderWizardMoodChips() {
 }
 
 function createWizardChip(label, category) {
-  const isOther = (label==="その他");
+  const isOther = (label === "その他");
   const chip = document.createElement("div");
   chip.className = "chip";
   chip.textContent = label;
 
-  if (category==="stage") {
+  if (category === "stage") {
     if (wizStoredStageArr.includes(label)) {
       chip.classList.add("selected");
     }
-  } else if (category==="theme") {
-    if (wizStoredTheme===label) {
+  } else if (category === "theme") {
+    if (wizStoredTheme === label) {
       chip.classList.add("selected");
     }
-  } else if (category==="mood") {
-    if (wizStoredMood===label) {
+  } else if (category === "mood") {
+    if (wizStoredMood === label) {
       chip.classList.add("selected");
     }
   }
 
   chip.addEventListener("click", () => {
+    if (!canEditAxisInput()) return; // 軸入力が無効な場合はクリックしても反応しない
     if (isOther) {
       openWizardOtherModal(category);
       return;
     }
 
-    if (category==="stage") {
+    if (category === "stage") {
       // 複数トグル
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
-        wizStoredStageArr = wizStoredStageArr.filter(x=> x!==label);
+        wizStoredStageArr = wizStoredStageArr.filter(x => x !== label);
       } else {
         chip.classList.add("selected");
         wizStoredStageArr.push(label);
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
-    } else if (category==="theme") {
+    } else if (category === "theme") {
       // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
@@ -5311,12 +5182,12 @@ function createWizardChip(label, category) {
       } else {
         const cont = document.getElementById("wiz-theme-chips-container");
         const all = cont.querySelectorAll(".chip");
-        all.forEach(c=> c.classList.remove("selected"));
+        all.forEach(c => c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredTheme = label;
         localStorage.setItem("elementTheme", wizStoredTheme);
       }
-    } else if (category==="mood") {
+    } else if (category === "mood") {
       // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
@@ -5325,7 +5196,7 @@ function createWizardChip(label, category) {
       } else {
         const cont = document.getElementById("wiz-mood-chips-container");
         const all = cont.querySelectorAll(".chip");
-        all.forEach(c=> c.classList.remove("selected"));
+        all.forEach(c => c.classList.remove("selected"));
         chip.classList.add("selected");
         wizStoredMood = label;
         localStorage.setItem("elementMood", wizStoredMood);
@@ -5335,17 +5206,22 @@ function createWizardChip(label, category) {
   });
 
   // カスタム削除
-  if(!isOther){
-    if(category==="stage" && wizCustomStageChips.includes(label)){
+  if (!isOther) {
+    if (category === "stage" && wizCustomStageChips.includes(label)) {
       addWizardRemoveButton(chip, label, "stage");
-    } else if(category==="theme" && wizCustomThemeChips.includes(label)){
+    } else if (category === "theme" && wizCustomThemeChips.includes(label)) {
       addWizardRemoveButton(chip, label, "theme");
-    } else if(category==="mood" && wizCustomMoodChips.includes(label)){
+    } else if (category === "mood" && wizCustomMoodChips.includes(label)) {
       addWizardRemoveButton(chip, label, "mood");
     }
   }
 
   return chip;
+}
+
+/** 軸入力が有効なときのみチップを操作できるようにするための判定 */
+function canEditAxisInput() {
+  return (wizardChoice === "axis");
 }
 
 function addWizardRemoveButton(chip, label, category) {
@@ -5354,11 +5230,11 @@ function addWizardRemoveButton(chip, label, category) {
   span.style.marginLeft = "4px";
   span.style.cursor = "pointer";
   span.style.color = "red";
-  span.addEventListener("click", (e)=>{
+  span.addEventListener("click", (e) => {
     e.stopPropagation();
     wizardDeletingChipLabel = label;
     wizardDeletingChipCategory = category;
-    document.getElementById("wizard-delete-confirm-modal").style.display="flex";
+    document.getElementById("wizard-delete-confirm-modal").style.display = "flex";
   });
   chip.appendChild(span);
 }
@@ -5366,13 +5242,13 @@ function addWizardRemoveButton(chip, label, category) {
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   const catText =
-    (category==="stage") ? "舞台に追加する「その他」" :
-    (category==="theme") ? "テーマに追加する「その他」" :
-    "雰囲気に追加する「その他」";
+    (category === "stage") ? "舞台に追加する「その他」" :
+      (category === "theme") ? "テーマに追加する「その他」" :
+        "雰囲気に追加する「その他」";
 
   document.getElementById("wizard-other-input-modal-category").textContent = catText;
   document.getElementById("wizard-other-input-text").value = "";
-  document.getElementById("wizard-other-input-modal").style.display="flex";
+  document.getElementById("wizard-other-input-modal").style.display = "flex";
 }
 
 async function wizardOtherGenerate() {
@@ -5381,9 +5257,9 @@ async function wizardOtherGenerate() {
     return;
   }
   let existingList = [];
-  if (wizardCurrentOtherCategory==="stage") {
-    existingList = ["ファンタジー","SF","歴史・時代劇","現代","ホラー / ダーク", ...wizCustomStageChips];
-  } else if (wizardCurrentOtherCategory==="theme") {
+  if (wizardCurrentOtherCategory === "stage") {
+    existingList = ["ファンタジー", "SF", "歴史・時代劇", "現代", "ホラー / ダーク", ...wizCustomStageChips];
+  } else if (wizardCurrentOtherCategory === "theme") {
     existingList = [
       "アクション / 冒険",
       "ミステリー / サスペンス",
@@ -5392,8 +5268,8 @@ async function wizardOtherGenerate() {
       "ホラー / スリラー",
       ...wizCustomThemeChips
     ];
-  } else if (wizardCurrentOtherCategory==="mood") {
-    existingList = ["ライト / ポップ","中間 / バランス型","ダーク / シリアス", ...wizCustomMoodChips];
+  } else if (wizardCurrentOtherCategory === "mood") {
+    existingList = ["ライト / ポップ", "中間 / バランス型", "ダーク / シリアス", ...wizCustomMoodChips];
   }
 
   showLoadingModal(true);
@@ -5402,26 +5278,26 @@ async function wizardOtherGenerate() {
     const userPrompt = `既存候補:${existingList.join(" / ")}\nこれらに無い新しい案を1つ提案してください。`;
 
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${window.apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          {role:"system", content:systemPrompt},
-          {role:"user", content:userPrompt}
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
 
-    const newCandidate = (data.choices[0].message.content||"").trim();
+    const newCandidate = (data.choices[0].message.content || "").trim();
     document.getElementById("wizard-other-input-text").value = newCandidate;
-  } catch(err) {
+  } catch (err) {
     console.error(err);
     alert("その他生成失敗:\n" + err.message);
   } finally {
@@ -5432,23 +5308,23 @@ async function wizardOtherGenerate() {
 function wizardOtherOk() {
   const val = document.getElementById("wizard-other-input-text").value.trim();
   if (!val) {
-    document.getElementById("wizard-other-input-modal").style.display="none";
+    document.getElementById("wizard-other-input-modal").style.display = "none";
     return;
   }
 
-  if (wizardCurrentOtherCategory==="stage") {
+  if (wizardCurrentOtherCategory === "stage") {
     if (!wizCustomStageChips.includes(val)) {
       wizCustomStageChips.push(val);
       localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
     }
     renderWizardStageChips();
-  } else if (wizardCurrentOtherCategory==="theme") {
+  } else if (wizardCurrentOtherCategory === "theme") {
     if (!wizCustomThemeChips.includes(val)) {
       wizCustomThemeChips.push(val);
       localStorage.setItem("customThemeChips", JSON.stringify(wizCustomThemeChips));
     }
     renderWizardThemeChips();
-  } else if (wizardCurrentOtherCategory==="mood") {
+  } else if (wizardCurrentOtherCategory === "mood") {
     if (!wizCustomMoodChips.includes(val)) {
       wizCustomMoodChips.push(val);
       localStorage.setItem("customMoodChips", JSON.stringify(wizCustomMoodChips));
@@ -5456,69 +5332,82 @@ function wizardOtherOk() {
     renderWizardMoodChips();
   }
 
-  document.getElementById("wizard-other-input-modal").style.display="none";
+  document.getElementById("wizard-other-input-modal").style.display = "none";
   updateWizGenreResultText();
 }
 
 function wizardOtherCancel() {
-  document.getElementById("wizard-other-input-modal").style.display="none";
+  document.getElementById("wizard-other-input-modal").style.display = "none";
 }
 
 function wizardDeleteConfirmOk() {
-  if (wizardDeletingChipCategory==="stage") {
-    wizCustomStageChips = wizCustomStageChips.filter(c=> c!==wizardDeletingChipLabel);
+  if (wizardDeletingChipCategory === "stage") {
+    wizCustomStageChips = wizCustomStageChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
-    wizStoredStageArr = wizStoredStageArr.filter(x=> x!==wizardDeletingChipLabel);
+    wizStoredStageArr = wizStoredStageArr.filter(x => x !== wizardDeletingChipLabel);
     localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     renderWizardStageChips();
-  } else if (wizardDeletingChipCategory==="theme") {
-    wizCustomThemeChips = wizCustomThemeChips.filter(c=> c!==wizardDeletingChipLabel);
+  } else if (wizardDeletingChipCategory === "theme") {
+    wizCustomThemeChips = wizCustomThemeChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customThemeChips", JSON.stringify(wizCustomThemeChips));
-    if (wizStoredTheme===wizardDeletingChipLabel) {
-      wizStoredTheme="";
+    if (wizStoredTheme === wizardDeletingChipLabel) {
+      wizStoredTheme = "";
       localStorage.setItem("elementTheme", "");
     }
     renderWizardThemeChips();
-  } else if (wizardDeletingChipCategory==="mood") {
-    wizCustomMoodChips = wizCustomMoodChips.filter(c=> c!==wizardDeletingChipLabel);
+  } else if (wizardDeletingChipCategory === "mood") {
+    wizCustomMoodChips = wizCustomMoodChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customMoodChips", JSON.stringify(wizCustomMoodChips));
-    if (wizStoredMood===wizardDeletingChipLabel) {
-      wizStoredMood="";
+    if (wizStoredMood === wizardDeletingChipLabel) {
+      wizStoredMood = "";
       localStorage.setItem("elementMood", "");
     }
     renderWizardMoodChips();
   }
-  wizardDeletingChipLabel="";
-  wizardDeletingChipCategory="";
-  document.getElementById("wizard-delete-confirm-modal").style.display="none";
+  wizardDeletingChipLabel = "";
+  wizardDeletingChipCategory = "";
+  document.getElementById("wizard-delete-confirm-modal").style.display = "none";
   updateWizGenreResultText();
 }
 
 function wizardDeleteConfirmCancel() {
-  wizardDeletingChipLabel="";
-  wizardDeletingChipCategory="";
-  document.getElementById("wizard-delete-confirm-modal").style.display="none";
+  wizardDeletingChipLabel = "";
+  wizardDeletingChipCategory = "";
+  document.getElementById("wizard-delete-confirm-modal").style.display = "none";
 }
 
 function updateWizGenreResultText() {
-  let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
-  let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart  = wizStoredMood  ? "【雰囲気】"+wizStoredMood : "";
+  let stagePart = (wizStoredStageArr.length > 0) ? "【舞台】" + wizStoredStageArr.join("/") : "";
+  let themePart = wizStoredTheme ? "【テーマ】" + wizStoredTheme : "";
+  let moodPart = wizStoredMood ? "【雰囲気】" + wizStoredMood : "";
   let result = stagePart + themePart + moodPart;
+  if(result == "") result = "テーマは選択されていません";
   document.getElementById("wiz-genre-result-text").textContent = result;
 }
 
 /* STEP1 -> STEP2 */
 async function onGoStep2() {
-  const freeVal = document.getElementById("free-genre-input").value.trim();
-  if (freeVal) {
-    wizardData.genre = freeVal;
-  } else {
-    wizardData.genre = buildChipsGenre();
-  }
-  if (!wizardData.genre) {
-    alert("ジャンルを入力または選択してください。");
+  // 軸 or 自由入力 の選択必須
+  if (!wizardChoice) {
+    alert("「選択して入力」か「自由入力」を選んでください。");
     return;
+  }
+
+  if (wizardChoice === "axis") {
+    const result = buildChipsGenre();
+    if (!result) {
+      alert("舞台・テーマ・雰囲気のどれかを入力してください。");
+      return;
+    }
+    wizardData.genre = result;
+  } else {
+    // "free"の場合
+    const freeVal = document.getElementById("free-genre-input").value.trim();
+    if (!freeVal) {
+      alert("自由入力ジャンルを入力してください。");
+      return;
+    }
+    wizardData.genre = freeVal;
   }
 
   await saveWizardDataToIndexedDB(wizardData);
@@ -5529,9 +5418,9 @@ async function onGoStep2() {
 }
 
 function buildChipsGenre() {
-  let stagePart = (wizStoredStageArr.length>0) ? "【舞台】"+wizStoredStageArr.join("/") : "";
-  let themePart = wizStoredTheme ? "【テーマ】"+wizStoredTheme : "";
-  let moodPart  = wizStoredMood ? "【雰囲気】"+wizStoredMood : "";
+  let stagePart = (wizStoredStageArr.length > 0) ? "【舞台】" + wizStoredStageArr.join("/") : "";
+  let themePart = wizStoredTheme ? "【テーマ】" + wizStoredTheme : "";
+  let moodPart = wizStoredMood ? "【雰囲気】" + wizStoredMood : "";
   return stagePart + themePart + moodPart;
 }
 
@@ -5554,10 +5443,17 @@ function onBackToStep2FromStep3() {
 function onSelectScenarioType(type) {
   wizardData.scenarioType = type;
   saveWizardDataToIndexedDB(wizardData);
+  // 英語→日本語に変換するラベルを用意
+  let typeLabel = "";
+  if (type === "objective") {
+    typeLabel = "目的達成型";
+  } else {
+    typeLabel = "探索型";
+  }
 
   const textEl = document.getElementById("confirm-genre-type-text");
-  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${type}`;
-  document.getElementById("confirm-scenario-modal").style.display="flex";
+  textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${typeLabel}`;
+  document.getElementById("confirm-scenario-modal").style.display = "flex";
 }
 
 function onConfirmScenarioModalCancel() {
@@ -5607,23 +5503,23 @@ async function onStartScenario() {
     if (wizardData.introScene && wizardData.introScene.trim()) {
       const firstScene = {
         scenarioId: scenarioId,
-        type:"scene",
-        sceneId:"intro_"+Date.now(),
-        content:wizardData.introScene
+        type: "scene",
+        sceneId: "intro_" + Date.now(),
+        content: wizardData.introScene
       };
       await addSceneEntry(firstScene);
     }
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
-  } catch(err) {
+  } catch (err) {
     console.error("シナリオ開始失敗:", err);
-    alert("シナリオ開始失敗: "+err.message);
+    alert("シナリオ開始失敗: " + err.message);
   }
 }
 
-async function generateScenarioSummaryAndClearCondition(){
+async function generateScenarioSummaryAndClearCondition() {
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     wizardData.scenarioSummary = "";
     wizardData.clearCondition = "";
@@ -5631,78 +5527,78 @@ async function generateScenarioSummaryAndClearCondition(){
     const prompt = `
       あなたはTRPG用のシナリオ作成に長けたアシスタントです。
       ジャンル:${wizardData.genre}, タイプ:目的達成型。
-      1) シナリオ概要(短め)
+      1) シナリオ概要(短めで背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:red"等)あり)
       2) 【クリア条件】(非公開,プレイヤー非表示)。必ず明示してください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
-          { role:"user", content: prompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "user", content: prompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
 
-    const text = data.choices[0].message.content||"";
+    const text = data.choices[0].message.content || "";
     let sum = text;
     let cc = "";
     if (text.includes("【クリア条件】")) {
       const arr = text.split("【クリア条件】");
       sum = arr[0].trim();
-      cc = arr[1]? arr[1].trim():"";
+      cc = arr[1] ? arr[1].trim() : "";
     }
     wizardData.scenarioSummary = sum;
     wizardData.clearCondition = cc;
     await saveWizardDataToIndexedDB(wizardData);
-  } catch(err){
+  } catch (err) {
     console.error(err);
-    alert("目的達成型シナリオ生成失敗: "+err.message);
+    alert("目的達成型シナリオ生成失敗: " + err.message);
   }
 }
 
 async function generateScenarioSummary() {
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     wizardData.scenarioSummary = "";
 
     const prompt = `
       あなたはTRPGシナリオ作成のプロ。ジャンル:${wizardData.genre}, タイプ:探索型。
-      エレメント取得可能。短めの概要を作ってください。
+      エレメント取得可能。短めで背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:aqua"等)ありの概要を作ってください。
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオメーカーです。" },
-          { role:"user", content: prompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "user", content: prompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    wizardData.scenarioSummary = data.choices[0].message.content||"(概要なし)";
+    wizardData.scenarioSummary = data.choices[0].message.content || "(概要なし)";
     await saveWizardDataToIndexedDB(wizardData);
-  } catch(err){
+  } catch (err) {
     console.error(err);
-    alert("探索型シナリオ生成失敗: "+err.message);
+    alert("探索型シナリオ生成失敗: " + err.message);
   }
 }
 
@@ -5721,44 +5617,44 @@ async function generateSections() {
 
   try {
     const apiKey = window.apiKey || "";
-    if(!apiKey) throw new Error("APIキー未設定");
+    if (!apiKey) throw new Error("APIキー未設定");
 
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content: systemPrompt },
-          { role:"user", content: userPrompt }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const d = await r.json();
-    if(d.error) throw new Error(d.error.message);
+    if (d.error) throw new Error(d.error.message);
 
-    const text = d.choices[0].message.content||"";
-    const lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
+    const text = d.choices[0].message.content || "";
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
 
-    for(let i=0; i<count; i++){
-      const raw = lines[i] || (`セクション${i+1}のダミー(動詞)`);
+    for (let i = 0; i < count; i++) {
+      const raw = lines[i] || (`セクション${i + 1}のダミー(動詞)`);
       wizardData.sections.push({
-        number: (i+1),
+        number: (i + 1),
         conditionZipped: zipString(raw),
         cleared: false
       });
     }
-  } catch(err) {
+  } catch (err) {
     console.error("セクション生成失敗:", err);
     // ダミー
-    for(let i=0; i<count; i++){
+    for (let i = 0; i < count; i++) {
       wizardData.sections.push({
-        number: (i+1),
-        conditionZipped: zipString(`セクション${i+1}ダミー(動詞形)`),
+        number: (i + 1),
+        conditionZipped: zipString(`セクション${i + 1}ダミー(動詞形)`),
         cleared: false
       });
     }
@@ -5766,101 +5662,110 @@ async function generateSections() {
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-function zipString(str){
+function zipString(str) {
   const utf8 = new TextEncoder().encode(str);
   const def = pako.deflate(utf8);
   return btoa(String.fromCharCode(...def));
 }
 
-async function generateIntroScene(){
+async function generateIntroScene() {
   const apiKey = window.apiKey || "";
-  if(!apiKey){
+  if (!apiKey) {
     wizardData.introScene = "(導入生成失敗：APIキー無し)";
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  try{
+  try {
     const pro = `
       あなたはTRPGのゲームマスターです。
-      次のシナリオ概要を踏まえ、プレイヤーが行動したくなる導入シーン(300字程度)を作ってください。
+      次のシナリオ概要を踏まえ、プレイヤーが何らかの行動したくなる導入シーン(300字程度)を背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:aqua"等)ありで作ってください。
       シナリオ概要:
       ${wizardData.scenarioSummary}
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${apiKey}`
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:[
-          { role:"system", content:"あなたは優秀なTRPGシナリオライターです。" },
-          { role:"user", content: pro }
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオライターです。" },
+          { role: "user", content: pro }
         ],
-        temperature:0.7
+        temperature: 0.7
       })
     });
     const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    wizardData.introScene = data.choices[0].message.content||"(導入空)";
-  } catch(err){
+    wizardData.introScene = data.choices[0].message.content || "(導入空)";
+  } catch (err) {
     console.error(err);
-    wizardData.introScene="(導入生成失敗)";
+    wizardData.introScene = "(導入生成失敗)";
   }
   await saveWizardDataToIndexedDB(wizardData);
 }
 
 /** ★カレントパーティ情報を wizardData に格納 */
-async function storePartyInWizardData(){
+async function storePartyInWizardData() {
   // currentPartyId
-  const cpidStr = localStorage.getItem("currentPartyId")||"";
-  if(!cpidStr){
+  const cpidStr = localStorage.getItem("currentPartyId") || "";
+  if (!cpidStr) {
     // パーティ未設定の場合でもエラーにはしない
     wizardData.party = [];
     wizardData.partyId = 0;
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  const pid = parseInt(cpidStr,10);
+  const pid = parseInt(cpidStr, 10);
   wizardData.partyId = pid;
 
   const charData = await loadCharacterDataFromIndexedDB();
-  if(!charData){
+  if (!charData) {
     wizardData.party = [];
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  const partyCards = charData.filter(c=> c.group==="Party" && c.partyId===pid);
-  const stripped = partyCards.map(c=>({
-    id:c.id,
-    name:c.name,
-    type:c.type,
-    rarity:c.rarity,
-    state:c.state,
-    special:c.special,
-    caption:c.caption,
-    backgroundcss:c.backgroundcss,
-    role:c.role
+  const partyCards = charData.filter(c => c.group === "Party" && c.partyId === pid);
+  const stripped = partyCards.map(c => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    rarity: c.rarity,
+    state: c.state,
+    special: c.special,
+    caption: c.caption,
+    backgroundcss: c.backgroundcss,
+    role: c.role
   }));
   wizardData.party = stripped;
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-function updateSummaryUI(){
+function updateSummaryUI() {
   const el = document.getElementById("scenario-summary");
-  if(!el)return;
-  el.textContent = wizardData.scenarioSummary || "(シナリオ概要なし)";
+  if (!el) return;
+
+  // タグやstyle属性を許可する例:
+  const config = {
+    ALLOWED_TAGS: ["p", "br", "hr", "h3", "h4", "h5", "span", "div", "strong", "em"],
+    ALLOWED_ATTR: ["style"]
+  };
+
+  // sanitize結果をinnerHTMLに反映
+  const sanitized = DOMPurify.sanitize(wizardData.scenarioSummary, config);
+  el.innerHTML = sanitized || "(シナリオ概要なし)";
 }
 
-function showLoadingModal(show){
+function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
-  if(!m)return;
+  if (!m) return;
   m.style.display = show ? "flex" : "none";
 }
 
-function onCancelFetch(){
+function onCancelFetch() {
   showLoadingModal(false);
 }
 --- 
@@ -5868,7 +5773,8 @@ scene.js
 /********************************
  * scene.js
  * シナリオ/シーン管理
- *  - シーン生成後、ChatGPTに「未クリアセクションが達成されたか」を問い合わせる機能を追加
+ *  - シーン生成時、画像用のプロンプトもfunction callingで取得し「prompt」に保存
+ *  - 自動生成/カスタム生成ボタンで prompt を使って画像を生成
  ********************************/
 
 window.apiKey = '';
@@ -5882,11 +5788,16 @@ window.scenarioType = null;
 window.clearCondition = null;
 window.sections = [];
 
+const DOMPURIFY_CONFIG = {
+  ALLOWED_TAGS: ["p", "br", "hr", "h3", "h4", "h5", "span", "div", "strong", "em"],
+  ALLOWED_ATTR: ["style"]
+};
+
 /** DBからシナリオ情報を読み込み */
-async function loadScenarioData(scenarioId){
-  try{
+async function loadScenarioData(scenarioId) {
+  try {
     const sc = await getScenarioById(scenarioId);
-    if(!sc){
+    if (!sc) {
       alert("指定シナリオが存在しません。");
       return;
     }
@@ -5898,188 +5809,252 @@ async function loadScenarioData(scenarioId){
     window.sections = wd.sections || [];
 
     const ents = await getSceneEntriesByScenarioId(scenarioId);
-    window.sceneHistory = ents.map(e=>({
-      entryId:e.entryId,
-      type:e.type,
-      sceneId:e.sceneId,
-      content:e.content,
-      dataUrl:e.dataUrl,
-      prompt:e.prompt
+    window.sceneHistory = ents.map(e => ({
+      entryId: e.entryId,
+      type: e.type,
+      sceneId: e.sceneId,
+      content: e.content,
+      dataUrl: e.dataUrl,
+      // ★ 画像用プロンプトは "prompt" フィールドに格納
+      prompt: e.prompt || ""
     }));
 
     // ネタバレ(目的達成型)
-    if(window.scenarioType==="objective"){
+    if (window.scenarioType === "objective") {
       const sb = document.getElementById("spoiler-button");
-      if(sb) sb.style.display="inline-block";
+      if (sb) sb.style.display = "inline-block";
       const sp = document.getElementById("clear-condition-text");
-      if(sp) sp.textContent = window.clearCondition || "(クリア条件なし)";
-    } else if(window.scenarioType==="exploration"){
-      const gcb=document.getElementById("get-card-button");
-      if(gcb) gcb.style.display="inline-block";
+      if (sp) sp.textContent = window.clearCondition || "(クリア条件なし)";
+    } else if (window.scenarioType === "exploration") {
+      const gcb = document.getElementById("get-card-button");
+      if (gcb) gcb.style.display = "inline-block";
     }
-  }catch(err){
-    console.error("シナリオ読み込み失敗:",err);
-    alert("読み込み失敗:"+err.message);
+  } catch (err) {
+    console.error("シナリオ読み込み失敗:", err);
+    alert("読み込み失敗:" + err.message);
   }
 }
 
-/** 次のシーンを生成し、履歴に追加 → その後セクション達成判定を行う */
-async function getNextScene(){
-  if(!window.apiKey){
+/** 次のシーンを生成し、履歴に追加 → 画像用プロンプトもfunction callingで作成 → その後セクション達成判定を行う */
+async function getNextScene() {
+  if (!window.apiKey) {
     alert("APIキー未設定");
     return;
   }
   const pinput = (document.getElementById("player-input")?.value || "").trim();
-  const hasScene = window.sceneHistory.some(e=> e.type==="scene");
-  if(hasScene && !pinput){
+  const hasScene = window.sceneHistory.some(e => e.type === "scene");
+  if (hasScene && !pinput) {
     alert("プレイヤー行動を入力してください");
     return;
   }
 
-  window.cancelRequested=false;
+  window.cancelRequested = false;
   showLoadingModal(true);
 
   // システムプロンプト
-  let systemText="あなたはTRPGのゲームマスターです。HTMLタグを積極的に使って装飾してください。";
-  const msgs=[{role:"system",content:systemText}];
+  let systemText = "あなたはTRPGのゲームマスターです。背景黒が前提の装飾のタグを使って構いません。";
+  const msgs = [{ role: "system", content: systemText }];
 
   // シナリオ概要 + パーティ情報
-  if(window.currentScenario){
-    const wd = window.currentScenario.wizardData||{};
-    const summ = wd.scenarioSummary||"(概要なし)";
-    msgs.push({role:"user",content:"シナリオ概要:"+summ});
+  if (window.currentScenario) {
+    const wd = window.currentScenario.wizardData || {};
+    const summ = wd.scenarioSummary || "(概要なし)";
+    msgs.push({ role: "user", content: "シナリオ概要:" + summ });
 
     const charData = await loadCharacterDataFromIndexedDB();
-    const party = charData.filter(e=> e.group==="Party");
+    const party = charData.filter(e => e.group === "Party");
     const ptxt = buildPartyInsertionText(party);
-    msgs.push({role:"user",content:ptxt});
+    msgs.push({ role: "user", content: ptxt });
   }
 
-  // これまでの履歴
-  window.sceneHistory.forEach(e=>{
-    if(e.type==="scene"){
-      msgs.push({role:"assistant", content:e.content});
-    } else if(e.type==="action"){
-      msgs.push({role:"user", content:"プレイヤーの行動:"+e.content});
+  // 履歴
+  window.sceneHistory.forEach(e => {
+    if (e.type === "scene") {
+      msgs.push({ role: "assistant", content: e.content });
+    } else if (e.type === "action") {
+      msgs.push({ role: "user", content: "プレイヤーの行動:" + e.content });
     }
   });
 
   // 今回の行動
-  if(pinput){
-    msgs.push({role:"user", content:"プレイヤーの行動:"+pinput});
+  if (pinput) {
+    msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
   }
 
-  try{
-    window.currentRequestController=new AbortController();
-    const signal=window.currentRequestController.signal;
+  try {
+    window.currentRequestController = new AbortController();
+    const signal = window.currentRequestController.signal;
 
-    const resp=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${window.apiKey}`
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
       },
-      body:JSON.stringify({
-        model:"gpt-4",
-        messages:msgs
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: msgs
       }),
       signal
     });
-    if(window.cancelRequested){
+    if (window.cancelRequested) {
       showLoadingModal(false);
       return;
     }
-    const data=await resp.json();
-    if(window.cancelRequested){
+    const data = await resp.json();
+    if (window.cancelRequested) {
       showLoadingModal(false);
       return;
     }
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    const nextScene=data.choices[0].message.content||"";
+    const nextScene = data.choices[0].message.content || "";
 
     // (1) 行動を履歴に追加
-    if(pinput){
-      const act={
-        scenarioId:window.currentScenarioId||0,
-        type:"action",
-        content:pinput,
-        sceneId:null
+    if (pinput) {
+      const act = {
+        scenarioId: window.currentScenarioId || 0,
+        type: "action",
+        content: pinput,
+        sceneId: null
       };
-      const actId=await addSceneEntry(act);
-      window.sceneHistory.push({entryId:actId,type:"action",content:pinput});
-      document.getElementById("player-input").value="";
+      const actId = await addSceneEntry(act);
+      window.sceneHistory.push({ entryId: actId, type: "action", content: pinput, prompt: "" });
+      document.getElementById("player-input").value = "";
     }
 
     // (2) 新シーンを履歴に追加
-    const sid="scene_"+Date.now();
-    const se={
-      scenarioId:window.currentScenarioId||0,
-      type:"scene",
-      sceneId:sid,
-      content:nextScene
+    const sid = "scene_" + Date.now();
+    // まずテキストを先に登録
+    const se = {
+      scenarioId: window.currentScenarioId || 0,
+      type: "scene",
+      sceneId: sid,
+      content: nextScene,
+      prompt: "" // 画像プロンプトは後で設定
     };
-    const newSid=await addSceneEntry(se);
-    window.sceneHistory.push({entryId:newSid,type:"scene",sceneId:sid,content:nextScene});
+    const newSid = await addSceneEntry(se);
+    const newSceneEntry = {
+      entryId: newSid,
+      type: "scene",
+      sceneId: sid,
+      content: nextScene,
+      prompt: ""
+    };
+    window.sceneHistory.push(newSceneEntry);
 
-    // シナリオ更新
-    if(window.currentScenario){
+    // (2.5) シーンの画像promptをfunction callingで生成
+    const imagePromptText = await generateImagePromptFromScene(nextScene);
+    if (imagePromptText) {
+      // DB更新
+      newSceneEntry.prompt = imagePromptText;
+      const updateRec = {
+        entryId: newSid,
+        scenarioId: window.currentScenarioId || 0,
+        type: "scene",
+        sceneId: sid,
+        content: nextScene,
+        prompt: imagePromptText
+      };
+      await updateSceneEntry(updateRec);
+    }
+
+    // (3) シナリオ更新
+    if (window.currentScenario) {
       await updateScenario({
         ...window.currentScenario,
-        updatedAt:new Date().toISOString()
+        updatedAt: new Date().toISOString()
       });
     }
 
-    // ここでセクション達成チェック(チャットGPTに問い合わせ)
-    // 最新の行動・シーンをまとめて GPT に渡し、「最初の未クリアセクションはクリアしましたか？」と尋ねる
+    // (4) セクション達成チェック
     await checkSectionClearViaChatGPT(pinput, nextScene);
 
     // 再描画
     updateSceneHistory();
     showLastScene();
 
-  }catch(e){
-    if(e.name==="AbortError"){
+  } catch (e) {
+    if (e.name === "AbortError") {
       console.warn("シーン取得キャンセル");
     } else {
       console.error(e);
-      alert("シーン取得失敗:"+e.message);
+      alert("シーン取得失敗:" + e.message);
     }
-  }finally{
+  } finally {
     showLoadingModal(false);
   }
 }
 
-/**
- * ChatGPTに、「最小の未クリアセクションが達成されたか」を尋ねる。
- * YESなら cleared=true にして DB保存 → UI更新
- */
+/** シーン本文から画像用プロンプトをfunction callingで生成(ダミー実装) */
+async function generateImagePromptFromScene(sceneText) {
+  console.log("sceneTextシーンテキスト", sceneText);
+  if (!window.apiKey) return "";
+  try {
+    const systemMsg = {
+      role: "system",
+      content: "あなたは画像生成のための短い英語プロンプトを作る関数を呼び出すアシスタントです。"
+    };
+    const userMsg = {
+      role: "user",
+      content: `
+        以下のシーン文章をもとに、イラストを生成するための英語メインのキーワード列を作ってください。
+        ただし、説明文や文章体は禁止。キーワードの羅列にしてください。
+        NGワード: 'goblin'
+        シーン:
+        ${sceneText}
+      `
+    };
+
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4-0613",
+        messages: [systemMsg, userMsg],
+        temperature: 0.7
+        // function_call: ...
+      })
+    });
+    const data = await resp.json();
+    if (data.error) {
+      console.warn("imagePrompt function callingエラー:", data.error);
+      return "";
+    }
+    const result = (data.choices[0].message.content || "").trim();
+    console.log("resultシーンテキスト", result);
+
+    return result;
+  } catch (e) {
+    console.error("generateImagePromptFromScene失敗:", e);
+    return "";
+  }
+}
+
+/** セクション達成チェック */
 async function checkSectionClearViaChatGPT(latestAction, latestScene) {
-  // 1) wizardData から最初の未クリアセクションを探す
   const wd = window.currentScenario?.wizardData;
-  if(!wd || !wd.sections) return; // シナリオデータが無い
-  const sorted = wd.sections.slice().sort((a,b)=> a.number-b.number);
-  const firstUncleared = sorted.find(s=> !s.cleared);
-  if(!firstUncleared) {
-    // 全クリア済み
-    return;
+  if (!wd || !wd.sections) return;
+  const sorted = wd.sections.slice().sort((a, b) => a.number - b.number);
+  const firstUncleared = sorted.find(s => !s.cleared);
+  if (!firstUncleared) {
+    return; // 全部クリア済
   }
 
-  // 2) 条件テキストを解凍
   const conditionText = decompressCondition(firstUncleared.conditionZipped);
 
-  // 3) GPTに問い合わせる: 
-  //    - シナリオ概要, これまでの流れ(簡易), 今回の行動 & シーン, そして "条件Text" を提示し、
-  //      「条件を満たしましたか？ YESかNOで答えてください」と質問
   const scenarioSummary = wd.scenarioSummary || "(概要なし)";
   const messages = [
     {
-      role:"system",
-      content:"あなたはTRPGゲームマスターのサポートAIです。回答はYESまたはNOのみでお願いします。"
+      role: "system",
+      content: "あなたはTRPGゲームマスターのサポートAIです。回答はYESまたはNOのみでお願いします。"
     },
     {
-      role:"user",
-      content:`
+      role: "user",
+      content: `
 シナリオ概要:
 ${scenarioSummary}
 
@@ -6098,75 +6073,69 @@ YESかNOのみで答えてください。判断が難しい時はYESにしてく
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${window.apiKey}`
       },
       body: JSON.stringify({
         model: "gpt-4",
         messages,
-        temperature: 0.0,  // 極力高確率でYES/NO回答に固定したい
+        temperature: 0.0
       })
     });
     const data = await response.json();
-    if(data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message);
 
-    const answer = (data.choices[0].message.content||"").trim().toUpperCase();
+    const answer = (data.choices[0].message.content || "").trim().toUpperCase();
     console.log("セクション判定GPT回答=", answer);
 
-    if(answer.startsWith("YES")){
-      // クリアされたとみなす
+    if (answer.startsWith("YES")) {
       firstUncleared.cleared = true;
-
-      // DB保存
       window.currentScenario.wizardData.sections = wd.sections;
       await updateScenario(window.currentScenario);
-
       alert(`セクション${firstUncleared.number}をクリアしました。`);
     } else {
-      // NO or それ以外 → 未達成
       console.log("未達成と判定されました。");
     }
-  } catch(err) {
+  } catch (err) {
     console.error("セクション判定API失敗:", err);
-    // GPT問い合わせに失敗したら何もしない
   }
 }
 
 /** シーン履歴を表示 */
-function updateSceneHistory(){
+function updateSceneHistory() {
   const his = document.getElementById("scene-history");
-  if(!his)return;
-  his.innerHTML="";
+  if (!his) return;
+  his.innerHTML = "";
 
-  // 未クリアセクションの最小番号を探す
+  // 未クリアセクションの最小番号
   const wd = window.currentScenario?.wizardData;
   let sections = [];
-  if(wd && wd.sections){
+  if (wd && wd.sections) {
     sections = wd.sections;
   }
-  const sorted=[...sections].sort((a,b)=>a.number-b.number);
-  const firstUncleared = sorted.find(s=> !s.cleared);
+  const sorted = [...sections].sort((a, b) => a.number - b.number);
+  const firstUncleared = sorted.find(s => !s.cleared);
 
-  if(!firstUncleared && sorted.length>0){
+  if (!firstUncleared && sorted.length > 0) {
     // 全クリア
-    const tile=document.createElement("div");
-    tile.className="history-tile";
-    tile.textContent="シナリオ達成";
+    const tile = document.createElement("div");
+    tile.className = "history-tile";
+    tile.textContent = "シナリオ達成";
     his.appendChild(tile);
-  } else if(sorted.length>0){
-    // 例: セクション1～(firstUncleared.number)まで表示
-    for(const s of sorted){
-      if(s.number < firstUncleared.number){
-        const t=document.createElement("div");
-        t.className="history-tile";
-        t.textContent=`セクション${s.number} (クリア済み)`;
+  } else if (sorted.length > 0) {
+    // クリア済み部分だけ表示
+    for (const s of sorted) {
+      if (s.number < (firstUncleared?.number || 99999)) {
+        const t = document.createElement("div");
+        t.className = "history-tile";
+        t.textContent = `セクション${s.number} (クリア済み)`;
         his.appendChild(t);
-      } else if(s.number === firstUncleared.number){
-        const t=document.createElement("div");
-        t.className="history-tile";
-        t.textContent=`セクション${s.number} (未クリア)`;
+      } else if (s.number === firstUncleared.number) {
+        const t = document.createElement("div");
+        t.className = "history-tile";
+        t.textContent = `セクション${s.number} (未クリア)`;
         his.appendChild(t);
       } else {
         // それより先は非表示
@@ -6175,57 +6144,58 @@ function updateSceneHistory(){
   }
 
   // 最後のシーンを除く行動/シーン/画像
-  const lastScene=[...window.sceneHistory].reverse().find(e=> e.type==="scene");
-  const skipIds=[];
-  if(lastScene){
+  const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+  const skipIds = [];
+  if (lastScene) {
     skipIds.push(lastScene.entryId);
-    window.sceneHistory.forEach(x=>{
-      if(x.type==="image"&& x.sceneId===lastScene.sceneId){
+    window.sceneHistory.forEach(x => {
+      if (x.type === "image" && x.sceneId === lastScene.sceneId) {
         skipIds.push(x.entryId);
       }
     });
   }
-  const showEntries=window.sceneHistory
-    .filter(e=>!skipIds.includes(e.entryId))
-    .sort((a,b)=>a.entryId-b.entryId);
+  const showEntries = window.sceneHistory
+    .filter(e => !skipIds.includes(e.entryId))
+    .sort((a, b) => a.entryId - b.entryId);
 
-  for(const e of showEntries){
-    if(e.type==="scene"){
-      const tile=document.createElement("div");
-      tile.className="history-tile";
+  for (const e of showEntries) {
+    if (e.type === "scene") {
+      const tile = document.createElement("div");
+      tile.className = "history-tile";
 
-      const delBtn=document.createElement("button");
-      delBtn.textContent="削除";
-      delBtn.style.marginBottom="5px";
-      delBtn.addEventListener("click",async()=>{
-        const removeIds=[e.entryId];
-        window.sceneHistory.forEach(x=>{
-          if(x.type==="image"&&x.sceneId===e.sceneId){
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "削除";
+      delBtn.style.marginBottom = "5px";
+      delBtn.addEventListener("click", async () => {
+        const removeIds = [e.entryId];
+        window.sceneHistory.forEach(x => {
+          if (x.type === "image" && x.sceneId === e.sceneId) {
             removeIds.push(x.entryId);
           }
         });
-        for(const rid of removeIds){
+        for (const rid of removeIds) {
           await deleteSceneEntry(rid);
         }
-        window.sceneHistory=window.sceneHistory.filter(x=>!removeIds.includes(x.entryId));
+        window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
         updateSceneHistory();
         showLastScene();
       });
       tile.appendChild(delBtn);
 
-      const st=document.createElement("p");
-      st.className="scene-text";
-      st.setAttribute("contenteditable", window.apiKey?"true":"false");
-      st.innerHTML=DOMPurify.sanitize(e.content);
-      st.addEventListener("blur", async()=>{
-        if(!window.apiKey)return;
-        e.content=st.innerText.trim();
-        const up={
-          entryId:e.entryId,
-          scenarioId:window.currentScenarioId||0,
-          type:"scene",
-          sceneId:e.sceneId,
-          content:e.content
+      const st = document.createElement("p");
+      st.className = "scene-text";
+      st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+      st.innerHTML = DOMPurify.sanitize(e.content);
+      st.addEventListener("blur", async () => {
+        if (!window.apiKey) return;
+        e.content = st.innerHTML.trim();
+        const up = {
+          entryId: e.entryId,
+          scenarioId: window.currentScenarioId || 0,
+          type: "scene",
+          sceneId: e.sceneId,
+          content: e.content,
+          prompt: e.prompt || ""
         };
         await updateSceneEntry(up);
       });
@@ -6233,34 +6203,34 @@ function updateSceneHistory(){
 
       his.appendChild(tile);
 
-    } else if(e.type==="action"){
-      const tile=document.createElement("div");
-      tile.className="history-tile";
+    } else if (e.type === "action") {
+      const tile = document.createElement("div");
+      tile.className = "history-tile";
 
-      const delBtn=document.createElement("button");
-      delBtn.textContent="削除";
-      delBtn.style.backgroundColor="#f44336";
-      delBtn.style.marginBottom="5px";
-      delBtn.addEventListener("click", async()=>{
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "削除";
+      delBtn.style.backgroundColor = "#f44336";
+      delBtn.style.marginBottom = "5px";
+      delBtn.addEventListener("click", async () => {
         await deleteSceneEntry(e.entryId);
-        window.sceneHistory=window.sceneHistory.filter(x=>x.entryId!==e.entryId);
+        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
         updateSceneHistory();
         showLastScene();
       });
       tile.appendChild(delBtn);
 
-      const at=document.createElement("p");
-      at.className="action-text";
-      at.setAttribute("contenteditable", window.apiKey?"true":"false");
-      at.innerHTML=DOMPurify.sanitize(e.content);
-      at.addEventListener("blur", async()=>{
-        if(!window.apiKey)return;
-        e.content=at.innerText.trim();
-        const up={
-          entryId:e.entryId,
-          scenarioId:window.currentScenarioId||0,
-          type:"action",
-          content:e.content
+      const at = document.createElement("p");
+      at.className = "action-text";
+      at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+      at.innerHTML = DOMPurify.sanitize(e.content);
+      at.addEventListener("blur", async () => {
+        if (!window.apiKey) return;
+        e.content = at.innerHTML.trim();
+        const up = {
+          entryId: e.entryId,
+          scenarioId: window.currentScenarioId || 0,
+          type: "action",
+          content: e.content
         };
         await updateSceneEntry(up);
       });
@@ -6268,33 +6238,33 @@ function updateSceneHistory(){
 
       his.appendChild(tile);
 
-    } else if(e.type==="image"){
-      const tile=document.createElement("div");
-      tile.className="history-tile";
+    } else if (e.type === "image") {
+      const tile = document.createElement("div");
+      tile.className = "history-tile";
 
-      const img=document.createElement("img");
-      img.src=e.dataUrl;
-      img.alt="生成画像";
-      img.style.maxWidth="100%";
+      const img = document.createElement("img");
+      img.src = e.dataUrl;
+      img.alt = "生成画像";
+      img.style.maxWidth = "100%";
       tile.appendChild(img);
 
-      const reBtn=document.createElement("button");
-      reBtn.textContent="再生成";
-      reBtn.addEventListener("click",()=>{
-        if(!window.apiKey)return;
-        const idx=window.sceneHistory.indexOf(e);
-        if(idx>=0){
+      const reBtn = document.createElement("button");
+      reBtn.textContent = "再生成";
+      reBtn.addEventListener("click", () => {
+        if (!window.apiKey) return;
+        const idx = window.sceneHistory.indexOf(e);
+        if (idx >= 0) {
           openImagePromptModal(e.prompt, idx);
         }
       });
       tile.appendChild(reBtn);
 
-      const delBtn=document.createElement("button");
-      delBtn.textContent="画像だけ削除";
-      delBtn.addEventListener("click",async()=>{
-        if(!window.apiKey)return;
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "画像だけ削除";
+      delBtn.addEventListener("click", async () => {
+        if (!window.apiKey) return;
         await deleteSceneEntry(e.entryId);
-        window.sceneHistory=window.sceneHistory.filter(x=>x.entryId!==e.entryId);
+        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
         updateSceneHistory();
         showLastScene();
       });
@@ -6303,70 +6273,71 @@ function updateSceneHistory(){
       his.appendChild(tile);
     }
   }
-  his.scrollTop=his.scrollHeight;
+  his.scrollTop = his.scrollHeight;
 }
 
 /** 最新シーンを表示 */
-function showLastScene(){
-  const storyDiv=document.getElementById("story");
-  const lastSceneImagesDiv=document.getElementById("last-scene-images");
-  if(!storyDiv||!lastSceneImagesDiv)return;
+function showLastScene() {
+  const storyDiv = document.getElementById("story");
+  const lastSceneImagesDiv = document.getElementById("last-scene-images");
+  if (!storyDiv || !lastSceneImagesDiv) return;
 
-  const nextSceneBtn=document.getElementById("next-scene");
-  const playerInput=document.getElementById("player-input");
-  const playerActionLabel=document.getElementById("player-action");
+  const nextSceneBtn = document.getElementById("next-scene");
+  const playerInput = document.getElementById("player-input");
+  const playerActionLabel = document.getElementById("player-action");
 
-  const lastScene=[...window.sceneHistory].reverse().find(e=>e.type==="scene");
+  const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
 
-  if(lastScene){
-    storyDiv.innerHTML="";
-    const st=document.createElement("p");
-    st.className="scene-text";
-    st.setAttribute("contenteditable", window.apiKey?"true":"false");
-    st.innerHTML=DOMPurify.sanitize(lastScene.content);
-    st.addEventListener("blur",async()=>{
-      if(!window.apiKey)return;
-      lastScene.content=st.innerText.trim();
-      const up={
-        entryId:lastScene.entryId,
-        scenarioId:window.currentScenarioId||0,
-        type:"scene",
-        sceneId:lastScene.sceneId,
-        content:lastScene.content
+  if (lastScene) {
+    storyDiv.innerHTML = "";
+    const st = document.createElement("p");
+    st.className = "scene-text";
+    st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+    st.innerHTML = DOMPurify.sanitize(lastScene.content, DOMPURIFY_CONFIG);
+    st.addEventListener("blur", async () => {
+      if (!window.apiKey) return;
+      lastScene.content = st.innerHTML.trim();
+      const up = {
+        entryId: lastScene.entryId,
+        scenarioId: window.currentScenarioId || 0,
+        type: "scene",
+        sceneId: lastScene.sceneId,
+        content: lastScene.content,
+        prompt: lastScene.prompt || ""
       };
       await updateSceneEntry(up);
     });
     storyDiv.appendChild(st);
 
-    lastSceneImagesDiv.innerHTML="";
-    const images=window.sceneHistory.filter(x=>x.type==="image"&& x.sceneId===lastScene.sceneId);
-    images.forEach(imgEntry=>{
-      const c=document.createElement("div");
-      c.style.marginBottom="10px";
+    lastSceneImagesDiv.innerHTML = "";
+    const images = window.sceneHistory.filter(x => x.type === "image" && x.sceneId === lastScene.sceneId);
+    images.forEach(imgEntry => {
+      const c = document.createElement("div");
+      c.style.marginBottom = "10px";
 
-      const i=document.createElement("img");
-      i.src=imgEntry.dataUrl;
-      i.alt="シーン画像";
-      i.style.maxWidth="100%";
+      const i = document.createElement("img");
+      i.src = imgEntry.dataUrl;
+      i.alt = "シーン画像";
+      i.style.maxWidth = "100%";
       c.appendChild(i);
 
-      const reBtn=document.createElement("button");
-      reBtn.textContent="再生成";
-      reBtn.addEventListener("click",()=>{
-        if(!window.apiKey)return;
-        const idx=window.sceneHistory.indexOf(imgEntry);
-        if(idx>=0){
+      const reBtn = document.createElement("button");
+      reBtn.textContent = "再生成";
+      reBtn.addEventListener("click", () => {
+        if (!window.apiKey) return;
+        const idx = window.sceneHistory.indexOf(imgEntry);
+        if (idx >= 0) {
           openImagePromptModal(imgEntry.prompt, idx);
         }
       });
       c.appendChild(reBtn);
 
-      const dBtn=document.createElement("button");
-      dBtn.textContent="画像削除";
-      dBtn.addEventListener("click",async()=>{
-        if(!window.apiKey)return;
+      const dBtn = document.createElement("button");
+      dBtn.textContent = "画像削除";
+      dBtn.addEventListener("click", async () => {
+        if (!window.apiKey) return;
         await deleteSceneEntry(imgEntry.entryId);
-        window.sceneHistory=window.sceneHistory.filter(x=>x.entryId!==imgEntry.entryId);
+        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== imgEntry.entryId);
         showLastScene();
         updateSceneHistory();
       });
@@ -6375,97 +6346,320 @@ function showLastScene(){
       lastSceneImagesDiv.appendChild(c);
     });
 
-    if(window.apiKey){
-      nextSceneBtn.style.display="inline-block";
-      playerInput.style.display="inline-block";
-      playerActionLabel.textContent="プレイヤーがどんな行動を？";
+    if (window.apiKey) {
+      nextSceneBtn.style.display = "inline-block";
+      playerInput.style.display = "inline-block";
+      playerActionLabel.textContent = "プレイヤーがどんな行動を？";
     } else {
-      nextSceneBtn.style.display="none";
-      playerInput.style.display="none";
-      playerActionLabel.textContent="";
+      nextSceneBtn.style.display = "none";
+      playerInput.style.display = "none";
+      playerActionLabel.textContent = "";
     }
   } else {
     // シーンが無い場合
-    storyDiv.innerHTML="";
-    lastSceneImagesDiv.innerHTML="";
+    storyDiv.innerHTML = "";
+    lastSceneImagesDiv.innerHTML = "";
 
-    if(window.apiKey){
-      nextSceneBtn.style.display="inline-block";
-      playerInput.style.display="block";
-      playerActionLabel.textContent="最初のシーンを作るため行動を入力してください。";
+    if (window.apiKey) {
+      nextSceneBtn.style.display = "inline-block";
+      playerInput.style.display = "block";
+      playerActionLabel.textContent = "最初のシーンを作るため行動を入力してください。";
     } else {
-      nextSceneBtn.style.display="none";
-      playerInput.style.display="none";
-      playerActionLabel.textContent="";
+      nextSceneBtn.style.display = "none";
+      playerInput.style.display = "none";
+      playerActionLabel.textContent = "";
     }
   }
 }
 
-/** パーティ情報の文章を組み立て */
-function buildPartyInsertionText(party){
-  let txt="【パーティ編成情報】\n";
-  const ava=party.find(e=>e.role==="avatar");
-  if(ava){
-    txt+=`アバター: ${ava.name}\n(実プレイヤー)\n\n`;
+/** パーティ情報の文章 */
+function buildPartyInsertionText(party) {
+  let txt = "【パーティ編成情報】\n";
+  const ava = party.find(e => e.role === "avatar");
+  if (ava) {
+    txt += `アバター: ${ava.name}\n(実プレイヤー)\n\n`;
   }
-  const pt=party.filter(e=>e.role==="partner");
-  if(pt.length>0){
-    txt+="パートナー:\n";
-    pt.forEach(p=> txt+=" - "+p.name+"\n");
-    txt+="\n";
+  const pt = party.filter(e => e.role === "partner");
+  if (pt.length > 0) {
+    txt += "パートナー:\n";
+    pt.forEach(p => txt += " - " + p.name + "\n");
+    txt += "\n";
   }
-  const others=party.filter(e=>!e.role||e.role==="none");
-  if(others.length>0){
-    const cset=others.filter(x=>x.type==="キャラクター");
-    const mset=others.filter(x=>x.type==="モンスター");
-    const iset=others.filter(x=>x.type==="アイテム");
-    if(cset.length>0){
-      txt+="◆キャラクター\n";
-      cset.forEach(c=> txt+=" - "+c.name+"\n");
-      txt+="\n";
+  const others = party.filter(e => !e.role || e.role === "none");
+  if (others.length > 0) {
+    const cset = others.filter(x => x.type === "キャラクター");
+    const mset = others.filter(x => x.type === "モンスター");
+    const iset = others.filter(x => x.type === "アイテム");
+    if (cset.length > 0) {
+      txt += "◆キャラクター\n";
+      cset.forEach(c => txt += " - " + c.name + "\n");
+      txt += "\n";
     }
-    if(mset.length>0){
-      txt+="◆モンスター\n";
-      mset.forEach(m=> txt+=" - "+m.name+"\n");
-      txt+="\n";
+    if (mset.length > 0) {
+      txt += "◆モンスター\n";
+      mset.forEach(m => txt += " - " + m.name + "\n");
+      txt += "\n";
     }
-    if(iset.length>0){
-      txt+="◆アイテム\n";
-      iset.forEach(i=> txt+=" - "+i.name+"\n");
-      txt+="\n";
+    if (iset.length > 0) {
+      txt += "◆アイテム\n";
+      iset.forEach(i => txt += " - " + i.name + "\n");
+      txt += "\n";
     }
   }
-  txt+="以上を踏まえて、アバターは実プレイヤー、パートナーは味方NPCとして扱ってください。";
+  txt += "以上を踏まえて、アバターは実プレイヤー、パートナーは味方NPCとして扱ってください。";
   return txt;
 }
 
 /** pakoで解凍 */
-function decompressCondition(zippedBase64){
-  if(!zippedBase64)return"(不明)";
-  try{
-    const bin=atob(zippedBase64);
-    const uint8=new Uint8Array([...bin].map(c=> c.charCodeAt(0)));
+function decompressCondition(zippedBase64) {
+  if (!zippedBase64) return "(不明)";
+  try {
+    const bin = atob(zippedBase64);
+    const uint8 = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
     const inf = pako.inflate(uint8);
     return new TextDecoder().decode(inf);
-  }catch(e){
-    console.error("decompress失敗:",e);
-    return"(解凍エラー)";
+  } catch (e) {
+    console.error("decompress失敗:", e);
+    return "(解凍エラー)";
   }
 }
 
 /** ローディングモーダル表示 */
-function showLoadingModal(show){
-  const m=document.getElementById("loading-modal");
-  if(!m)return;
-  m.style.display= show?"flex":"none";
+function showLoadingModal(show) {
+  const m = document.getElementById("loading-modal");
+  if (!m) return;
+  m.style.display = show ? "flex" : "none";
 }
 
 /** リクエストキャンセル */
-function onCancelFetch(){
-  window.cancelRequested=true;
-  if(window.currentRequestController){
+function onCancelFetch() {
+  window.cancelRequested = true;
+  if (window.currentRequestController) {
     window.currentRequestController.abort();
   }
   showLoadingModal(false);
 }
+
+
+/* --------------------------------------------
+   画像生成ボタン：自動生成(現シーンから)
+   1) 今のシーンにpromptがあれば、それを使う
+   2) 無ければ「生成する為のプロンプトがありません」を表示
+   3) 生成時は characterCreate.jsのgenerateCharacterImage の仕様に準拠
+-------------------------------------------- */
+async function generateImageFromCurrentScenePrompt() {
+  const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+  if (!lastSceneEntry) {
+    alert("まだシーンがありません。");
+    return;
+  }
+  if (!lastSceneEntry.prompt) {
+    alert("生成する為のプロンプトがありません");
+    return;
+  }
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+
+  // ボディ文言は "Now generate the next anime wide image.\n↓↓↓↓\n" + prompt
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓\n" +
+    lastSceneEntry.prompt;
+
+  window.cancelRequested = false;
+  showLoadingModal(true);
+
+  try {
+    const resp = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1792x1024",
+        response_format: "b64_json"
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    // 新しいimage entry追加
+    const newEntry = {
+      scenarioId: window.currentScenarioId || 0,
+      type: "image",
+      sceneId: lastSceneEntry.sceneId,
+      content: "", // 画像にテキストなし
+      dataUrl,
+      // 画像生成時点のpromptを記録しておく
+      prompt: lastSceneEntry.prompt
+    };
+    const newId = await addSceneEntry(newEntry);
+    window.sceneHistory.push({
+      entryId: newId,
+      type: "image",
+      sceneId: lastSceneEntry.sceneId,
+      content: "",
+      dataUrl,
+      prompt: lastSceneEntry.prompt
+    });
+
+    // 表示更新
+    updateSceneHistory();
+    showLastScene();
+
+  } catch (err) {
+    console.error("画像生成失敗:", err);
+    alert("画像生成に失敗:\n" + err.message);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+/** カスタム画像生成モーダルを開く */
+function openImagePromptModal(scenePrompt = "", index = null) {
+  window.editingImageEntry = null;
+  if (index !== null) {
+    // 既存画像の再生成
+    window.editingImageEntry = { index };
+    const entry = window.sceneHistory[index];
+    if (entry && entry.type === "image") {
+      scenePrompt = entry.prompt;
+    }
+  } else {
+    // 新規
+    const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+    if (lastSceneEntry && lastSceneEntry.prompt) {
+      scenePrompt = lastSceneEntry.prompt;
+    } else {
+      scenePrompt = "";
+    }
+  }
+
+  document.getElementById("image-custom-prompt").value = scenePrompt;
+  document.getElementById("image-prompt-modal").style.display = "flex";
+}
+
+/** カスタム画像生成モーダルを閉じる */
+function closeImagePromptModal() {
+  document.getElementById("image-prompt-modal").style.display = "none";
+  window.editingImageEntry = null;
+}
+
+/** カスタム画像生成ボタン押下 */
+async function onCustomImageGenerate() {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  const userPromptText = document.getElementById("image-custom-prompt").value.trim();
+  if (!userPromptText) {
+    alert("プロンプトが空です。");
+    return;
+  }
+
+  // 前提文 + userPromptText
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓\n" +
+    userPromptText;
+
+  showLoadingModal(true);
+  closeImagePromptModal();
+  try {
+    const resp = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1792x1024",
+        response_format: "b64_json"
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    if (window.editingImageEntry) {
+      // 既存画像を再生成
+      const idx = window.editingImageEntry.index;
+      const entry = window.sceneHistory[idx];
+      if (entry && entry.type === "image") {
+        entry.dataUrl = dataUrl;
+        entry.prompt = userPromptText;
+        // DB更新
+        const upRec = {
+          entryId: entry.entryId,
+          scenarioId: window.currentScenarioId || 0,
+          type: "image",
+          sceneId: entry.sceneId,
+          content: "",
+          dataUrl,
+          prompt: userPromptText
+        };
+        await updateSceneEntry(upRec);
+      }
+    } else {
+      // 新規画像
+      const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+      if (!lastSceneEntry) {
+        alert("シーンがありません。");
+        showLoadingModal(false);
+        return;
+      }
+      const newRec = {
+        scenarioId: window.currentScenarioId || 0,
+        type: "image",
+        sceneId: lastSceneEntry.sceneId,
+        content: "",
+        dataUrl,
+        prompt: userPromptText
+      };
+      const newId = await addSceneEntry(newRec);
+      window.sceneHistory.push({
+        entryId: newId,
+        type: "image",
+        sceneId: lastSceneEntry.sceneId,
+        content: "",
+        dataUrl,
+        prompt: userPromptText
+      });
+    }
+
+    updateSceneHistory();
+    showLastScene();
+  } catch (e) {
+    console.error("カスタム画像生成失敗:", e);
+    alert("カスタム画像生成失敗:\n" + e.message);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+
+/* -------------------------------------------
+   イベントリスナー (scenario.html 内) で呼ばれる
+-------------------------------------------*/
+window.generateImageFromCurrentScene = generateImageFromCurrentScenePrompt;
+window.onCustomImageGenerate = onCustomImageGenerate;
+
 --- 
