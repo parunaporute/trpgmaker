@@ -577,15 +577,19 @@ async function onStartScenario() {
     let title = wizardData.genre || "新シナリオ";
     const scenarioId = await createNewScenario(wizardData, title);
 
+    // 導入シーンがあればDBに登録 + 画像用のpromptも生成
     if (wizardData.introScene && wizardData.introScene.trim()) {
+      const introPrompt = await generateIntroImagePrompt(wizardData.introScene);
       const firstScene = {
         scenarioId: scenarioId,
         type: "scene",
         sceneId: "intro_" + Date.now(),
-        content: wizardData.introScene
+        content: wizardData.introScene,
+        prompt: introPrompt
       };
       await addSceneEntry(firstScene);
     }
+
     window.location.href = `scenario.html?scenarioId=${scenarioId}`;
   } catch (err) {
     console.error("シナリオ開始失敗:", err);
@@ -844,4 +848,50 @@ function showLoadingModal(show) {
 
 function onCancelFetch() {
   showLoadingModal(false);
+}
+
+/* -------------------------------------------------
+   ▼ 追加: 導入シーン用 画像プロンプト生成関数
+   （scene.jsのgenerateImagePromptFromScene相当を簡易転用）
+-------------------------------------------------*/
+async function generateIntroImagePrompt(sceneText) {
+  if (!window.apiKey) return "";
+  try {
+    const systemMsg = {
+      role: "system",
+      content: "あなたは画像生成のための短い英語プロンプトを作るアシスタントです。"
+    };
+    const userMsg = {
+      role: "user",
+      content: `
+以下の文章を参考に、英語メインのキーワード列を作ってください。
+説明文や文章体は禁止。NGワード:'goblin'
+シーン:
+${sceneText}
+      `
+    };
+
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [systemMsg, userMsg],
+        temperature: 0.7
+      })
+    });
+    const data = await resp.json();
+    if (data.error) {
+      console.warn("intro prompt失敗:", data.error);
+      return "";
+    }
+    const result = (data.choices[0].message.content || "").trim();
+    return result;
+  } catch (e) {
+    console.error("generateIntroImagePrompt失敗:", e);
+    return "";
+  }
 }
