@@ -220,7 +220,9 @@ function renderAllParty(){
 /** パーティカード生成 */
 function createPartyCardElement(card){
   const cardEl = document.createElement("div");
-  cardEl.className = "card";
+  cardEl.className = "card ";
+  cardEl.className += "rarity" + card.rarity.replace("★", "").trim();
+
   cardEl.setAttribute("data-id", card.id);
 
   cardEl.addEventListener("click", (e) => {
@@ -382,7 +384,9 @@ function showWarehouseModal(){
 /** 倉庫カード生成 */
 function createWarehouseCardElement(card){
   const cardEl = document.createElement("div");
-  cardEl.className="card";
+  cardEl.className="card ";
+  cardEl.className += "rarity" + card.rarity.replace("★", "").trim();
+
   cardEl.setAttribute("data-id", card.id);
 
   cardEl.addEventListener("click",(e)=>{

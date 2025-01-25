@@ -8,18 +8,19 @@
 
 
 // --------------------------------------------------------
-// 1. runGacha(cardCount, addPrompt, onlyTitle = "")
+// 1. runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "")
 //
 //   - 指定枚数のエレメントをChatGPTで生成し、window.characterDataに加える
-//   - UI操作は行わず、コンソールに進捗をログ出力するだけ
+//   - 生成カードは最初から group="Warehouse" として保存する
+//   - 生成完了後、localStorage["latestCreatedIds"] に追加IDを記録し、
+//     画面側でそれらを表示する
 // --------------------------------------------------------
 async function runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "") {
-  console.log("=== runGacha START ===");
   if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
   }
-  // キャンセル用コントローラ
+  // キャンセル用
   window.currentGachaController = new AbortController();
   const signal = window.currentGachaController.signal;
 
@@ -27,7 +28,7 @@ async function runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "") {
   const rarities = pickRaritiesForNCards(cardCount);
   const countMap = makeRarityCountMap(rarities);
 
-  // systemプロンプト
+  // system
   let systemContent = `
   あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
   以下の6段階のレア度「★0～★5」のうち、
@@ -38,7 +39,7 @@ async function runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "") {
   - ★3: ${countMap["★3"]}件
   - ★4: ${countMap["★4"]}件
   - ★5: ${countMap["★5"]}件
-  
+
   生成するのがキャラクターやモンスターの場合
   【レア度】：...
   【名前】：...
@@ -70,13 +71,14 @@ async function runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "") {
 linear-gradientを巧みに用いて背景を設定してください。left top, right bottom以外にも色々と試してみてください。
 【外見】は、画像生成用のスクリプトです。英語でOpenAI社の規定に沿うように書いてください。NGワードはゴブリンです。
 `;
-  let userContent = `${addPrompt}合計${cardCount}件、順番は問わないので上記レア度数で生成してください。`;
 
-  if (onlyTitle != "") {
+  let userContent = `${addPrompt}合計${cardCount}件、順番は問わないので上記レア度数で生成してください。`;
+  if (onlyTitle) {
+    // タイトル指定がある場合
     systemContent = `
-  あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
-  6段階のレア度「★0～★5」のどれかを${onlyTitle}の名称から判断して設定してください。
-  
+    あなたはTRPG用のキャラクター、装備品、モンスター作成のエキスパートです。
+    6段階のレア度「★0～★5」のどれかを${onlyTitle}の名称から判断して設定してください。
+
   生成するのがキャラクターやモンスターの場合
   【レア度】：...
   【名前】：${onlyTitle}
@@ -117,7 +119,6 @@ linear-gradientを巧みに用いて背景を設定してください。left top
   ];
 
   try {
-    console.log("runGacha: Fetch start...");
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -132,7 +133,6 @@ linear-gradientを巧みに用いて背景を設定してください。left top
       signal,
     });
     if (signal.aborted) {
-      console.log("runGacha: aborted.");
       return;
     }
 
@@ -145,19 +145,36 @@ linear-gradientを巧みに用いて背景を設定してください。left top
     if (typeof text !== "string") {
       throw new Error("エレメント生成APIレスポンスが不正です。");
     }
+    console.log("text",text);
 
+    // 生成結果をパース
     const newCards = parseCharacterData(text);
-    // 生成されたカードを GachaBox に設定
+
+    // ガチャ箱は廃止 → 生成後は group="Warehouse" に
     newCards.forEach(card => {
-      card.group = "GachaBox";
+      card.group = "Warehouse";
     });
+
     // 既存 characterData に追加
     window.characterData.push(...newCards);
 
     // IndexedDB に保存
     await saveCharacterDataToIndexedDB(window.characterData);
 
-    console.log(`runGacha: ${newCards.length}件のカードを生成完了`);
+    // localStorage["latestCreatedIds"]を更新 (既存IDs + 今回生成IDs)
+    let storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
+    console.log("!!!storedIdsStr!!!",storedIdsStr);
+    let storedIds;
+    try {
+      storedIds = JSON.parse(storedIdsStr);
+    } catch (e) {
+      storedIds = [];
+    }
+    const newIds = newCards.map(c => c.id);
+    console.log("newIds", newIds );
+    const merged = [...storedIds, ...newIds];
+    localStorage.setItem("latestCreatedIds", JSON.stringify(merged));
+    console.log("mergeど",merged);
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("runGachaキャンセル");
@@ -165,8 +182,6 @@ linear-gradientを巧みに用いて背景を設定してください。left top
       console.error("runGacha失敗:", err);
       alert("エレメント生成に失敗しました:\n" + err.message);
     }
-  } finally {
-    console.log("=== runGacha END ===");
   }
 }
 
@@ -188,7 +203,7 @@ function parseCharacterData(text) {
     rarity: "★0",
     backgroundcss: "",
     imageprompt: "",
-    group: "GachaBox",
+    group: "Warehouse",
   };
 
   function pushCurrentChar() {
@@ -204,7 +219,7 @@ function parseCharacterData(text) {
       rarity: "★0",
       backgroundcss: "",
       imageprompt: "",
-      group: "GachaBox",
+      group: "Warehouse",
     };
   }
 
@@ -271,6 +286,3 @@ function makeRarityCountMap(rarities) {
   return counts;
 }
 
-// ----------------------------------------------
-// ↑ これらをまとめて gachaCore.js として管理
-// ----------------------------------------------

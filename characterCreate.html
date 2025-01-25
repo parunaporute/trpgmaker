@@ -49,21 +49,11 @@
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   <div class="container">
     <h1>エレメント作成</h1>
+
+    <!-- ガチャボタンのみ残し、ガチャ箱の移動関連ボタンは削除 -->
     <button id="gacha-btn" style="margin:10px;">エレメントガチャ</button>
-    <button id="move-gacha-to-warehouse-btn" style="margin:10px;">ガチャ箱のカードを倉庫に入れる</button>
-    <button id="toggle-selection-mode-btn" style="margin:10px;">選択モード</button>
-    <button id="move-selected-to-warehouse-btn" style="display:none; margin:10px;">選択したものを倉庫に送る</button>
 
-    <!-- ▼ ガチャ前確認モーダル -->
-    <div id="gacha-confirm-modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <p>現在ガチャ箱に入っているカードは削除されます。よろしいですか？</p>
-        <button id="gacha-confirm-ok">OK</button>
-        <button id="gacha-confirm-cancel">キャンセル</button>
-      </div>
-    </div>
-
-    <!-- ▼ ガチャ生成中モーダル -->
+    <!-- ▼ 「ガチャ生成中」モーダル -->
     <div id="gacha-modal" class="modal" style="display:none;">
       <div class="modal-content">
         <p>生成中...</p>
@@ -136,6 +126,7 @@
       <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
     </div>
 
+    <!-- 画面上に表示する「最後に生成したカード一覧」 -->
     <div id="card-container"></div>
   </div>
 

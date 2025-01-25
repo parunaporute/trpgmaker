@@ -45,7 +45,7 @@ textarea {
 
 button {
   padding: 10px 20px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -80,7 +80,6 @@ button:hover {
   text-align: right;
   width: 100%;
   margin-bottom: 30px;
-
 }
 
 .scene-text,
@@ -118,7 +117,7 @@ button:hover {
 .scene-text[contenteditable]:focus,
 .action-text[contenteditable]:focus,
 .scenario-text[contenteditable]:focus {
-  border: 1px dashed #4CAF50;
+  border: 1px dashed #4caf50;
   outline: none;
 }
 
@@ -160,10 +159,11 @@ button:hover {
 #card-container,
 #party-modal-card-container,
 #warehouse-card-container {
+  box-sizing: border-box;
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .card {
@@ -291,7 +291,7 @@ button:hover {
   font-size: 0.85rem;
   align-items: center;
   display: flex;
-  background-color: #EEE;
+  background-color: #eee;
   margin-top: 10px;
 }
 
@@ -334,27 +334,39 @@ button:hover {
 }
 
 .bezel.rarity0 {
-  background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  background: linear-gradient(145deg, #c0c0c0, #d3d3d3, #e0e0e0, #a9a9a9);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity1 {
-  background: linear-gradient(145deg, #B87333, #DA8A67, #E97451, #C35817);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  background: linear-gradient(145deg, #b87333, #da8a67, #e97451, #c35817);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
 }
 
 .bezel.rarity2 {
-  background: linear-gradient(145deg, #C0C0C0, #D3D3D3, #E0E0E0, #A9A9A9);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  background: linear-gradient(145deg, #c0c0c0, #d3d3d3, #e0e0e0, #a9a9a9);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
@@ -362,8 +374,12 @@ button:hover {
 
 .bezel.rarity3 {
   background: linear-gradient(145deg, #b69a00, #ffda64, #ffda6b, #d79000);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
@@ -371,10 +387,14 @@ button:hover {
 
 .bezel.rarity4 {
   position: absolute;
-  background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #C0C0C0, #ECEBE8);
+  background: linear-gradient(145deg, #d1d1d1, #aeb9ff, #c0c0c0, #ecebe8);
   background-size: 400% 400%;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
@@ -382,10 +402,14 @@ button:hover {
 }
 
 .bezel.rarity5 {
-  background: linear-gradient(145deg, #4B0082, #0000CD, #008080, #fff);
+  background: linear-gradient(145deg, #4b0082, #0000cd, #008080, #fff);
   background-size: 150% 150%;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   background-clip: padding-box, border-box;
@@ -462,7 +486,7 @@ button:hover {
 }
 
 .chip.selected {
-  background-color: #8BC34A;
+  background-color: #8bc34a;
   color: #fff;
 }
 
@@ -499,4 +523,75 @@ button:hover {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   margin: 20px 0;
+}
+
+/* ここから追加: ダミー要素用 */
+.dummy {
+  /* 大きさは .card と同じ or 同程度にして、見た目を完全に消す */
+  visibility: hidden;
+  pointer-events: none;
+  background-color: transparent;
+  border: none;
+}
+
+.card.rarity3 .card-front .card-image,
+.card.rarity4 .card-front .card-image,
+.card.rarity5 .card-front .card-image
+{
+  z-index: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.card.rarity3 .card-front .card-image img,
+.card.rarity4 .card-front .card-image img,
+.card.rarity5 .card-front .card-image img
+{
+  object-position: bottom;
+  opacity: 0.9;
+}
+
+.card.rarity3 .card-info,
+.card.rarity4 .card-info,
+.card.rarity5 .card-info
+{
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding-left: calc(3% + 8px);
+  padding-right: calc(3% + 8px);
+  padding-top: 3%;
+  padding-bottom: 3%;
+  border-radius: 0 0 20px 20px;
+  background-color: rgba(37, 37, 37, 0.85);
+  color: #fff;
+  text-shadow: 0 0 10px #FFF;
+
+}
+
+.card.rarity3 .card-front .card-info p:last-child,
+.card.rarity4 .card-front .card-info p:last-child,
+.card.rarity5 .card-front .card-info p:last-child
+{
+  margin-left: -3%;
+  margin-right: -3%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+}
+
+.card.rarity3 .card-front .card-info p:last-child span,
+.card.rarity4 .card-front .card-info p:last-child span,
+.card.rarity5 .card-front .card-info p:last-child span
+{
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+
+.card.rarity3 .card-front .gen-image-btn,
+.card.rarity4 .card-front .gen-image-btn,
+.card.rarity5 .card-front .gen-image-btn
+{
+  top: calc(40% - 0.8rem);
+  bottom: initial;
 }

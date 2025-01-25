@@ -261,7 +261,9 @@ function renderPartyCardsInModal(){
 }
 function createPartyCardElement(c){
   const cardEl=document.createElement("div");
-  cardEl.className="card";
+  cardEl.className="card ";
+  cardEl.className += "rarity" + char.rarity.replace("★", "").trim();
+
   cardEl.setAttribute("data-id",c.id);
   cardEl.addEventListener("click",()=>{
     cardEl.classList.toggle("flipped");
