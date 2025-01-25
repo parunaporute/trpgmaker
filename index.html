@@ -20,8 +20,7 @@
     <h1>TRPG メニュー</h1>
 
     <!-- ▼ 追加：背景を変更するボタン（デザイン変更） -->
-    <button id="change-bg-button"
-      style="
+    <button id="change-bg-button" style="
         color: #000;
         background-color: #DDD;
         border-radius: 2px;
@@ -29,8 +28,7 @@
         position: absolute;
         top: 0;
         right: 0;
-      "
-    >
+      ">
       背景を変更する
     </button>
 
@@ -125,12 +123,20 @@
     </div>
   </div>
 
+  <!-- ▼ ここから追加のエクスポート/インポートボタン -->
+  <div style="text-align:center; margin-top:30px;">
+    <button id="export-button" style="margin-right:20px;">エクスポート</button>
+    <button id="import-button">インポート</button>
+    <!-- 非表示のファイル入力要素（インポート時にzipを選択） -->
+    <input type="file" id="import-file-input" accept=".zip" style="display:none;" />
+  </div>
+
   <!-- 外部JavaScript(IndexedDB) -->
   <script src="js/indexedDB.js"></script>
   <!-- 新規: 背景管理用スクリプト（すでに<head>で読み込み済み） -->
 
   <script>
-    
+
     // ページ読み込み時
     window.addEventListener("load", async () => {
       await initIndexedDB();
@@ -158,6 +164,11 @@
       window.location.href = "scenarioWizard.html";
     });
   </script>
+
+  <!-- ▼ 追加: JSZip / FileSaver 読み込み + exportImport.js -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="js/exportImport.js"></script>
 
 </body>
 
