@@ -556,6 +556,7 @@ button:hover {
 .card.rarity5 .card-info
 {
   position: absolute;
+  width: 100%;
   left: 0;
   bottom: 0;
   padding-left: calc(3% + 8px);

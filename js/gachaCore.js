@@ -12,7 +12,8 @@
 //
 //   - 指定枚数のエレメントをChatGPTで生成し、window.characterDataに加える
 //   - 生成カードは最初から group="Warehouse" として保存する
-//   - 生成完了後、localStorage["latestCreatedIds"] に追加IDを記録し、
+//   - 生成完了後、localStorage["latestCreatedIds"] を
+//     「今回生成したIDのみに」上書き保存し、
 //     画面側でそれらを表示する
 // --------------------------------------------------------
 async function runGacha(cardCount, addPrompt, onlyTitle = "", onlyType = "") {
@@ -161,20 +162,12 @@ linear-gradientを巧みに用いて背景を設定してください。left top
     // IndexedDB に保存
     await saveCharacterDataToIndexedDB(window.characterData);
 
-    // localStorage["latestCreatedIds"]を更新 (既存IDs + 今回生成IDs)
-    let storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
-    console.log("!!!storedIdsStr!!!", storedIdsStr);
-    let storedIds;
-    try {
-      storedIds = JSON.parse(storedIdsStr);
-    } catch (e) {
-      storedIds = [];
-    }
+    // localStorage["latestCreatedIds"] を
+    // 「今回生成したIDのみに」上書き (＝以前のIDはクリア)
     const newIds = newCards.map(c => c.id);
-    console.log("newIds", newIds);
-    const merged = [...storedIds, ...newIds];
-    localStorage.setItem("latestCreatedIds", JSON.stringify(merged));
-    console.log("mergeど", merged);
+    localStorage.setItem("latestCreatedIds", JSON.stringify(newIds));
+    console.log("【最新生成IDsを上書き】:", newIds);
+
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("runGachaキャンセル");
@@ -226,6 +219,7 @@ function parseCharacterData(text) {
   lines.forEach((line) => {
     line = line.trim();
     if (line.startsWith("【名前】")) {
+      // 名前が続けて出てきたら新キャラ扱い
       if (currentChar.name) pushCurrentChar();
       currentChar.name = line.replace("【名前】", "").replace("：", "").trim();
     } else if (line.startsWith("【タイプ】")) {
@@ -244,6 +238,7 @@ function parseCharacterData(text) {
       currentChar.imageprompt = line.replace("【外見】", "").replace("：", "").trim();
     }
   });
+  // 最後にキャラがあればプッシュ
   if (currentChar.name) {
     pushCurrentChar();
   }
@@ -285,4 +280,3 @@ function makeRarityCountMap(rarities) {
   });
   return counts;
 }
-
