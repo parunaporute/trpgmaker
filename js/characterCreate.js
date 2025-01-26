@@ -446,9 +446,13 @@ function showSeeAllButtonIfNeeded(newIds) {
   seeAllBtn.style.display = hasFlipped ? "inline-block" : "none";
 }
 
-/** 「すべて見る」押下 */
+/**
+ * 「すべて見る」押下
+ * -> flipped状態を順番に外すアニメーション
+ */
 async function onSeeAllCards() {
-  document.getElementById("see-all-btn").style.display = "none";
+  const seeAllBtn = document.getElementById("see-all-btn");
+  seeAllBtn.style.display = "none";
 
   const storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
   let storedIds = [];
@@ -458,14 +462,27 @@ async function onSeeAllCards() {
     storedIds = [];
   }
 
-  let needSave = false;
-  for (const c of window.characterData) {
-    if (storedIds.includes(c.id) && c.flipped) {
-      c.flipped = false;
-      needSave = true;
+  // フリップされているカードだけ取り出す
+  const flippedCards = window.characterData.filter(c => storedIds.includes(c.id) && c.flipped);
+
+  // 順番に1枚ずつフリップを外す
+  for (let i = 0; i < flippedCards.length; i++) {
+    const c = flippedCards[i];
+    c.flipped = false; // データ更新
+
+    // DOM上の該当カードを検索して flippedクラスを外す
+    const cardEl = document.querySelector(`.card[data-id="${c.id}"]`);
+    if (cardEl && cardEl.classList.contains("flipped")) {
+      cardEl.classList.remove("flipped");
     }
+
+    // 100ms ずつディレイを入れて順番に外す
+    // (数値はお好みで変更)
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
-  if (needSave) {
+
+  // 全部外したら保存して再描画
+  if (flippedCards.length > 0) {
     await saveCharacterDataToIndexedDB(window.characterData);
   }
   displayRecentlyCreatedCards(storedIds);
