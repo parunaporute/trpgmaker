@@ -297,8 +297,6 @@ function fillDummyItems(container, realCount) {
   if (containerWidth <= 0 || isNaN(cardWidth)) return;
 
   // 4) コンテナの gap (X方向) を取得
-  //   - 一般的には columnGap が横方向の隙間
-  //   - getComputedStyle(container).gap が使える場合も
   const containerStyle = getComputedStyle(container);
   const gapStr = containerStyle.columnGap || containerStyle.gap || "0";
   const gap = parseFloat(gapStr) || 0;
@@ -330,13 +328,11 @@ function fillDummyItems(container, realCount) {
   for (let i = 0; i < dummyCount; i++) {
     const dummyDiv = document.createElement("div");
     dummyDiv.className = "card dummy"; // 既存の .card + .dummy
-    // 見た目を消す (CSSで .dummy { visibility: hidden; ... } を設定)
     container.appendChild(dummyDiv);
   }
 }
 
-
-/** 倉庫カードDOM生成 */
+/** 倉庫カードDOM生成（★ ここに画像生成ボタンを追加） */
 function createWarehouseCardElement(card) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
@@ -383,12 +379,30 @@ function createWarehouseCardElement(card) {
   // 画像
   const imageContainer = document.createElement("div");
   imageContainer.className = "card-image";
+  
   if (card.imageData) {
+    // すでに画像がある場合
     const imageEl = document.createElement("img");
     imageEl.src = card.imageData;
     imageEl.alt = card.name;
     imageContainer.appendChild(imageEl);
+  } else {
+    // 画像が無い場合 → 生成ボタンを表示
+    const genImgBtn = document.createElement("button");
+    genImgBtn.className = "gen-image-btn";
+    genImgBtn.textContent = "画像生成";
+
+    // 生成用のプロンプトがあれば使い、無ければ「名前 + タイプ」をとりあえず使う
+    const fallbackPrompt = card.imageprompt || `${card.name} ${card.type}`;
+    genImgBtn.setAttribute("data-imageprompt", fallbackPrompt);
+
+    genImgBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      generateWarehouseCardImage(card, genImgBtn);
+    });
+    imageContainer.appendChild(genImgBtn);
   }
+
   cardFront.appendChild(imageContainer);
 
   // 情報
@@ -424,6 +438,77 @@ function createWarehouseCardElement(card) {
   cardEl.appendChild(cardInner);
 
   return cardEl;
+}
+
+/** ▼ 追加: 倉庫カードの画像生成ロジック */
+async function generateWarehouseCardImage(card, btnElement) {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  if (btnElement) {
+    btnElement.disabled = true;
+  }
+  showToast("画像を生成しています...");
+
+  // rarityから画像サイズを決定する例（characterCreate.jsに合わせる）
+  const rarityValue = (typeof card.rarity === "string")
+    ? card.rarity.replace("★", "").trim()
+    : "0";
+  const imageSize = (parseInt(rarityValue) >= 3) ? "1024x1792" : "1792x1024";
+
+  const userPrompt = btnElement.getAttribute("data-imageprompt") || (card.name + " " + card.type);
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
+    userPrompt;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: imageSize,
+        response_format: "b64_json",
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    // characterData 更新
+    const idx = window.characterData.findIndex(c => c.id === card.id);
+    if (idx !== -1) {
+      window.characterData[idx].imageData = dataUrl;
+      // 必要に応じて、imagepromptも更新
+      window.characterData[idx].imageprompt = userPrompt;
+      await saveCharacterDataToIndexedDB(window.characterData);
+    }
+
+    showToast("画像の生成が完了しました");
+    // 再描画
+    renderWarehouseCards();
+
+  } catch (err) {
+    console.error("画像生成失敗:", err);
+    showToast("画像生成に失敗しました:\n" + err.message);
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+    }
+  }
 }
 
 /** 倉庫の選択モード切り替え */
