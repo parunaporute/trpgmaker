@@ -27,7 +27,8 @@
     背景を変更する
   </button>
 
-  <div id="bg-modal" class="modal" style="display:none;">
+  <!-- 背景選択モーダル（.modal + activeクラスで制御するためstyle削除） -->
+  <div id="bg-modal" class="modal">
     <div class="modal-content bg-modal-content">
       <h2>背景選択</h2>
 
@@ -39,7 +40,8 @@
     </div>
   </div>
 
-  <div id="bg-generate-modal" class="modal" style="display:none;">
+  <!-- 生成中モーダル -->
+  <div id="bg-generate-modal" class="modal">
     <div class="modal-content">
       <p>背景画像を生成中...</p>
     </div>
@@ -68,29 +70,29 @@
     <!-- ▼ プレイヤーの分身（1つだけ選べる） -->
     <section style="margin-top:20px;">
       <h2>プレイヤーの分身（アバター）</h2>
-      <p style="color:#555; font-size:14px;">
+      <p style="color:#EEE; font-size:14px;">
         ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
       </p>
-      <div id="avatar-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="avatar-card-container" style="display:flex; flex-wrap:wrap; gap:20px;">
       </div>
     </section>
 
     <!-- ▼ パートナー（複数選べる） -->
     <section style="margin-top:20px;">
       <h2>パートナー（複数可）</h2>
-      <div id="partner-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="partner-card-container" style="display:flex; flex-wrap:wrap; gap:20px;">
       </div>
     </section>
 
     <!-- ▼ その他パーティ枠 -->
     <section style="margin-top:20px;">
       <h2>その他パーティ枠</h2>
-      <div id="party-card-container" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div id="party-card-container" style="display:flex; flex-wrap:wrap; gap:20px;">
       </div>
     </section>
 
-    <!-- ▼ 倉庫モーダル -->
-    <div id="warehouse-modal" class="modal" style="display:none;">
+    <!-- ▼ 倉庫モーダル（index.html と同じデザインに修正） -->
+    <div id="warehouse-modal" class="modal">
       <div class="modal-content">
         <h2>倉庫</h2>
         <!-- 選択モードボタン（倉庫側） -->
@@ -99,8 +101,8 @@
         <button id="add-to-party-btn" style="display:none; margin:10px;">パーティに入れる</button>
         <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
 
-        <div id="warehouse-card-container" style="margin:10px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
-        </div>
+        <!-- 「index.html の倉庫と同じデザイン」→ display指定を外し、marginだけにする -->
+        <div id="warehouse-card-container" style="margin:10px 0;"></div>
       </div>
     </div>
 

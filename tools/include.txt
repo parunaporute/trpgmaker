@@ -1,8 +1,8 @@
-..\\characterCreate.html 
 ..\\index.html 
-..\\styles.css 
-..\\js\\characterCreate.js 
-..\\js\\gachaCore.js 
+..\\partyCreate.html 
+..\\partyList.html 
 ..\\js\\indexedDB.js 
-..\\js\\main.js 
 ..\\js\\menu.js 
+..\\js\\partyCreate.js 
+..\\js\\partyList.js 
+..\\styles.css 
