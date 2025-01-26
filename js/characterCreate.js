@@ -101,6 +101,24 @@ window.addEventListener("load", async function () {
   document.getElementById("delete-confirm-ok").addEventListener("click", onDeleteConfirmOk);
   document.getElementById("delete-confirm-cancel").addEventListener("click", onDeleteConfirmCancel);
 
+  // 「すべて見る」ボタン
+  document.getElementById("see-all-btn").addEventListener("click", onSeeAllCards);
+
+  // プレビュー用モーダルの「閉じる」ボタン
+  const previewCloseBtn = document.getElementById("card-preview-close-btn");
+  previewCloseBtn.addEventListener("click", () => {
+    const modal = document.getElementById("card-image-preview-modal");
+    modal.classList.remove("active");
+  });
+
+  // ★ モーダル外側クリックで閉じる
+  const cardPreviewModal = document.getElementById("card-image-preview-modal");
+  cardPreviewModal.addEventListener("click", (e) => {
+    if (e.target === cardPreviewModal) {
+      cardPreviewModal.classList.remove("active");
+    }
+  });
+
   // 4) チップ表示
   initStageChips();
   initMoodChips();
@@ -118,7 +136,7 @@ window.addEventListener("load", async function () {
   }
   displayRecentlyCreatedCards(storedIds);
 
-  // ★ 追加: リサイズ時に再度「直近生成カード」を描画し直す
+  // 画面リサイズ時に再度「直近生成カード」を描画し直す
   window.addEventListener("resize", () => {
     const reIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
     let reIds = [];
@@ -254,7 +272,7 @@ function addRemoveButton(chip, label, category) {
     e.stopPropagation();
     deletingChipLabel = label;
     deletingChipCategory = category;
-    document.getElementById("delete-confirm-modal").style.display = "flex";
+    document.getElementById("delete-confirm-modal").classList.add("active");
   });
   chip.appendChild(span);
 }
@@ -265,7 +283,7 @@ function openOtherModal(category) {
   document.getElementById("other-input-modal-category").textContent =
     (category === "stage") ? "舞台に追加する「その他」" : "雰囲気に追加する「その他」";
   document.getElementById("other-input-text").value = "";
-  document.getElementById("other-input-modal").style.display = "flex";
+  document.getElementById("other-input-modal").classList.add("active");
 }
 async function onOtherGenerate() {
   if (!window.apiKey) {
@@ -280,7 +298,7 @@ async function onOtherGenerate() {
   }
 
   const gachaModal = document.getElementById("gacha-modal");
-  gachaModal.style.display = "flex";
+  gachaModal.classList.add("active");
   try {
     const systemPrompt = "あなたは創造力豊かなアシスタントです。回答は1つだけ。";
     const userPrompt = `既存候補:${existingList.join(" / ")}\nこれらに無い新しい案を1つ提案してください。`;
@@ -308,15 +326,14 @@ async function onOtherGenerate() {
     console.error(err);
     showToast("その他生成失敗:\n" + err.message);
   } finally {
-    gachaModal.style.display = "none";
+    gachaModal.classList.remove("active");
   }
 }
 function onOtherOk() {
   const text = document.getElementById("other-input-text").value.trim();
-  if (!text) {
-    document.getElementById("other-input-modal").style.display = "none";
-    return;
-  }
+  document.getElementById("other-input-modal").classList.remove("active");
+  if (!text) return;
+
   if (currentOtherCategory === "stage") {
     if (!customStageChips.includes(text)) {
       customStageChips.push(text);
@@ -330,14 +347,15 @@ function onOtherOk() {
     }
     initMoodChips();
   }
-  document.getElementById("other-input-modal").style.display = "none";
 }
 function onOtherCancel() {
-  document.getElementById("other-input-modal").style.display = "none";
+  document.getElementById("other-input-modal").classList.remove("active");
 }
 
 /** 削除確認モーダル */
 function onDeleteConfirmOk() {
+  document.getElementById("delete-confirm-modal").classList.remove("active");
+
   if (deletingChipCategory === "stage") {
     customStageChips = customStageChips.filter(c => c !== deletingChipLabel);
     saveCustomChipsToLocalStorage("customStageChips", customStageChips);
@@ -355,21 +373,19 @@ function onDeleteConfirmOk() {
   }
   deletingChipLabel = "";
   deletingChipCategory = "";
-  document.getElementById("delete-confirm-modal").style.display = "none";
   updateGenreResultLabel();
 }
 function onDeleteConfirmCancel() {
   deletingChipLabel = "";
   deletingChipCategory = "";
-  document.getElementById("delete-confirm-modal").style.display = "none";
+  document.getElementById("delete-confirm-modal").classList.remove("active");
 }
 
 /** ジャンルラベル更新 */
 function updateGenreResultLabel() {
   let stagePart = storedStageArr.length > 0 ? "【舞台】" + storedStageArr.join(" / ") : "";
   let moodPart = storedMood ? "【雰囲気】" + storedMood : "";
-  let text = stagePart + moodPart;
-  document.getElementById("genre-result-text").textContent = text;
+  document.getElementById("genre-result-text").textContent = stagePart + moodPart;
 }
 
 /* -------------------------
@@ -379,15 +395,19 @@ function onGachaButton() {
   // ジャンル選択モーダルを開く
   initStageChips();
   initMoodChips();
-  document.getElementById("element-genre-modal").style.display = "flex";
+  document.getElementById("element-genre-modal").classList.add("active");
 }
 function onGenreSettingOk() {
-  document.getElementById("element-genre-modal").style.display = "none";
-  // すぐガチャを実行
+  document.getElementById("element-genre-modal").classList.remove("active");
+
   const axisPrompt = buildAxisPrompt();
-  document.getElementById("gacha-modal").style.display = "flex";
+  const gachaModal = document.getElementById("gacha-modal");
+  gachaModal.classList.add("active");
+
   runGacha(10, axisPrompt).then(() => {
-    hideGachaModal();
+    gachaModal.classList.remove("active");
+
+    // 生成後、最新のIDリストを再取得
     const storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
     let storedIds = [];
     try {
@@ -396,16 +416,18 @@ function onGenreSettingOk() {
       storedIds = [];
     }
     displayRecentlyCreatedCards(storedIds);
+
+    // レア度3以上の flipped カードがあれば「すべて見る」ボタンを表示
+    showSeeAllButtonIfNeeded(storedIds);
   }).catch(err => {
     console.error(err);
-    hideGachaModal();
+    gachaModal.classList.remove("active");
   });
 }
 function onGenreSettingCancel() {
-  document.getElementById("element-genre-modal").style.display = "none";
+  document.getElementById("element-genre-modal").classList.remove("active");
 }
 function buildAxisPrompt() {
-  // 舞台 + 雰囲気
   const lines = [];
   if (storedStageArr.length > 0) {
     lines.push("【舞台】" + storedStageArr.join(" / "));
@@ -415,12 +437,41 @@ function buildAxisPrompt() {
   }
   return lines.join("\n");
 }
-function hideGachaModal() {
-  const m = document.getElementById("gacha-modal");
-  if (m) m.style.display = "none";
+
+/** すべて見るボタンの表示可否 */
+function showSeeAllButtonIfNeeded(newIds) {
+  const seeAllBtn = document.getElementById("see-all-btn");
+  if (!seeAllBtn) return;
+  const hasFlipped = window.characterData.some(c => newIds.includes(c.id) && c.flipped);
+  seeAllBtn.style.display = hasFlipped ? "inline-block" : "none";
 }
 
-/** 直近生成したカードを表示 -> 最終行ダミー挿入で左揃え */
+/** 「すべて見る」押下 */
+async function onSeeAllCards() {
+  document.getElementById("see-all-btn").style.display = "none";
+
+  const storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
+  let storedIds = [];
+  try {
+    storedIds = JSON.parse(storedIdsStr);
+  } catch (e) {
+    storedIds = [];
+  }
+
+  let needSave = false;
+  for (const c of window.characterData) {
+    if (storedIds.includes(c.id) && c.flipped) {
+      c.flipped = false;
+      needSave = true;
+    }
+  }
+  if (needSave) {
+    await saveCharacterDataToIndexedDB(window.characterData);
+  }
+  displayRecentlyCreatedCards(storedIds);
+}
+
+/** 直近生成したカードを表示 */
 function displayRecentlyCreatedCards(cardIds) {
   const container = document.getElementById("card-container");
   if (!container) return;
@@ -431,32 +482,45 @@ function displayRecentlyCreatedCards(cardIds) {
     return;
   }
 
-  // DB上のキャラから該当idだけ抽出
   const toShow = window.characterData.filter(c => cardIds.includes(c.id));
   if (toShow.length === 0) {
     container.textContent = "まだエレメントが生成されていません。";
     return;
   }
 
-  // 1) 本物のカードを並べる
   toShow.forEach(ch => {
     const cardEl = createCardElement(ch);
     container.appendChild(cardEl);
   });
-
-  // 2) ダミー要素で最終行を埋める
   fillDummyItemsForLastRow(container, toShow.length);
 }
 
 /** カードDOM生成 */
 function createCardElement(char) {
   const card = document.createElement("div");
-  card.className = "card ";
-  card.className += "rarity" + char.rarity.replace("★", "").trim();
+  card.className = "card rarity" + char.rarity.replace("★", "").trim();
   card.setAttribute("data-id", char.id);
 
+  if (char.flipped) {
+    card.classList.add("flipped");
+  }
+
   card.addEventListener("click", () => {
-    card.classList.toggle("flipped");
+    if (card.classList.contains("flipped")) {
+      card.classList.remove("flipped");
+      char.flipped = false;
+      const idx = window.characterData.findIndex(c => c.id === char.id);
+      if (idx !== -1) {
+        window.characterData[idx].flipped = false;
+      }
+      saveCharacterDataToIndexedDB(window.characterData);
+    } else {
+      if (char.imageData) {
+        openCardPreview(char.imageData);
+      } else {
+        showToast("画像がありません");
+      }
+    }
   });
 
   const cardInner = document.createElement("div");
@@ -464,19 +528,22 @@ function createCardElement(char) {
 
   const cardFront = document.createElement("div");
   cardFront.className = "card-front";
-  const bgStyle = (char.backgroundcss || "")
-    .replace("background-image:", "")
-    .replace("background", "")
-    .trim();
-  cardFront.style = "background-image:" + bgStyle;
 
-  // レア度
   const rarityValue = (typeof char.rarity === "string")
     ? char.rarity.replace("★", "").trim()
     : "0";
   cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
-  // タイプ表示
+  // 背景CSS
+  const bgStyle = (char.backgroundcss || "")
+    .replace("background-image:", "")
+    .replace("background", "")
+    .trim();
+  if (bgStyle) {
+    cardFront.style.backgroundImage = bgStyle;
+  }
+
+  // タイプ
   const typeEl = document.createElement("div");
   typeEl.className = "card-type";
   typeEl.textContent = char.type || "不明";
@@ -491,12 +558,9 @@ function createCardElement(char) {
     imageEl.alt = char.name;
     imageContainer.appendChild(imageEl);
   } else {
-    // 画像未生成 → 生成ボタン
     const genImgBtn = document.createElement("button");
-    genImgBtn.setAttribute("data-imageprompt", char.imageprompt);
     genImgBtn.className = "gen-image-btn";
     genImgBtn.textContent = "画像生成";
-
     genImgBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       generateCharacterImage(char, genImgBtn);
@@ -510,20 +574,20 @@ function createCardElement(char) {
   infoContainer.className = "card-info";
 
   const nameEl = document.createElement("p");
-  nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(char.name) + "</h3>";
+  nameEl.innerHTML = `<h3>${DOMPurify.sanitize(char.name)}</h3>`;
   infoContainer.appendChild(nameEl);
 
   if (char.state) {
     const stateEl = document.createElement("p");
-    stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(char.state);
+    stateEl.innerHTML = `<strong>状態：</strong>${DOMPurify.sanitize(char.state)}`;
     infoContainer.appendChild(stateEl);
   }
   const specialEl = document.createElement("p");
-  specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(char.special);
+  specialEl.innerHTML = `<strong>特技：</strong>${DOMPurify.sanitize(char.special)}`;
   infoContainer.appendChild(specialEl);
 
   const captionEl = document.createElement("p");
-  captionEl.innerHTML = "<span>" + DOMPurify.sanitize(char.caption) + "</span>";
+  captionEl.innerHTML = `<span>${DOMPurify.sanitize(char.caption)}</span>`;
   infoContainer.appendChild(captionEl);
 
   cardFront.appendChild(infoContainer);
@@ -538,6 +602,14 @@ function createCardElement(char) {
   card.appendChild(cardInner);
 
   return card;
+}
+
+/** 画像プレビューを表示 */
+function openCardPreview(imageUrl) {
+  const modal = document.getElementById("card-image-preview-modal");
+  const imgEl = document.getElementById("card-preview-img");
+  imgEl.src = imageUrl;
+  modal.classList.add("active");
 }
 
 /** 画像生成 */
@@ -558,6 +630,9 @@ async function generateCharacterImage(char, btnElement) {
     "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
     (char.imageprompt || "");
 
+  const rarityNum = parseInt(char.rarity.replace("★", "").trim()) || 0;
+  const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
+
   try {
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -569,12 +644,11 @@ async function generateCharacterImage(char, btnElement) {
         model: "dall-e-3",
         prompt: promptText,
         n: 1,
-        size: (parseInt(char.rarity.replace("★", "").trim()) >= 3) ? "1024x1792" : "1792x1024",
+        size,
         response_format: "b64_json",
       }),
     });
 
-    console.log(char.rarity);
     const data = await response.json();
     if (data.error) {
       throw new Error(data.error.message);
@@ -582,7 +656,7 @@ async function generateCharacterImage(char, btnElement) {
     const base64 = data.data[0].b64_json;
     const dataUrl = "data:image/png;base64," + base64;
 
-    // characterData 更新
+    // 更新
     const idx = window.characterData.findIndex(c => c.id === char.id);
     if (idx !== -1) {
       window.characterData[idx].imageData = dataUrl;
@@ -599,7 +673,6 @@ async function generateCharacterImage(char, btnElement) {
       storedIds = [];
     }
     displayRecentlyCreatedCards(storedIds);
-
   } catch (err) {
     console.error("画像生成失敗:", err);
     showToast("画像生成に失敗しました:\n" + err.message);
@@ -610,29 +683,20 @@ async function generateCharacterImage(char, btnElement) {
   }
 }
 
-/* ------------------------------------------
-   (追加) 最終行をダミーで埋める関数 (gap考慮)
------------------------------------------- */
+/* 最終行ダミー埋め */
 function fillDummyItemsForLastRow(container, realCount) {
-  // 1) 先頭カード(ダミー以外)を探す
   const firstCard = container.querySelector(".card:not(.dummy)");
   if (!firstCard) return;
 
-  // 2) カード幅
   const style = getComputedStyle(firstCard);
   const cardWidth = parseFloat(style.width);
-
-  // 3) コンテナ幅
   const containerWidth = container.clientWidth;
   if (containerWidth <= 0 || isNaN(cardWidth)) return;
 
-  // 4) gap(横方向)を取得
   const containerStyle = getComputedStyle(container);
   const gapStr = containerStyle.columnGap || containerStyle.gap || "0";
   const gap = parseFloat(gapStr) || 0;
 
-  // 5) 1行に入る数を厳密に算出
-  //   n個 => totalWidth = n*cardWidth + (n-1)*gap
   let itemsPerRow = 1;
   for (let n = 1; n < 999; n++) {
     const total = n * cardWidth + (n - 1) * gap;
@@ -643,16 +707,12 @@ function fillDummyItemsForLastRow(container, realCount) {
     }
   }
 
-  // 6) 余り
   const remainder = realCount % itemsPerRow;
-  if (remainder === 0) return; // ぴったり埋まってる
-
+  if (remainder === 0) return;
   const dummyCount = itemsPerRow - remainder;
-
-  // 7) ダミーを追加
   for (let i = 0; i < dummyCount; i++) {
     const dummyEl = document.createElement("div");
-    dummyEl.className = "card dummy"; // .card も付与して同サイズに
+    dummyEl.className = "card dummy";
     container.appendChild(dummyEl);
   }
 }

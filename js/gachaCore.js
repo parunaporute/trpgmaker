@@ -197,6 +197,7 @@ function parseCharacterData(text) {
     backgroundcss: "",
     imageprompt: "",
     group: "Warehouse",
+    flipped: false // ★ デフォルトはfalse
   };
 
   function pushCurrentChar() {
@@ -213,6 +214,7 @@ function parseCharacterData(text) {
       backgroundcss: "",
       imageprompt: "",
       group: "Warehouse",
+      flipped: false
     };
   }
 
@@ -232,6 +234,12 @@ function parseCharacterData(text) {
       currentChar.caption = line.replace("【キャプション】", "").replace("：", "").trim();
     } else if (line.startsWith("【レア度】")) {
       currentChar.rarity = line.replace("【レア度】", "").replace("：", "").trim();
+
+      // ★ 追加: レア度3以上なら flipped = true を付与
+      const rarityNum = parseInt(currentChar.rarity.replace("★", "").trim()) || 0;
+      if (rarityNum >= 1) {
+        currentChar.flipped = true;
+      }
     } else if (line.startsWith("【カード背景】")) {
       currentChar.backgroundcss = line.replace("【カード背景】", "").replace("：", "").trim();
     } else if (line.startsWith("【外見】")) {
@@ -280,3 +288,6 @@ function makeRarityCountMap(rarities) {
   });
   return counts;
 }
+
+// -----------------------------------
+window.runGacha = runGacha;

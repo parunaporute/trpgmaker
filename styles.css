@@ -128,31 +128,58 @@ button:hover {
   min-height: 60px;
 }
 
-/* モーダル */
+/* ▼ モーダル（フェードイン／アウトで表示） */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  /* 背景の黒み */
   background-color: rgba(0, 0, 0, 0.8);
-  display: none;
+
+  /* フレックスで中央寄せ */
+  display: flex;
   justify-content: center;
   align-items: center;
+
+  /* ▼ フェードイン/アウトに使う */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
   z-index: 9999;
 }
 
+.modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* モーダル内部 */
 .modal-content {
   box-sizing: border-box;
-  width: calc(100% - 20px);
   background-color: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   color: #f0f0f0;
-  padding: 20px 40px;
+  padding: 0;
   border-radius: 5px;
   text-align: center;
-  max-height: 90vh;
+  max-height: 100vh;
   overflow-y: auto;
+  width: 100%;
+
+  /* ふわっと拡大 */
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-content{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* カード関連 */
@@ -174,10 +201,6 @@ button:hover {
   transition: transform 0.3s ease;
   position: relative;
   max-width: 300px;
-}
-
-.card:hover {
-  transform: scale(1.05);
 }
 
 .card-inner {
@@ -420,11 +443,9 @@ button:hover {
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
@@ -435,12 +456,10 @@ button:hover {
     filter: brightness(1);
     background-position: 0% 50%;
   }
-
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
-
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
@@ -525,19 +544,18 @@ button:hover {
   margin: 20px 0;
 }
 
-/* ここから追加: ダミー要素用 */
+/* ダミー要素用 */
 .dummy {
-  /* 大きさは .card と同じ or 同程度にして、見た目を完全に消す */
   visibility: hidden;
   pointer-events: none;
   background-color: transparent;
   border: none;
 }
 
+/* レア度3以上で背景画像が大きくなりがちな場合に対応 */
 .card.rarity3 .card-front .card-image,
 .card.rarity4 .card-front .card-image,
-.card.rarity5 .card-front .card-image
-{
+.card.rarity5 .card-front .card-image {
   z-index: 0;
   height: 100%;
   width: 100%;
@@ -545,16 +563,14 @@ button:hover {
 
 .card.rarity3 .card-front .card-image img,
 .card.rarity4 .card-front .card-image img,
-.card.rarity5 .card-front .card-image img
-{
+.card.rarity5 .card-front .card-image img {
   object-position: bottom;
   opacity: 0.9;
 }
 
 .card.rarity3 .card-info,
 .card.rarity4 .card-info,
-.card.rarity5 .card-info
-{
+.card.rarity5 .card-info {
   position: absolute;
   box-sizing: border-box;
   width: 100%;
@@ -568,13 +584,11 @@ button:hover {
   background-color: rgba(37, 37, 37, 0.85);
   color: #fff;
   text-shadow: 0 0 10px #FFF;
-
 }
 
 .card.rarity3 .card-front .card-info p:last-child,
 .card.rarity4 .card-front .card-info p:last-child,
-.card.rarity5 .card-front .card-info p:last-child
-{
+.card.rarity5 .card-front .card-info p:last-child {
   margin-left: -3%;
   margin-right: -3%;
   background-color: rgba(0, 0, 0, 0.7);
@@ -583,17 +597,14 @@ button:hover {
 
 .card.rarity3 .card-front .card-info p:last-child span,
 .card.rarity4 .card-front .card-info p:last-child span,
-.card.rarity5 .card-front .card-info p:last-child span
-{
+.card.rarity5 .card-front .card-info p:last-child span {
   padding-top: 20px;
   padding-bottom: 20px;
 }
 
-
 .card.rarity3 .card-front .gen-image-btn,
 .card.rarity4 .card-front .gen-image-btn,
-.card.rarity5 .card-front .gen-image-btn
-{
+.card.rarity5 .card-front .gen-image-btn {
   top: calc(40% - 0.8rem);
   bottom: initial;
 }

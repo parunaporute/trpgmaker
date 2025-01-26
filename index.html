@@ -33,7 +33,7 @@
     </button>
 
     <!-- ▼ 背景選択モーダル -->
-    <div id="bg-modal" class="modal" style="display:none;">
+    <div id="bg-modal" class="modal">
       <div class="modal-content bg-modal-content">
         <h2>背景選択</h2>
 
@@ -54,7 +54,7 @@
     </div>
 
     <!-- 生成中モーダル -->
-    <div id="bg-generate-modal" class="modal" style="display:none;">
+    <div id="bg-generate-modal" class="modal">
       <div class="modal-content">
         <p>背景画像を生成中...</p>
       </div>
@@ -100,7 +100,7 @@
   </div>
 
   <!-- シナリオ削除用の確認モーダル -->
-  <div id="delete-scenario-modal" class="modal" style="display:none;">
+  <div id="delete-scenario-modal" class="modal">
     <div class="modal-content">
       <h3>シナリオ削除の確認</h3>
       <p>このシナリオを削除します。よろしいですか？</p>
@@ -110,7 +110,7 @@
   </div>
 
   <!-- 倉庫モーダル -->
-  <div id="warehouse-modal" class="modal" style="display:none;">
+  <div id="warehouse-modal" class="modal">
     <div class="modal-content">
       <h2>倉庫</h2>
       <!-- 倉庫側の選択モードボタン -->
@@ -120,6 +120,19 @@
       <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
 
       <div id="warehouse-card-container" style="margin:10px 0;"></div>
+    </div>
+  </div>
+
+  <!-- ▼ 画像プレビュー用モーダル -->
+  <div id="card-image-preview-modal" class="modal">
+    <div class="modal-content">
+      <img
+        id="card-preview-img"
+        src=""
+        alt="card image"
+        style="max-width: 100vw;max-height: 100vh;"
+      />
+      <button id="card-preview-close-btn" style="margin-top:10px;">閉じる</button>
     </div>
   </div>
 
@@ -136,7 +149,6 @@
   <!-- 新規: 背景管理用スクリプト（すでに<head>で読み込み済み） -->
 
   <script>
-
     // ページ読み込み時
     window.addEventListener("load", async () => {
       await initIndexedDB();

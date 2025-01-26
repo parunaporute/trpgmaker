@@ -1,14 +1,11 @@
 // menu.js
 
-// ★ 追加：ここでグローバルにAPIキーをロード
+// ★ ここでグローバルにAPIキーをロード
 window.apiKey = localStorage.getItem("apiKey") || "";
 
 let scenarioIdToDelete = null;
-let warehouseSelectionMode = false; // ★追加: 倉庫側の選択モードフラグ
+let warehouseSelectionMode = false; // 倉庫側の選択モードフラグ
 
-// -----------------------------------------
-// トースト表示用のユーティリティ関数
-// -----------------------------------------
 function showToast(message) {
   const oldToast = document.getElementById("toast-message");
   if (oldToast) {
@@ -19,7 +16,6 @@ function showToast(message) {
   toast.id = "toast-message";
   toast.textContent = message;
 
-  // スタイルを付与（シンプルな例）
   toast.style.position = "fixed";
   toast.style.bottom = "20px";
   toast.style.left = "50%";
@@ -48,19 +44,15 @@ function showToast(message) {
   }, 3000);
 }
 
-// -----------------------------------------
-// 初期化：シナリオ一覧の取得 & characterDataのロード
-// -----------------------------------------
 (async function initMenuPage() {
-  // 1) APIキーを入力欄に表示
   const savedApiKey = localStorage.getItem("apiKey");
   if (savedApiKey) {
     document.getElementById("api-key-input").value = savedApiKey;
   }
 
-  // 2) シナリオ一覧を取得して表示
+  // シナリオ一覧を取得
   try {
-    const scenarioList = await listAllScenarios();  // indexedDB.js の関数
+    const scenarioList = await listAllScenarios();
     const container = document.getElementById("scenario-list-container");
     container.innerHTML = "";
 
@@ -71,12 +63,11 @@ function showToast(message) {
         const div = document.createElement("div");
         div.style.margin = "10px 0";
 
-        // シナリオ情報
         const infoText = document.createElement("span");
         infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
         div.appendChild(infoText);
 
-        // 「続きへ」ボタン
+        // 続きへ
         const btnContinue = document.createElement("button");
         btnContinue.textContent = "続きへ";
         btnContinue.style.marginRight = "6px";
@@ -85,7 +76,7 @@ function showToast(message) {
         });
         div.appendChild(btnContinue);
 
-        // 「コピーする」ボタン
+        // コピー
         const btnCopy = document.createElement("button");
         btnCopy.textContent = "コピーする";
         btnCopy.style.marginRight = "6px";
@@ -93,8 +84,7 @@ function showToast(message) {
           try {
             const newScenarioId = await copyScenarioById(scenario.scenarioId);
             showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
-            // リスト更新のためリロード
-            location.reload();
+            location.reload(); // リスト更新
           } catch (err) {
             console.error(err);
             showToast("シナリオのコピーに失敗:\n" + err.message);
@@ -102,7 +92,7 @@ function showToast(message) {
         });
         div.appendChild(btnCopy);
 
-        // 「削除」ボタン
+        // 削除
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "削除";
         btnDelete.style.backgroundColor = "#f44336";
@@ -121,7 +111,7 @@ function showToast(message) {
     container.textContent = "シナリオ一覧の取得に失敗しました。再読み込みしてください。";
   }
 
-  // 3) characterDataをロード
+  // characterData
   try {
     const stored = await loadCharacterDataFromIndexedDB();
     window.characterData = stored || [];
@@ -130,39 +120,53 @@ function showToast(message) {
     window.characterData = [];
   }
 
-  // 4) 倉庫ボタン・倉庫モーダル関連のイベント設定
+  // 倉庫
   const showWarehouseBtn = document.getElementById("show-warehouse-btn");
   if (showWarehouseBtn) {
     showWarehouseBtn.addEventListener("click", showWarehouseModal);
   }
-
   const toggleModeBtn = document.getElementById("toggle-warehouse-selection-mode-btn");
   if (toggleModeBtn) {
     toggleModeBtn.addEventListener("click", toggleWarehouseSelectionMode);
   }
-
   const closeWarehouseBtn = document.getElementById("close-warehouse-btn");
   if (closeWarehouseBtn) {
     closeWarehouseBtn.addEventListener("click", closeWarehouseModal);
   }
-
   const deleteWarehouseBtn = document.getElementById("delete-selected-warehouse-btn");
   if (deleteWarehouseBtn) {
     deleteWarehouseBtn.addEventListener("click", deleteSelectedWarehouse);
   }
 
-  // ★ 追加: 画面リサイズのたび、倉庫モーダルが開いていたら再描画
+  // リサイズ時
   window.addEventListener("resize", () => {
     const modal = document.getElementById("warehouse-modal");
-    if (modal && modal.style.display === "flex") {
+    if (modal && modal.classList.contains("active")) {
       renderWarehouseCards();
     }
   });
+
+  // 画像プレビューモーダル
+  // 「閉じる」ボタン
+  const previewCloseBtn = document.getElementById("card-preview-close-btn");
+  if (previewCloseBtn) {
+    previewCloseBtn.addEventListener("click", () => {
+      const modal = document.getElementById("card-image-preview-modal");
+      modal.classList.remove("active");
+    });
+  }
+  // 外側クリック
+  const previewModal = document.getElementById("card-image-preview-modal");
+  if (previewModal) {
+    previewModal.addEventListener("click", (e) => {
+      if (e.target === previewModal) {
+        previewModal.classList.remove("active");
+      }
+    });
+  }
 })();
 
-// -----------------------------------------
-// APIキー関連
-// -----------------------------------------
+// APIキー設定
 document.getElementById("set-api-key-button").addEventListener("click", function () {
   const apiKey = document.getElementById("api-key-input").value.trim();
   if (apiKey) {
@@ -173,35 +177,29 @@ document.getElementById("set-api-key-button").addEventListener("click", function
     showToast("APIキーを入力してください。");
   }
 });
-
 document.getElementById("clear-api-key-button").addEventListener("click", function () {
-  const confirmClear = confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？");
-  if (confirmClear) {
+  if (confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？")) {
     localStorage.removeItem("apiKey");
     window.apiKey = "";
     showToast("APIキーがクリアされました。");
   }
 });
 
-// -----------------------------------------
-// 全エレメントをクリア
-// -----------------------------------------
+// 全エレメントクリア
 document.getElementById("clear-character-btn").addEventListener("click", async () => {
-  const confirmClear = confirm("エレメント情報をクリアします。よろしいですか？");
-  if (confirmClear) {
+  if (confirm("エレメント情報をクリアします。よろしいですか？")) {
     window.characterData = [];
     await saveCharacterDataToIndexedDB(window.characterData);
     showToast("エレメント情報をクリアしました。");
   }
 });
 
-// -----------------------------------------
-// シナリオ削除用モーダルの制御
-// -----------------------------------------
+// シナリオ削除用モーダル
 function showDeleteScenarioModal(show) {
   const modal = document.getElementById("delete-scenario-modal");
   if (!modal) return;
-  modal.style.display = show ? "flex" : "none";
+  if (show) modal.classList.add("active");
+  else modal.classList.remove("active");
 }
 
 document.getElementById("delete-scenario-ok").addEventListener("click", async () => {
@@ -210,7 +208,7 @@ document.getElementById("delete-scenario-ok").addEventListener("click", async ()
     return;
   }
   try {
-    await deleteScenarioById(scenarioIdToDelete);  // indexedDB.js の関数
+    await deleteScenarioById(scenarioIdToDelete);
     showToast(`シナリオ(ID:${scenarioIdToDelete})を削除しました。`);
   } catch (err) {
     console.error(err);
@@ -218,36 +216,29 @@ document.getElementById("delete-scenario-ok").addEventListener("click", async ()
   }
   scenarioIdToDelete = null;
   showDeleteScenarioModal(false);
-
-  // 一覧を再描画するためリロード
   location.reload();
 });
-
 document.getElementById("delete-scenario-cancel").addEventListener("click", () => {
   scenarioIdToDelete = null;
   showDeleteScenarioModal(false);
 });
 
-// -----------------------------------------
-// ▼ 倉庫表示関連
-// -----------------------------------------
-
+// 倉庫モーダル
 function showWarehouseModal() {
   const modal = document.getElementById("warehouse-modal");
-  modal.style.display = "flex";
+  modal.classList.add("active");
   renderWarehouseCards();
 }
-
 function closeWarehouseModal() {
   const modal = document.getElementById("warehouse-modal");
-  modal.style.display = "none";
+  modal.classList.remove("active");
 
   // 選択モードリセット
   warehouseSelectionMode = false;
   document.getElementById("toggle-warehouse-selection-mode-btn").textContent = "選択モード";
   document.getElementById("delete-selected-warehouse-btn").style.display = "none";
 
-  // 選択状態を解除
+  // 選択状態クリア
   const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
   selectedCards.forEach(card => card.classList.remove("selected"));
 }
@@ -270,8 +261,7 @@ function renderWarehouseCards() {
 
   // 1) 本物のカードを追加
   warehouseCards.forEach(card => {
-    const cardEl = createWarehouseCardElement(card);
-    container.appendChild(cardEl);
+    container.appendChild(createWarehouseCardElement(card));
   });
 
   // 2) 最後の行を埋めるためのダミー要素を追加
@@ -329,10 +319,8 @@ function fillDummyItems(container, realCount) {
   }
 }
 
-/** 
- * ★ 追加：倉庫で画像未生成のカードに対して「画像生成」ボタンを設置し、
- *   押下時に画像を生成するための関数
- */
+
+/** 画像生成(倉庫用) */
 async function generateWarehouseImage(card, btnElement) {
   if (!window.apiKey) {
     alert("APIキーが設定されていません。");
@@ -343,11 +331,9 @@ async function generateWarehouseImage(card, btnElement) {
   }
   showToast("画像を生成しています...");
 
-  // rarityを判定して画像サイズを可変にする例
-  const rarityNum = parseInt((card.rarity || "★0").replace("★", "").trim()) || 0;
+  const rarityNum = parseInt(card.rarity.replace("★", "").trim()) || 0;
   const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
 
-  // 実際のプロンプト生成
   const promptText =
     "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
     "Please do not include text in illustrations for any reason." +
@@ -386,9 +372,7 @@ async function generateWarehouseImage(card, btnElement) {
     }
 
     showToast("画像の生成が完了しました");
-    // 再描画
     renderWarehouseCards();
-
   } catch (err) {
     console.error("画像生成失敗:", err);
     showToast("画像生成に失敗しました:\n" + err.message);
@@ -402,10 +386,12 @@ async function generateWarehouseImage(card, btnElement) {
 /** 倉庫カードDOM生成 */
 function createWarehouseCardElement(card) {
   const cardEl = document.createElement("div");
-  cardEl.className = "card ";
-  cardEl.className += "rarity" + card.rarity.replace("★", "").trim();
-
+  cardEl.className = "card rarity" + card.rarity.replace("★", "").trim();
   cardEl.setAttribute("data-id", card.id);
+
+  if (card.flipped) {
+    cardEl.classList.add("flipped");
+  }
 
   cardEl.addEventListener("click", (e) => {
     if (warehouseSelectionMode) {
@@ -413,8 +399,22 @@ function createWarehouseCardElement(card) {
       cardEl.classList.toggle("selected");
       updateDeleteSelectedWarehouseButton();
     } else {
-      // 通常はカード反転表示
-      cardEl.classList.toggle("flipped");
+      // flipped→表面 / それ以外→画像プレビュー
+      if (cardEl.classList.contains("flipped")) {
+        cardEl.classList.remove("flipped");
+        card.flipped = false;
+        const idx = window.characterData.findIndex(c => c.id === card.id);
+        if (idx !== -1) {
+          window.characterData[idx].flipped = false;
+        }
+        saveCharacterDataToIndexedDB(window.characterData);
+      } else {
+        if (card.imageData) {
+          openPreviewModal(card.imageData);
+        } else {
+          showToast("画像がありません。");
+        }
+      }
     }
   });
 
@@ -424,7 +424,7 @@ function createWarehouseCardElement(card) {
   const cardFront = document.createElement("div");
   cardFront.className = "card-front";
 
-  // 背景CSS
+  // 背景
   const bgStyle = (card.backgroundcss || "")
     .replace("background-image:", "")
     .replace("background", "")
@@ -432,9 +432,8 @@ function createWarehouseCardElement(card) {
   if (bgStyle) {
     cardFront.style.backgroundImage = bgStyle;
   }
-
   // レアリティ枠
-  const rarityValue = (typeof card.rarity === "string") ? card.rarity.replace("★", "").trim() : "0";
+  const rarityValue = card.rarity.replace("★", "").trim();
   cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
   // タイプ表示
@@ -446,47 +445,42 @@ function createWarehouseCardElement(card) {
   // 画像領域
   const imageContainer = document.createElement("div");
   imageContainer.className = "card-image";
-
   if (card.imageData) {
-    // 画像あり
     const imageEl = document.createElement("img");
     imageEl.src = card.imageData;
     imageEl.alt = card.name;
     imageContainer.appendChild(imageEl);
   } else {
-    // 画像なし -> 生成ボタンを表示
     const genImgBtn = document.createElement("button");
     genImgBtn.className = "gen-image-btn";
     genImgBtn.textContent = "画像生成";
-    genImgBtn.setAttribute("data-imageprompt", card.imageprompt || "");
     genImgBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       generateWarehouseImage(card, genImgBtn);
     });
     imageContainer.appendChild(genImgBtn);
   }
-
   cardFront.appendChild(imageContainer);
 
-  // 詳細
+  // 情報
   const infoContainer = document.createElement("div");
   infoContainer.className = "card-info";
 
   const nameEl = document.createElement("p");
-  nameEl.innerHTML = "<h3>" + DOMPurify.sanitize(card.name) + "</h3>";
+  nameEl.innerHTML = `<h3>${DOMPurify.sanitize(card.name)}</h3>`;
   infoContainer.appendChild(nameEl);
 
   if (card.state) {
     const stateEl = document.createElement("p");
-    stateEl.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(card.state);
+    stateEl.innerHTML = `<strong>状態：</strong>${DOMPurify.sanitize(card.state)}`;
     infoContainer.appendChild(stateEl);
   }
   const specialEl = document.createElement("p");
-  specialEl.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(card.special);
+  specialEl.innerHTML = `<strong>特技：</strong>${DOMPurify.sanitize(card.special)}`;
   infoContainer.appendChild(specialEl);
 
   const captionEl = document.createElement("p");
-  captionEl.innerHTML = "<span>" + DOMPurify.sanitize(card.caption) + "</span>";
+  captionEl.innerHTML = `<span>${DOMPurify.sanitize(card.caption)}</span>`;
   infoContainer.appendChild(captionEl);
 
   cardFront.appendChild(infoContainer);
@@ -503,7 +497,23 @@ function createWarehouseCardElement(card) {
   return cardEl;
 }
 
-/** 倉庫の選択モード切り替え */
+/** 画像プレビュー(メニュー画面用) */
+function openPreviewModal(imageUrl) {
+  const modal = document.getElementById("card-image-preview-modal");
+  if (!modal) {
+    showToast("プレビューモーダルがありません。");
+    return;
+  }
+  const imgEl = document.getElementById("card-preview-img");
+  if (!imgEl) {
+    showToast("プレビュー画像要素が見つかりません。");
+    return;
+  }
+  imgEl.src = imageUrl;
+  modal.classList.add("active");
+}
+
+/** 倉庫の選択モード */
 function toggleWarehouseSelectionMode() {
   warehouseSelectionMode = !warehouseSelectionMode;
   const btn = document.getElementById("toggle-warehouse-selection-mode-btn");
@@ -517,7 +527,6 @@ function toggleWarehouseSelectionMode() {
   updateDeleteSelectedWarehouseButton();
 }
 
-/** 選択状態に応じて「選択したカードを削除」ボタンの表示を切り替え */
 function updateDeleteSelectedWarehouseButton() {
   const deleteBtn = document.getElementById("delete-selected-warehouse-btn");
   if (!warehouseSelectionMode) {
@@ -525,18 +534,15 @@ function updateDeleteSelectedWarehouseButton() {
     return;
   }
   const selected = document.querySelectorAll("#warehouse-card-container .card.selected");
-  deleteBtn.style.display = (selected.length > 0) ? "inline-block" : "none";
+  deleteBtn.style.display = selected.length > 0 ? "inline-block" : "none";
 }
 
-/** 選択した倉庫内カードを削除 */
 async function deleteSelectedWarehouse() {
   const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
   if (selectedCards.length === 0) {
     alert("カードが選択されていません。");
     return;
   }
-
-  // 選択カードをcharacterDataから削除
   selectedCards.forEach(cardEl => {
     const cardId = cardEl.getAttribute("data-id");
     const idx = window.characterData.findIndex(c => c.id === cardId);
@@ -544,25 +550,17 @@ async function deleteSelectedWarehouse() {
       window.characterData.splice(idx, 1);
     }
   });
-
   await saveCharacterDataToIndexedDB(window.characterData);
-
-  // 再描画
   renderWarehouseCards();
   updateDeleteSelectedWarehouseButton();
 }
 
-/* --------------------------------------------------
-   ★ 追加機能: シナリオのコピー
----------------------------------------------------*/
+/* シナリオコピー */
 async function copyScenarioById(originalScenarioId) {
-  // 1) 元シナリオを取得
   const scenario = await getScenarioById(originalScenarioId);
   if (!scenario) {
     throw new Error("コピー元シナリオが見つかりませんでした。");
   }
-
-  // 2) 新しいシナリオレコードを作る
   const now = new Date().toISOString();
   const newScenario = {
     title: scenario.title + "_copy",
@@ -572,7 +570,6 @@ async function copyScenarioById(originalScenarioId) {
   };
   const newScenarioId = await createNewScenario(newScenario.wizardData, newScenario.title);
 
-  // 3) 元のsceneEntriesを取得 & 複製
   const entries = await getSceneEntriesByScenarioId(originalScenarioId);
   for (const e of entries) {
     const copy = {
@@ -586,7 +583,6 @@ async function copyScenarioById(originalScenarioId) {
     await addSceneEntry(copy);
   }
 
-  // シナリオ本体の更新
   const newScen = await getScenarioById(newScenarioId);
   newScen.title = scenario.title + "_copy";
   newScen.updatedAt = new Date().toISOString();
