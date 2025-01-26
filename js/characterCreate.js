@@ -557,7 +557,7 @@ async function generateCharacterImage(char, btnElement) {
     "If you can do that, I'll give you a super high tip." +
     "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
     (char.imageprompt || "");
-    
+
   try {
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",

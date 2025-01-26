@@ -395,12 +395,12 @@ window.deleteSceneEntry = deleteSceneEntry;
 window.deleteScenarioById = deleteScenarioById;
 
 /** 新規パーティ作成 */
-window.createParty = function(name){
-  return new Promise((resolve, reject)=>{
-    if(!db){
+window.createParty = function (name) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
       return reject("DB未初期化");
     }
-    const tx = db.transaction("parties","readwrite");
+    const tx = db.transaction("parties", "readwrite");
     const store = tx.objectStore("parties");
     const now = new Date().toISOString();
     const rec = {
@@ -409,82 +409,82 @@ window.createParty = function(name){
       updatedAt: now
     };
     const req = store.add(rec);
-    req.onsuccess = (evt)=>{
+    req.onsuccess = (evt) => {
       resolve(evt.target.result); // partyId
     };
-    req.onerror = (err)=>{
+    req.onerror = (err) => {
       reject(err);
     };
   });
 };
 
-window.getPartyById = function(partyId){
-  return new Promise((resolve, reject)=>{
-    if(!db){
+window.getPartyById = function (partyId) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
       return reject("DB未初期化");
     }
-    const tx = db.transaction("parties","readonly");
+    const tx = db.transaction("parties", "readonly");
     const store = tx.objectStore("parties");
     const req = store.get(partyId);
-    req.onsuccess = (evt)=>{
+    req.onsuccess = (evt) => {
       resolve(evt.target.result || null);
     };
-    req.onerror = (err)=>{
+    req.onerror = (err) => {
       reject(err);
     };
   });
 };
 
-window.listAllParties = function(){
-  return new Promise((resolve, reject)=>{
-    if(!db){
+window.listAllParties = function () {
+  return new Promise((resolve, reject) => {
+    if (!db) {
       return reject("DB未初期化");
     }
-    const tx = db.transaction("parties","readonly");
+    const tx = db.transaction("parties", "readonly");
     const store = tx.objectStore("parties");
     const req = store.getAll();
-    req.onsuccess = (evt)=>{
+    req.onsuccess = (evt) => {
       const list = evt.target.result || [];
-      list.sort((a,b)=> (b.updatedAt||"").localeCompare(a.updatedAt||""));
+      list.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
       resolve(list);
     };
-    req.onerror = (err)=>{
+    req.onerror = (err) => {
       reject(err);
     };
   });
 };
 
-window.updateParty = function(party){
-  return new Promise((resolve, reject)=>{
-    if(!db){
+window.updateParty = function (party) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
       return reject("DB未初期化");
     }
     party.updatedAt = new Date().toISOString();
-    const tx = db.transaction("parties","readwrite");
+    const tx = db.transaction("parties", "readwrite");
     const store = tx.objectStore("parties");
     const req = store.put(party);
-    req.onsuccess = ()=>{
+    req.onsuccess = () => {
       resolve();
     };
-    req.onerror = (err)=>{
+    req.onerror = (err) => {
       reject(err);
     };
   });
 };
 
-window.deletePartyById = function(partyId){
-  return new Promise((resolve, reject)=>{
-    if(!db){
+window.deletePartyById = function (partyId) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
       return reject("DB未初期化");
     }
-    const tx = db.transaction("parties","readwrite");
+    const tx = db.transaction("parties", "readwrite");
     const store = tx.objectStore("parties");
 
     const req = store.delete(partyId);
-    req.onsuccess = ()=>{
+    req.onsuccess = () => {
       resolve();
     };
-    req.onerror = (err)=>{
+    req.onerror = (err) => {
       reject(err);
     };
   });

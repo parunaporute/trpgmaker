@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>新しいシナリオ作成ウィザード</title>
@@ -13,8 +14,7 @@
 
 <body>
   <!-- ▼ 背景変更ボタン + モーダル -->
-  <button id="change-bg-button"
-    style="
+  <button id="change-bg-button" style="
       color: #000;
       background-color: #DDD;
       border-radius: 2px;
@@ -22,8 +22,7 @@
       position: absolute;
       top: 0;
       right: 0;
-    "
-  >
+    ">
     背景を変更する
   </button>
 
@@ -192,10 +191,11 @@
       window.location.href = "index.html";
     });
 
-    window.addEventListener("load", async()=>{
+    window.addEventListener("load", async () => {
       await initIndexedDB();
       await initBackground();
     });
   </script>
 </body>
+
 </html>

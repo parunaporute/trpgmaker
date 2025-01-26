@@ -12,7 +12,7 @@ window.addEventListener("load", async () => {
   // 新規作成ボタン
   document.getElementById("create-party-button").addEventListener("click", async () => {
     const newName = document.getElementById("new-party-name").value.trim();
-    if(!newName){
+    if (!newName) {
       alert("パーティ名を入力してください。");
       return;
     }
@@ -20,7 +20,7 @@ window.addEventListener("load", async () => {
       const newId = await createParty(newName);
       document.getElementById("new-party-name").value = "";
       await renderPartyList();
-    } catch(e){
+    } catch (e) {
       console.error(e);
       alert("パーティ作成に失敗しました:\n" + e.message);
     }
@@ -32,24 +32,24 @@ window.addEventListener("load", async () => {
   });
 
   // パーティ名変更モーダルのキャンセル
-  document.getElementById("edit-party-cancel-button").addEventListener("click", ()=>{
+  document.getElementById("edit-party-cancel-button").addEventListener("click", () => {
     hideEditPartyModal();
   });
 
   // パーティ名変更モーダルの保存
-  document.getElementById("edit-party-save-button").addEventListener("click", async ()=>{
+  document.getElementById("edit-party-save-button").addEventListener("click", async () => {
     const newName = document.getElementById("edit-party-name").value.trim();
-    if(!newName){
+    if (!newName) {
       alert("パーティ名を入力してください。");
       return;
     }
-    if(editingPartyId == null){
+    if (editingPartyId == null) {
       hideEditPartyModal();
       return;
     }
-    try{
+    try {
       const party = await getPartyById(editingPartyId);
-      if(!party){
+      if (!party) {
         alert("対象パーティが見つかりません。");
         hideEditPartyModal();
         return;
@@ -60,7 +60,7 @@ window.addEventListener("load", async () => {
       editingPartyId = null;
       hideEditPartyModal();
       await renderPartyList();
-    } catch(e){
+    } catch (e) {
       console.error(e);
       alert("パーティ名の更新に失敗:\n" + e.message);
     }
@@ -68,27 +68,27 @@ window.addEventListener("load", async () => {
 });
 
 /** パーティ一覧を描画 */
-async function renderPartyList(){
+async function renderPartyList() {
   const container = document.getElementById("party-list-container");
   container.innerHTML = "";
 
   let parties = [];
   try {
     parties = await listAllParties(); // indexedDB.js で実装
-  } catch(e){
+  } catch (e) {
     console.error(e);
     container.textContent = "パーティ一覧の取得に失敗しました。";
     return;
   }
 
-  if(parties.length === 0){
+  if (parties.length === 0) {
     container.textContent = "パーティがありません。";
     return;
   }
 
   // 現在のカレントIDをlocalStorageから読む
   const currentPartyIdStr = localStorage.getItem("currentPartyId") || "";
-  const currentPartyId = currentPartyIdStr ? parseInt(currentPartyIdStr,10) : null;
+  const currentPartyId = currentPartyIdStr ? parseInt(currentPartyIdStr, 10) : null;
 
   parties.forEach(party => {
     const div = document.createElement("div");
@@ -112,7 +112,7 @@ async function renderPartyList(){
     div.appendChild(setBtn);
 
     // もしカレントならラベル表示
-    if(currentPartyId === party.partyId){
+    if (currentPartyId === party.partyId) {
       const label = document.createElement("strong");
       label.textContent = " (現在のパーティ)";
       label.style.color = "#4CAF50";
@@ -143,23 +143,23 @@ async function renderPartyList(){
     delBtn.textContent = "削除";
     delBtn.style.marginLeft = "10px";
     delBtn.style.backgroundColor = "#f44336";
-    delBtn.addEventListener("click", async ()=>{
-      if(!confirm(`パーティ「${party.name}」を削除します。よろしいですか？`)){
+    delBtn.addEventListener("click", async () => {
+      if (!confirm(`パーティ「${party.name}」を削除します。よろしいですか？`)) {
         return;
       }
       try {
         // 1) characterDataをロードして、このpartyIdを持つカードを倉庫へ戻す
         const storedChars = await loadCharacterDataFromIndexedDB();
         let changed = false;
-        for(const c of storedChars){
-          if(c.group === "Party" && c.partyId === party.partyId){
+        for (const c of storedChars) {
+          if (c.group === "Party" && c.partyId === party.partyId) {
             c.group = "Warehouse";
             c.role = "none";
             c.partyId = null;
             changed = true;
           }
         }
-        if(changed){
+        if (changed) {
           await saveCharacterDataToIndexedDB(storedChars);
         }
 
@@ -167,13 +167,13 @@ async function renderPartyList(){
         await deletePartyById(party.partyId);
 
         // もしカレントパーティならカレントをクリア
-        if(currentPartyId === party.partyId){
+        if (currentPartyId === party.partyId) {
           localStorage.removeItem("currentPartyId");
         }
 
         // 再描画
         await renderPartyList();
-      } catch(e){
+      } catch (e) {
         console.error(e);
         alert("パーティ削除に失敗しました:\n" + e.message);
       }
@@ -184,11 +184,11 @@ async function renderPartyList(){
   });
 }
 
-function showEditPartyModal(currentName){
+function showEditPartyModal(currentName) {
   document.getElementById("edit-party-name").value = currentName;
   document.getElementById("edit-party-modal").style.display = "flex";
 }
-function hideEditPartyModal(){
+function hideEditPartyModal() {
   document.getElementById("edit-party-modal").style.display = "none";
   editingPartyId = null;
 }

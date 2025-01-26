@@ -458,7 +458,7 @@ function updateWizGenreResultText() {
   let themePart = wizStoredTheme ? "【テーマ】" + wizStoredTheme : "";
   let moodPart = wizStoredMood ? "【雰囲気】" + wizStoredMood : "";
   let result = stagePart + themePart + moodPart;
-  if(result == "") result = "テーマは選択されていません";
+  if (result == "") result = "テーマは選択されていません";
   document.getElementById("wiz-genre-result-text").textContent = result;
 }
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>パーティ一覧</title>
@@ -10,10 +11,10 @@
   <!-- ▼ 追加：背景管理用スクリプト -->
   <script src="js/background.js"></script>
 </head>
+
 <body>
   <!-- ▼ 背景を変更するボタン + モーダル -->
-  <button id="change-bg-button"
-    style="
+  <button id="change-bg-button" style="
       color: #000;
       background-color: #DDD;
       border-radius: 2px;
@@ -21,8 +22,7 @@
       position: absolute;
       top: 0;
       right: 0;
-    "
-  >
+    ">
     背景を変更する
   </button>
 
@@ -78,10 +78,11 @@
   <script src="js/partyList.js"></script>
 
   <script>
-    window.addEventListener("load", async()=>{
+    window.addEventListener("load", async () => {
       await initIndexedDB();
       await initBackground("partyList");
     });
   </script>
 </body>
+
 </html>

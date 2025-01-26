@@ -145,7 +145,7 @@ linear-gradientを巧みに用いて背景を設定してください。left top
     if (typeof text !== "string") {
       throw new Error("エレメント生成APIレスポンスが不正です。");
     }
-    console.log("text",text);
+    console.log("text", text);
 
     // 生成結果をパース
     const newCards = parseCharacterData(text);
@@ -163,7 +163,7 @@ linear-gradientを巧みに用いて背景を設定してください。left top
 
     // localStorage["latestCreatedIds"]を更新 (既存IDs + 今回生成IDs)
     let storedIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
-    console.log("!!!storedIdsStr!!!",storedIdsStr);
+    console.log("!!!storedIdsStr!!!", storedIdsStr);
     let storedIds;
     try {
       storedIds = JSON.parse(storedIdsStr);
@@ -171,10 +171,10 @@ linear-gradientを巧みに用いて背景を設定してください。left top
       storedIds = [];
     }
     const newIds = newCards.map(c => c.id);
-    console.log("newIds", newIds );
+    console.log("newIds", newIds);
     const merged = [...storedIds, ...newIds];
     localStorage.setItem("latestCreatedIds", JSON.stringify(merged));
-    console.log("mergeど",merged);
+    console.log("mergeど", merged);
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("runGachaキャンセル");
