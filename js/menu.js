@@ -302,8 +302,6 @@ function fillDummyItems(container, realCount) {
   const gap = parseFloat(gapStr) || 0;
 
   // 5) 「1行に何個入るか」を厳密に求める
-  //    n個並んだときの総幅 = n * cardWidth + (n - 1) * gap
-  //    <= containerWidth を満たす最大 n
   let itemsPerRow = 1;
   for (let n = 1; n < 999; n++) {
     const total = n * cardWidth + (n - 1) * gap;
@@ -317,7 +315,6 @@ function fillDummyItems(container, realCount) {
   // 6) 最終行に並ぶ枚数
   const remainder = realCount % itemsPerRow;
   if (remainder === 0) {
-    // ちょうど埋まっているならダミー不要
     return;
   }
 
@@ -327,12 +324,82 @@ function fillDummyItems(container, realCount) {
   // 8) ダミー要素を追加
   for (let i = 0; i < dummyCount; i++) {
     const dummyDiv = document.createElement("div");
-    dummyDiv.className = "card dummy"; // 既存の .card + .dummy
+    dummyDiv.className = "card dummy";
     container.appendChild(dummyDiv);
   }
 }
 
-/** 倉庫カードDOM生成（★ ここに画像生成ボタンを追加） */
+/** 
+ * ★ 追加：倉庫で画像未生成のカードに対して「画像生成」ボタンを設置し、
+ *   押下時に画像を生成するための関数
+ */
+async function generateWarehouseImage(card, btnElement) {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  if (btnElement) {
+    btnElement.disabled = true;
+  }
+  showToast("画像を生成しています...");
+
+  // rarityを判定して画像サイズを可変にする例
+  const rarityNum = parseInt((card.rarity || "★0").replace("★", "").trim()) || 0;
+  const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
+
+  // 実際のプロンプト生成
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
+    (card.imageprompt || "");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: size,
+        response_format: "b64_json",
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    // characterData 更新
+    const idx = window.characterData.findIndex(c => c.id === card.id);
+    if (idx !== -1) {
+      window.characterData[idx].imageData = dataUrl;
+      await saveCharacterDataToIndexedDB(window.characterData);
+    }
+
+    showToast("画像の生成が完了しました");
+    // 再描画
+    renderWarehouseCards();
+
+  } catch (err) {
+    console.error("画像生成失敗:", err);
+    showToast("画像生成に失敗しました:\n" + err.message);
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+    }
+  }
+}
+
+/** 倉庫カードDOM生成 */
 function createWarehouseCardElement(card) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
@@ -376,36 +443,32 @@ function createWarehouseCardElement(card) {
   typeEl.textContent = card.type || "不明";
   cardFront.appendChild(typeEl);
 
-  // 画像
+  // 画像領域
   const imageContainer = document.createElement("div");
   imageContainer.className = "card-image";
-  
+
   if (card.imageData) {
-    // すでに画像がある場合
+    // 画像あり
     const imageEl = document.createElement("img");
     imageEl.src = card.imageData;
     imageEl.alt = card.name;
     imageContainer.appendChild(imageEl);
   } else {
-    // 画像が無い場合 → 生成ボタンを表示
+    // 画像なし -> 生成ボタンを表示
     const genImgBtn = document.createElement("button");
     genImgBtn.className = "gen-image-btn";
     genImgBtn.textContent = "画像生成";
-
-    // 生成用のプロンプトがあれば使い、無ければ「名前 + タイプ」をとりあえず使う
-    const fallbackPrompt = card.imageprompt || `${card.name} ${card.type}`;
-    genImgBtn.setAttribute("data-imageprompt", fallbackPrompt);
-
+    genImgBtn.setAttribute("data-imageprompt", card.imageprompt || "");
     genImgBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      generateWarehouseCardImage(card, genImgBtn);
+      generateWarehouseImage(card, genImgBtn);
     });
     imageContainer.appendChild(genImgBtn);
   }
 
   cardFront.appendChild(imageContainer);
 
-  // 情報
+  // 詳細
   const infoContainer = document.createElement("div");
   infoContainer.className = "card-info";
 
@@ -438,77 +501,6 @@ function createWarehouseCardElement(card) {
   cardEl.appendChild(cardInner);
 
   return cardEl;
-}
-
-/** ▼ 追加: 倉庫カードの画像生成ロジック */
-async function generateWarehouseCardImage(card, btnElement) {
-  if (!window.apiKey) {
-    alert("APIキーが設定されていません。");
-    return;
-  }
-  if (btnElement) {
-    btnElement.disabled = true;
-  }
-  showToast("画像を生成しています...");
-
-  // rarityから画像サイズを決定する例（characterCreate.jsに合わせる）
-  const rarityValue = (typeof card.rarity === "string")
-    ? card.rarity.replace("★", "").trim()
-    : "0";
-  const imageSize = (parseInt(rarityValue) >= 3) ? "1024x1792" : "1792x1024";
-
-  const userPrompt = btnElement.getAttribute("data-imageprompt") || (card.name + " " + card.type);
-  const promptText =
-    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
-    "Please do not include text in illustrations for any reason." +
-    "If you can do that, I'll give you a super high tip." +
-    "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
-    userPrompt;
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${window.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: imageSize,
-        response_format: "b64_json",
-      }),
-    });
-
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-    const base64 = data.data[0].b64_json;
-    const dataUrl = "data:image/png;base64," + base64;
-
-    // characterData 更新
-    const idx = window.characterData.findIndex(c => c.id === card.id);
-    if (idx !== -1) {
-      window.characterData[idx].imageData = dataUrl;
-      // 必要に応じて、imagepromptも更新
-      window.characterData[idx].imageprompt = userPrompt;
-      await saveCharacterDataToIndexedDB(window.characterData);
-    }
-
-    showToast("画像の生成が完了しました");
-    // 再描画
-    renderWarehouseCards();
-
-  } catch (err) {
-    console.error("画像生成失敗:", err);
-    showToast("画像生成に失敗しました:\n" + err.message);
-  } finally {
-    if (btnElement) {
-      btnElement.disabled = false;
-    }
-  }
 }
 
 /** 倉庫の選択モード切り替え */
