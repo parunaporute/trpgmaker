@@ -1,4 +1,4 @@
-// js/background.js
+// background.js
 
 // グローバルに保持しておく
 let currentPageName = "index"; // デフォルトは index
@@ -70,16 +70,15 @@ async function onChangeBgButtonClick() {
   if (all.length === 0) {
     // ストックが無ければ → 生成してから開く
     await generateNewBackground();
-  } else {
-    // あればモーダルを開く
-    openBgModal();
-  }
+  } 
+  // モーダルを開く
+  openBgModal();
 }
 
 // 新規背景生成
 async function generateNewBackground() {
   const genModal = document.getElementById("bg-generate-modal");
-  if (genModal) genModal.style.display = "flex";
+  if (genModal) genModal.classList.add("active"); // 変更：classList で表示
 
   try {
     const apiKey = localStorage.getItem("apiKey") || "";
@@ -89,7 +88,6 @@ async function generateNewBackground() {
     }
 
     // ▼ 通常ロジックを差し替え: "最新のシナリオ" から取得したpromptを使う
-    //const promptText = "A beautiful scenic landscape or architecture, highly detailed, no text";
     let promptText = await fetchLatestScenarioPrompt();
     if (!promptText) {
       // シナリオが無い or シーンが無い等で取得失敗した場合は従来文言にフォールバック
@@ -138,7 +136,7 @@ async function generateNewBackground() {
     console.error("背景生成失敗:", err);
     alert("背景生成失敗: " + err.message);
   } finally {
-    if (genModal) genModal.style.display = "none";
+    if (genModal) genModal.classList.remove("active"); // 変更：classList で非表示
   }
 }
 
@@ -146,7 +144,7 @@ async function generateNewBackground() {
 async function openBgModal() {
   const modal = document.getElementById("bg-modal");
   if (!modal) return;
-  modal.style.display = "flex";
+  modal.classList.add("active"); // 変更：classList で表示
 
   const container = document.getElementById("bg-stock-container");
   if (!container) return;
@@ -219,7 +217,7 @@ function onBgNoneButton() {
   // 選択キーに "none" をセット
   localStorage.setItem("selectedBgId_" + currentPageName, "none");
 
-  // indexで「none」を選んだ場合は他ページの設定を消す？→仕様上、ユーザー要望は
+  // indexで「none」を選んだ場合は他ページの設定を消す？→仕様上、
   // 「indexに“none”以外を設定した時に他ページの“none”を消す」なので、
   // ここでは何もしない。
 }
@@ -227,7 +225,9 @@ function onBgNoneButton() {
 // モーダルを閉じる
 function closeBgModal() {
   const modal = document.getElementById("bg-modal");
-  if (modal) modal.style.display = "none";
+  if (modal) {
+    modal.classList.remove("active"); // 変更：classList で非表示
+  }
 }
 
 /* ----- 以下、IndexedDB操作ヘルパー ----- */
