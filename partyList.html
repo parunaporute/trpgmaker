@@ -8,12 +8,12 @@
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 
-  <!-- ▼ 追加：背景管理用スクリプト -->
+  <!-- 背景管理用スクリプト -->
   <script src="js/background.js"></script>
 </head>
 
 <body>
-  <!-- ▼ 背景を変更するボタン + モーダル -->
+  <!-- 背景を変更するボタン + モーダル -->
   <button id="change-bg-button" style="
       color: #000;
       background-color: #DDD;
@@ -26,7 +26,7 @@
     背景を変更する
   </button>
 
-  <div id="bg-modal" class="modal" style="display:none;">
+  <div id="bg-modal" class="modal">
     <div class="modal-content bg-modal-content">
       <h2>背景選択</h2>
       <div id="bg-stock-container" class="bg-stock-grid"></div>
@@ -36,7 +36,7 @@
     </div>
   </div>
 
-  <div id="bg-generate-modal" class="modal" style="display:none;">
+  <div id="bg-generate-modal" class="modal">
     <div class="modal-content">
       <p>背景画像を生成中...</p>
     </div>
@@ -50,22 +50,19 @@
       以後の「パーティ編成」や「シナリオウィザード」画面でそれが使われます。
     </p>
 
-    <!-- 新しいパーティを作成 -->
     <div style="margin-bottom:20px;">
       <label for="new-party-name">新しいパーティ名:</label>
       <input type="text" id="new-party-name" placeholder="パーティ名..." />
       <button id="create-party-button">作成</button>
     </div>
 
-    <!-- パーティ一覧表示領域 -->
     <div id="party-list-container" style="margin-bottom:30px;"></div>
 
-    <!-- 戻るボタン -->
     <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
   </div>
 
   <!-- パーティ名の変更用モーダル -->
-  <div id="edit-party-modal" class="modal" style="display:none;">
+  <div id="edit-party-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
       <h2>パーティ名の変更</h2>
       <input type="text" id="edit-party-name" style="width:100%;" />
@@ -84,5 +81,4 @@
     });
   </script>
 </body>
-
 </html>
