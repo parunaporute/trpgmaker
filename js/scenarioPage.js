@@ -9,11 +9,7 @@ window.addEventListener("load", async () => {
   // IndexedDB初期化 & characterDataロード
   await initIndexedDB();
   const storedChars = await loadCharacterDataFromIndexedDB();
-  if (storedChars) {
-    window.characterData = storedChars;
-  } else {
-    window.characterData = [];
-  }
+  window.characterData = storedChars || [];
 
   // ネタバレ関連
   const spoilerModal = document.getElementById("spoiler-modal");
@@ -21,12 +17,13 @@ window.addEventListener("load", async () => {
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
   if (spoilerButton) {
     spoilerButton.addEventListener("click", () => {
-      spoilerModal.style.display = "flex";
+      // .modal.active で表示
+      spoilerModal.classList.add("active");
     });
   }
   if (closeSpoilerModalBtn) {
     closeSpoilerModalBtn.addEventListener("click", () => {
-      spoilerModal.style.display = "none";
+      spoilerModal.classList.remove("active");
     });
   }
 
@@ -62,14 +59,16 @@ window.addEventListener("load", async () => {
       p.style.whiteSpace = "pre-wrap";
       previewContainer.appendChild(p);
 
-      previewModal.style.display = "flex";
+      // .modal.activeで表示
+      previewModal.classList.add("active");
 
       const addBtn = document.getElementById("add-to-gachabox-button");
       if (addBtn) {
         addBtn.onclick = async () => {
-          previewModal.style.display = "none";
+          previewModal.classList.remove("active");
           const gachaModal = document.getElementById("gacha-modal");
-          if (gachaModal) gachaModal.style.display = "flex";
+          // gachaModal がある場合に .active で表示
+          if (gachaModal) gachaModal.classList.add("active");
 
           try {
             await runGacha(1, addPrompt, onlyTitle, onlyType);
@@ -78,20 +77,20 @@ window.addEventListener("load", async () => {
             console.error(e);
             alert("カード生成失敗:" + e.message);
           } finally {
-            if (gachaModal) gachaModal.style.display = "none";
+            if (gachaModal) gachaModal.classList.remove("active");
           }
         };
       }
       const cancelBtn = document.getElementById("cancel-card-preview-button");
       if (cancelBtn) {
         cancelBtn.onclick = () => {
-          previewModal.style.display = "none";
+          previewModal.classList.remove("active");
         };
       }
     });
   }
 
-  // 回答候補を生成
+  // 回答候補生成
   const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
   if (generateActionCandidatesBtn) {
     generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
@@ -106,7 +105,7 @@ window.addEventListener("load", async () => {
   if (closePartyModalBtn) {
     closePartyModalBtn.addEventListener("click", () => {
       const modal = document.getElementById("party-modal");
-      if (modal) modal.style.display = "none";
+      if (modal) modal.classList.remove("active");
     });
   }
 
@@ -118,7 +117,8 @@ window.addEventListener("load", async () => {
   const closeAllSecBtn = document.getElementById("close-all-sections-modal");
   if (closeAllSecBtn) {
     closeAllSecBtn.addEventListener("click", () => {
-      document.getElementById("all-sections-modal").style.display = "none";
+      const allSecModal = document.getElementById("all-sections-modal");
+      if (allSecModal) allSecModal.classList.remove("active");
     });
   }
 });
@@ -201,7 +201,7 @@ function showAllSectionsModal() {
   const modal = document.getElementById("all-sections-modal");
   if (!modal) return;
 
-  // scenario.jsの loadScenarioData() で window.currentScenario.wizardData が格納済み
+  // scenario.jsの loadScenarioData() で window.currentScenario.wizardData がある想定
   const wd = (window.currentScenario && window.currentScenario.wizardData) || {};
   const sections = wd.sections || [];
 
@@ -219,7 +219,8 @@ function showAllSectionsModal() {
     container.textContent = text;
   }
 
-  modal.style.display = "flex";
+  // .modal.activeで表示
+  modal.classList.add("active");
 }
 
 /** ZIP解凍 */
@@ -240,10 +241,11 @@ function decompressCondition(zippedBase64) {
 function showPartyModal() {
   const modal = document.getElementById("party-modal");
   if (!modal) return;
-  modal.style.display = "flex";
 
+  modal.classList.add("active"); // 表示
   renderPartyCardsInModal();
 }
+
 function renderPartyCardsInModal() {
   const container = document.getElementById("party-modal-card-container");
   if (!container) return;
@@ -259,10 +261,11 @@ function renderPartyCardsInModal() {
     container.appendChild(cardEl);
   });
 }
+
 function createPartyCardElement(c) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
-  cardEl.className += "rarity" + char.rarity.replace("★", "").trim();
+  cardEl.className += "rarity" + c.rarity.replace("★", "").trim();
 
   cardEl.setAttribute("data-id", c.id);
   cardEl.addEventListener("click", () => {
@@ -275,8 +278,13 @@ function createPartyCardElement(c) {
   const cf = document.createElement("div");
   cf.className = "card-front";
 
-  const bg = (c.backgroundcss || "").replace("background-image:", "").replace("background", "").trim();
-  cf.style = "background-image:" + bg;
+  const bg = (c.backgroundcss || "")
+    .replace("background-image:", "")
+    .replace("background", "")
+    .trim();
+  if (bg) {
+    cf.style.backgroundImage = bg;
+  }
 
   const rv = (typeof c.rarity === "string") ? c.rarity.replace("★", "").trim() : "0";
   cf.innerHTML = `<div class='bezel rarity${rv}'></div>`;
@@ -312,7 +320,6 @@ function createPartyCardElement(c) {
     st.innerHTML = "<strong>状態：</strong>" + DOMPurify.sanitize(c.state);
     info.appendChild(st);
   }
-
   const sp = document.createElement("p");
   sp.innerHTML = "<strong>特技：</strong>" + DOMPurify.sanitize(c.special);
   info.appendChild(sp);
@@ -377,7 +384,11 @@ ${text}
 function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
   if (!m) return;
-  m.style.display = show ? "flex" : "none";
+  if (show) {
+    m.classList.add("active");   // 表示
+  } else {
+    m.classList.remove("active"); // 非表示
+  }
 }
 function onCancelFetch() {
   if (window.currentRequestController) {
