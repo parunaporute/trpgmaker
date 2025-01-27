@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
-  <!-- 追加：内部的にZIP圧縮するためのpakoライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 
-  <!-- ▼ 背景管理用スクリプト -->
+  <!-- 背景管理スクリプト -->
   <script src="js/background.js"></script>
 </head>
+
 <body>
   <!-- ▼ 背景を変更するボタン + モーダル -->
   <button id="change-bg-button" style="
@@ -26,7 +26,6 @@
     背景を変更する
   </button>
 
-  <!-- 背景選択モーダル（.modal だけにして .active で表示） -->
   <div id="bg-modal" class="modal">
     <div class="modal-content bg-modal-content">
       <h2>背景選択</h2>
@@ -37,7 +36,6 @@
     </div>
   </div>
 
-  <!-- 生成中モーダル -->
   <div id="bg-generate-modal" class="modal">
     <div class="modal-content">
       <p>背景画像を生成中...</p>
@@ -47,12 +45,12 @@
   <!-- メニューに戻るボタン -->
   <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
 
-  <!-- 目的達成型の場合のみ表示する「ネタバレ」ボタン -->
+  <!-- ネタバレボタン（目的達成型のみ表示） -->
   <button id="spoiler-button" style="display:none; background-color:#E91E63; margin-top:20px; float:right;">
     ネタバレ
   </button>
 
-  <!-- ネタバレ（クリア条件）表示モーダル（.modal） -->
+  <!-- ネタバレモーダル -->
   <div id="spoiler-modal" class="modal">
     <div class="modal-content">
       <h2>クリア条件</h2>
@@ -70,7 +68,7 @@
       <div id="story" style="margin-bottom:20px;"></div>
       <div id="last-scene-images" style="margin-bottom:20px;"></div>
 
-      <!-- ★ ボタン2つ: 自動生成 & カスタム -->
+      <!-- 画像生成ボタン -->
       <div>
         <button id="image-auto-generate-button">自動生成(現シーンから)</button>
         <button id="image-prompt-modal-button">編集して生成(カスタム)</button>
@@ -85,20 +83,20 @@
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
       <button id="next-scene" style="display:none; margin-top:10px;">次のシーン</button>
 
-      <!-- ★ 追加: パーティーを確認ボタン -->
+      <!-- パーティーを確認ボタン -->
       <button id="show-party-button">パーティーを確認</button>
 
-      <!-- 探索型なら表示する「カードを取得する」ボタン -->
+      <!-- 探索型の場合のみ表示される「カードを取得」ボタン -->
       <button id="get-card-button" style="display:none; margin-top:20px;">
         カードを取得する
       </button>
     </div>
   </div>
 
-  <!-- ▼ 追加: 全セクションを閲覧ボタン -->
+  <!-- 全セクションを閲覧するボタン -->
   <button id="view-all-sections-button" style="margin-top:20px;">全セクションを閲覧する</button>
 
-  <!-- ▼ 追加: 全セクション表示モーダル（.modal） -->
+  <!-- 全セクション表示モーダル -->
   <div id="all-sections-modal" class="modal">
     <div class="modal-content">
       <h2>全セクション一覧</h2>
@@ -140,7 +138,7 @@
     </div>
   </div>
 
-  <!-- ★ パーティ表示用モーダル -->
+  <!-- パーティ表示用モーダル -->
   <div id="party-modal" class="modal">
     <div class="modal-content">
       <h2>パーティ確認</h2>
@@ -160,6 +158,17 @@
     window.addEventListener("load", async () => {
       await initIndexedDB();
       await initBackground("scenario");
+    });
+
+    // ▼ 「編集して生成(カスタム)」ボタンをクリック → openImagePromptModal() 呼び出し
+    window.addEventListener("DOMContentLoaded", () => {
+      const customBtn = document.getElementById("image-prompt-modal-button");
+      if (customBtn) {
+        customBtn.addEventListener("click", () => {
+          // グローバルに公開した openImagePromptModal を呼ぶ
+          openImagePromptModal();
+        });
+      }
     });
   </script>
 </body>

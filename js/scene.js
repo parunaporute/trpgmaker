@@ -43,7 +43,7 @@ async function loadScenarioData(scenarioId) {
       sceneId: e.sceneId,
       content: e.content,
       dataUrl: e.dataUrl,
-      // ★ 画像用プロンプトは "prompt" フィールドに格納
+      // 画像用プロンプトは "prompt" フィールドに格納
       prompt: e.prompt || ""
     }));
 
@@ -63,7 +63,7 @@ async function loadScenarioData(scenarioId) {
   }
 }
 
-/** 次のシーンを生成し、履歴に追加 → 画像用プロンプトもfunction callingで作成 → その後セクション達成判定を行う */
+/** 次のシーンを生成し、履歴に追加 → 画像用プロンプトもfunction callingで作成 → その後セクション達成判定 */
 async function getNextScene() {
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -95,7 +95,7 @@ async function getNextScene() {
     msgs.push({ role: "user", content: ptxt });
   }
 
-  // 履歴
+  // 履歴をチャットに反映
   window.sceneHistory.forEach(e => {
     if (e.type === "scene") {
       msgs.push({ role: "assistant", content: e.content });
@@ -153,7 +153,6 @@ async function getNextScene() {
 
     // (2) 新シーンを履歴に追加
     const sid = "scene_" + Date.now();
-    // まずテキストを先に登録
     const se = {
       scenarioId: window.currentScenarioId || 0,
       type: "scene",
@@ -214,7 +213,7 @@ async function getNextScene() {
   }
 }
 
-/** シーン本文から画像用プロンプトをfunction callingで生成(ダミー実装) */
+/** シーン本文 → 画像用プロンプト(ダミー実装) */
 async function generateImagePromptFromScene(sceneText) {
   console.log("sceneTextシーンテキスト", sceneText);
   if (!window.apiKey) return "";
@@ -244,7 +243,6 @@ async function generateImagePromptFromScene(sceneText) {
         model: "gpt-4-0613",
         messages: [systemMsg, userMsg],
         temperature: 0.7
-        // function_call: ...
       })
     });
     const data = await resp.json();
@@ -371,7 +369,7 @@ function updateSceneHistory() {
     }
   }
 
-  // 最後のシーンを除く行動/シーン/画像
+  // 最後のシーン( + それに紐づく画像) は下記でスキップし、別途 showLastScene() で表示
   const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   const skipIds = [];
   if (lastScene) {
@@ -391,6 +389,7 @@ function updateSceneHistory() {
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
+      // シーン削除ボタン
       const delBtn = document.createElement("button");
       delBtn.textContent = "削除";
       delBtn.style.marginBottom = "5px";
@@ -410,6 +409,7 @@ function updateSceneHistory() {
       });
       tile.appendChild(delBtn);
 
+      // シーン本文 (contenteditable)
       const st = document.createElement("p");
       st.className = "scene-text";
       st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -435,6 +435,7 @@ function updateSceneHistory() {
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
+      // 行動削除ボタン
       const delBtn = document.createElement("button");
       delBtn.textContent = "削除";
       delBtn.style.backgroundColor = "#f44336";
@@ -447,6 +448,7 @@ function updateSceneHistory() {
       });
       tile.appendChild(delBtn);
 
+      // 行動テキスト (contenteditable)
       const at = document.createElement("p");
       at.className = "action-text";
       at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -470,12 +472,14 @@ function updateSceneHistory() {
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
+      // 画像表示
       const img = document.createElement("img");
       img.src = e.dataUrl;
       img.alt = "生成画像";
-      img.style.maxWidth = "100%";
+      img.style.maxHeight = "250px";
       tile.appendChild(img);
 
+      // 再生成ボタン
       const reBtn = document.createElement("button");
       reBtn.textContent = "再生成";
       reBtn.addEventListener("click", () => {
@@ -487,6 +491,7 @@ function updateSceneHistory() {
       });
       tile.appendChild(reBtn);
 
+      // 画像削除ボタン
       const delBtn = document.createElement("button");
       delBtn.textContent = "画像だけ削除";
       delBtn.addEventListener("click", async () => {
@@ -518,6 +523,8 @@ function showLastScene() {
 
   if (lastScene) {
     storyDiv.innerHTML = "";
+
+    // シーン本文
     const st = document.createElement("p");
     st.className = "scene-text";
     st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -537,6 +544,7 @@ function showLastScene() {
     });
     storyDiv.appendChild(st);
 
+    // 画像エリア
     lastSceneImagesDiv.innerHTML = "";
     const images = window.sceneHistory.filter(x => x.type === "image" && x.sceneId === lastScene.sceneId);
     images.forEach(imgEntry => {
@@ -549,6 +557,7 @@ function showLastScene() {
       i.style.maxWidth = "100%";
       c.appendChild(i);
 
+      // 再生成ボタン
       const reBtn = document.createElement("button");
       reBtn.textContent = "再生成";
       reBtn.addEventListener("click", () => {
@@ -560,6 +569,7 @@ function showLastScene() {
       });
       c.appendChild(reBtn);
 
+      // 画像削除
       const dBtn = document.createElement("button");
       dBtn.textContent = "画像削除";
       dBtn.addEventListener("click", async () => {
@@ -574,6 +584,7 @@ function showLastScene() {
       lastSceneImagesDiv.appendChild(c);
     });
 
+    // ボタン表示/非表示
     if (window.apiKey) {
       nextSceneBtn.style.display = "inline-block";
       playerInput.style.display = "inline-block";
@@ -610,7 +621,7 @@ function buildPartyInsertionText(party) {
   const pt = party.filter(e => e.role === "partner");
   if (pt.length > 0) {
     txt += "パートナー:\n";
-    pt.forEach(p => txt += " - " + p.name + "\n");
+    pt.forEach(p => (txt += " - " + p.name + "\n"));
     txt += "\n";
   }
   const others = party.filter(e => !e.role || e.role === "none");
@@ -620,17 +631,17 @@ function buildPartyInsertionText(party) {
     const iset = others.filter(x => x.type === "アイテム");
     if (cset.length > 0) {
       txt += "◆キャラクター\n";
-      cset.forEach(c => txt += " - " + c.name + "\n");
+      cset.forEach(c => (txt += " - " + c.name + "\n"));
       txt += "\n";
     }
     if (mset.length > 0) {
       txt += "◆モンスター\n";
-      mset.forEach(m => txt += " - " + m.name + "\n");
+      mset.forEach(m => (txt += " - " + m.name + "\n"));
       txt += "\n";
     }
     if (iset.length > 0) {
       txt += "◆アイテム\n";
-      iset.forEach(i => txt += " - " + i.name + "\n");
+      iset.forEach(i => (txt += " - " + i.name + "\n"));
       txt += "\n";
     }
   }
@@ -656,6 +667,7 @@ function decompressCondition(zippedBase64) {
 function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
   if (!m) return;
+  // ここは style.display を使っているが、必要に応じて classList でもOK
   m.style.display = show ? "flex" : "none";
 }
 
@@ -668,13 +680,7 @@ function onCancelFetch() {
   showLoadingModal(false);
 }
 
-
-/* --------------------------------------------
-   画像生成ボタン：自動生成(現シーンから)
-   1) 今のシーンにpromptがあれば、それを使う
-   2) 無ければ「生成する為のプロンプトがありません」を表示
-   3) 生成時は characterCreate.jsのgenerateCharacterImage の仕様に準拠
--------------------------------------------- */
+/** 画像生成ボタン：自動生成(現シーンから) */
 async function generateImageFromCurrentScenePrompt() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   if (!lastSceneEntry) {
@@ -690,7 +696,6 @@ async function generateImageFromCurrentScenePrompt() {
     return;
   }
 
-  // ボディ文言は "Now generate the next anime wide image.\n↓↓↓↓\n" + prompt
   const promptText =
     "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
     "Please do not include text in illustrations for any reason." +
@@ -706,7 +711,7 @@ async function generateImageFromCurrentScenePrompt() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
+        Authorization: `Bearer ${window.apiKey}`
       },
       body: JSON.stringify({
         model: "dall-e-3",
@@ -722,14 +727,13 @@ async function generateImageFromCurrentScenePrompt() {
     const base64 = data.data[0].b64_json;
     const dataUrl = "data:image/png;base64," + base64;
 
-    // 新しいimage entry追加
+    // 新しいimage entry
     const newEntry = {
       scenarioId: window.currentScenarioId || 0,
       type: "image",
       sceneId: lastSceneEntry.sceneId,
-      content: "", // 画像にテキストなし
+      content: "",
       dataUrl,
-      // 画像生成時点のpromptを記録しておく
       prompt: lastSceneEntry.prompt
     };
     const newId = await addSceneEntry(newEntry);
@@ -742,10 +746,8 @@ async function generateImageFromCurrentScenePrompt() {
       prompt: lastSceneEntry.prompt
     });
 
-    // 表示更新
     updateSceneHistory();
     showLastScene();
-
   } catch (err) {
     console.error("画像生成失敗:", err);
     alert("画像生成に失敗:\n" + err.message);
@@ -754,7 +756,7 @@ async function generateImageFromCurrentScenePrompt() {
   }
 }
 
-/** カスタム画像生成モーダルを開く */
+/** カスタム画像生成モーダルを開く (classList方式に変更) */
 function openImagePromptModal(scenePrompt = "", index = null) {
   window.editingImageEntry = null;
   if (index !== null) {
@@ -765,7 +767,7 @@ function openImagePromptModal(scenePrompt = "", index = null) {
       scenePrompt = entry.prompt;
     }
   } else {
-    // 新規
+    // 新規 (最後のシーンのpromptを継承)
     const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
     if (lastSceneEntry && lastSceneEntry.prompt) {
       scenePrompt = lastSceneEntry.prompt;
@@ -775,12 +777,16 @@ function openImagePromptModal(scenePrompt = "", index = null) {
   }
 
   document.getElementById("image-custom-prompt").value = scenePrompt;
-  document.getElementById("image-prompt-modal").style.display = "flex";
+
+  // ▼ モーダルを .active で表示
+  const modal = document.getElementById("image-prompt-modal");
+  modal.classList.add("active");
 }
 
-/** カスタム画像生成モーダルを閉じる */
+/** カスタム画像生成モーダルを閉じる (classList方式) */
 function closeImagePromptModal() {
-  document.getElementById("image-prompt-modal").style.display = "none";
+  const modal = document.getElementById("image-prompt-modal");
+  modal.classList.remove("active");
   window.editingImageEntry = null;
 }
 
@@ -806,12 +812,13 @@ async function onCustomImageGenerate() {
 
   showLoadingModal(true);
   closeImagePromptModal();
+
   try {
     const resp = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
+        Authorization: `Bearer ${window.apiKey}`
       },
       body: JSON.stringify({
         model: "dall-e-3",
@@ -828,7 +835,7 @@ async function onCustomImageGenerate() {
     const dataUrl = "data:image/png;base64," + base64;
 
     if (window.editingImageEntry) {
-      // 既存画像を再生成
+      // 既存画像の再生成
       const idx = window.editingImageEntry.index;
       const entry = window.sceneHistory[idx];
       if (entry && entry.type === "image") {
@@ -850,8 +857,8 @@ async function onCustomImageGenerate() {
       // 新規画像
       const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
       if (!lastSceneEntry) {
-        alert("シーンがありません。");
         showLoadingModal(false);
+        alert("シーンがありません。");
         return;
       }
       const newRec = {
@@ -883,10 +890,16 @@ async function onCustomImageGenerate() {
   }
 }
 
-
 /* -------------------------------------------
    イベントリスナー (scenario.html 内) で呼ばれる
 -------------------------------------------*/
+
+// 自動生成(現シーン)
 window.generateImageFromCurrentScene = generateImageFromCurrentScenePrompt;
+
+// カスタム生成 (「生成」ボタン)
 window.onCustomImageGenerate = onCustomImageGenerate;
 
+// モーダル開閉を外部からも呼べるように (必要なら)
+window.openImagePromptModal = openImagePromptModal;
+window.closeImagePromptModal = closeImagePromptModal;

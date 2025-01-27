@@ -80,6 +80,9 @@ button:hover {
   text-align: right;
   width: 100%;
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .scene-text,
