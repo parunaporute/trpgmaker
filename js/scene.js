@@ -100,16 +100,37 @@ async function getNextScene() {
     actionEn = await generateEnglishTranslation(pinput);
   }
 
-  // システムプロンプト
-  let systemText = 
-`あなたは示唆に富むTRPGのゲームマスターです。
-以下を絶対に守ってください。
-・<<< 回答は日本語で行う >>>
+  // システムプロンプト1
+  let systemText =
+    `あなたは経験豊かなやさしいTRPGのゲームマスターです。
+以下を守ってください。
+・<<<< 絶対に出力は日本語で。Please answer in Japanese!!!! >>>>
 ・決して一つ前のレスポンスと同じ言い回しで終わらない
-・ゲームマスター側の描写を絶対にしない
+・ゲームマスター側の描写をしない
 ・背景黒が前提の装飾のタグを使う
-・時々ヒントも出す
+・セクションをクリアできるようなヒントも出す
+・同じことを言ってループしない
+・ユーザーの行動を踏まえて、次の行動を促すようなシーンを作る
 `;
+
+  // システムプロンプト2
+  const wd = (window.currentScenario && window.currentScenario.wizardData) || {};
+  console.log("WD:", wd);
+  const sections = wd.sections || [];
+  console.log("sections:", sections);
+
+
+  if (!sections.length) {
+    text = "";
+  } else {
+    systemText += "\n======\n：";
+    for (const sec of sections) {
+      systemText += `【セクション${sec.number}】` + (sec.cleared ? "(クリア済み)" : "(未クリア)") + "\n";
+      systemText += "条件: " + (decompressCondition(sec.conditionZipped)) + "\n\n";
+    }
+    systemText += "======\n";
+  }
+
   const msgs = [{ role: "system", content: systemText }];
 
   // シナリオ概要 + パーティ情報
@@ -129,7 +150,7 @@ async function getNextScene() {
   const actionCount = window.sceneHistory.filter(e => e.type === "action").length + (pinput ? 1 : 0);
 
   // (A) 要約(複数)を先に push
-  const chunkEnd = Math.floor((actionCount - 15) / 10); 
+  const chunkEnd = Math.floor((actionCount - 15) / 10);
   // 例: 15->0, 25->1, 35->2, 45->3
   for (let i = 0; i <= chunkEnd; i++) {
     if (i < 0) continue;
@@ -170,7 +191,7 @@ async function getNextScene() {
   if (pinput) {
     msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
   }
-  console.log("msgs",msgs);
+  // console.log("msgs", msgs); プロンプトのテスト用
   // GPT呼び出し
   try {
     window.currentRequestController = new AbortController();
@@ -325,7 +346,7 @@ async function handleSceneSummaries() {
   // 削除チェック
   // もし行動削除等で actionCount < 15 なら chunkIndex=0 を削除
   // さらに < 25 なら chunkIndex=1を削除, ...
-  const checks = [15,25,35,45,55,65,75];
+  const checks = [15, 25, 35, 45, 55, 65, 75];
   // chunkIndex=0->15,1->25,2->35,3->45,...
   for (let i = 0; i < checks.length; i++) {
     const boundary = checks[i];
@@ -770,7 +791,7 @@ function buildPartyInsertionText(party) {
   let txt = "【パーティ編成情報】\n";
   const ava = party.find(e => e.role === "avatar");
   if (ava) {
-    txt += `アバター: ${ava.name}\n(実プレイヤー)\n\n`;
+    txt += `プレイヤー: ${ava.name}\n\n`;
   }
   const pt = party.filter(e => e.role === "partner");
   if (pt.length > 0) {
@@ -799,7 +820,7 @@ function buildPartyInsertionText(party) {
       txt += "\n";
     }
   }
-  txt += "以上を踏まえて、アバターは実プレイヤー、パートナーは味方NPCとして扱ってください。";
+  txt += "以上を踏まえて、プレイヤー、パートナーは味方NPC、アイテムは登場するアイテム、キャラクターは中立NPC、モンスターは敵対NPCとして扱ってください。シナリオ概要を優先するため、世界観が合わない場合は調整してもよいです。例えば、レーザーガンは西部劇ならリボルバーになりますし、エイリアンは時代劇なら浮浪者になって良いです。";
   return txt;
 }
 
