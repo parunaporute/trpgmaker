@@ -11,13 +11,25 @@ window.addEventListener("load", async () => {
   const storedChars = await loadCharacterDataFromIndexedDB();
   window.characterData = storedChars || [];
 
+  // トークン調整ボタン
+  const tokenAdjustBtn = document.getElementById("token-adjust-button");
+  if (tokenAdjustBtn) {
+    tokenAdjustBtn.addEventListener("click", onOpenTokenAdjustModal);
+  }
+  const tokenAdjustOk = document.getElementById("token-adjust-ok-button");
+  const tokenAdjustCancel = document.getElementById("token-adjust-cancel-button");
+  if (tokenAdjustOk) tokenAdjustOk.addEventListener("click", onConfirmTokenAdjust);
+  if (tokenAdjustCancel) tokenAdjustCancel.addEventListener("click", () => {
+    const mod = document.getElementById("token-adjust-modal");
+    if (mod) mod.classList.remove("active");
+  });
+
   // ネタバレ関連
   const spoilerModal = document.getElementById("spoiler-modal");
   const spoilerButton = document.getElementById("spoiler-button");
   const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
   if (spoilerButton) {
     spoilerButton.addEventListener("click", () => {
-      // .modal.active で表示
       spoilerModal.classList.add("active");
     });
   }
@@ -59,7 +71,6 @@ window.addEventListener("load", async () => {
       p.style.whiteSpace = "pre-wrap";
       previewContainer.appendChild(p);
 
-      // .modal.activeで表示
       previewModal.classList.add("active");
 
       const addBtn = document.getElementById("add-to-gachabox-button");
@@ -67,7 +78,6 @@ window.addEventListener("load", async () => {
         addBtn.onclick = async () => {
           previewModal.classList.remove("active");
           const gachaModal = document.getElementById("gacha-modal");
-          // gachaModal がある場合に .active で表示
           if (gachaModal) gachaModal.classList.add("active");
 
           try {
@@ -122,6 +132,95 @@ window.addEventListener("load", async () => {
     });
   }
 });
+
+/** トークン調整ボタン押下 → モーダルを開く */
+function onOpenTokenAdjustModal() {
+  // sceneEntries から type="scene" or "action" のうち content_en が無いものを洗い出す
+  // その件数 X を表示。
+  const scenarioId = window.currentScenarioId || 0;
+  let missingCount = 0;
+  if (window.sceneHistory) {
+    missingCount = window.sceneHistory.filter(e => !e.content_en).length;
+  }
+  const msg = `${missingCount}件のシーン/行動に内部英語がありません。生成しますか？`;
+  document.getElementById("token-adjust-message").textContent = msg;
+  document.getElementById("token-adjust-progress").textContent = "";
+  const mod = document.getElementById("token-adjust-modal");
+  mod.classList.add("active");
+}
+
+/** トークン調整のOK→不足している英語をまとめて生成 */
+async function onConfirmTokenAdjust() {
+  const mod = document.getElementById("token-adjust-modal");
+  const prog = document.getElementById("token-adjust-progress");
+  let targets = window.sceneHistory.filter(e => !e.content_en && (e.type === "scene" || e.type === "action"));
+
+  if (!window.apiKey) {
+    alert("APIキー未設定");
+    return;
+  }
+  if (targets.length === 0) {
+    alert("不足はありません。");
+    mod.classList.remove("active");
+    return;
+  }
+
+  let doneCount = 0;
+  const total = targets.length;
+
+  for (const entry of targets) {
+    doneCount++;
+    prog.textContent = `${doneCount}/${total}件処理中...`;
+    // 英訳生成
+    const tr = await generateEnglishTranslation(entry.content);
+    entry.content_en = tr;
+
+    // DB更新
+    const updated = {
+      ...entry,
+      content_en: tr
+    };
+    await updateSceneEntry(updated);
+  }
+  prog.textContent = `${total}/${total}件完了`;
+  alert("英語データ生成が完了しました。");
+
+  // モーダルを閉じる
+  mod.classList.remove("active");
+}
+
+/** 英語翻訳用: content -> content_en */
+async function generateEnglishTranslation(japaneseText) {
+  if (!japaneseText.trim()) return "";
+  const sys = "あなたは優秀な翻訳家です。";
+  const u = `
+以下の日本語テキストを自然な英語に翻訳してください:
+${japaneseText}
+`;
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: u }
+        ],
+        temperature: 0.3
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("翻訳失敗:", err);
+    return "";
+  }
+}
 
 /** 回答候補 */
 async function onGenerateActionCandidates() {
@@ -201,7 +300,6 @@ function showAllSectionsModal() {
   const modal = document.getElementById("all-sections-modal");
   if (!modal) return;
 
-  // scenario.jsの loadScenarioData() で window.currentScenario.wizardData がある想定
   const wd = (window.currentScenario && window.currentScenario.wizardData) || {};
   const sections = wd.sections || [];
 
@@ -219,7 +317,6 @@ function showAllSectionsModal() {
     container.textContent = text;
   }
 
-  // .modal.activeで表示
   modal.classList.add("active");
 }
 
@@ -241,8 +338,7 @@ function decompressCondition(zippedBase64) {
 function showPartyModal() {
   const modal = document.getElementById("party-modal");
   if (!modal) return;
-
-  modal.classList.add("active"); // 表示
+  modal.classList.add("active");
   renderPartyCardsInModal();
 }
 
@@ -265,7 +361,7 @@ function renderPartyCardsInModal() {
 function createPartyCardElement(c) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
-  cardEl.className += "rarity" + c.rarity.replace("★", "").trim();
+  cardEl.className += "rarity" + (c.rarity || "").replace("★", "").trim();
 
   cardEl.setAttribute("data-id", c.id);
   cardEl.addEventListener("click", () => {
@@ -287,7 +383,9 @@ function createPartyCardElement(c) {
   }
 
   const rv = (typeof c.rarity === "string") ? c.rarity.replace("★", "").trim() : "0";
-  cf.innerHTML = `<div class='bezel rarity${rv}'></div>`;
+  const bezel = document.createElement("div");
+  bezel.className = "bezel rarity" + rv;
+  cf.appendChild(bezel);
 
   let roleLabel = "";
   if (c.role === "avatar") roleLabel = "(アバター)";
@@ -340,11 +438,10 @@ function createPartyCardElement(c) {
   return cardEl;
 }
 
-/** シーン要約からカード用【名前】【タイプ】【外見】を得る */
 async function getLastSceneSummary() {
+  // ここでは例示通り
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   if (!lastSceneEntry) return "シーンがありません。";
-
   const text = lastSceneEntry.content;
   const systemPrompt = `
 あなたは優秀なカード作成用プロンプト生成者。
@@ -385,9 +482,9 @@ function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
   if (!m) return;
   if (show) {
-    m.classList.add("active");   // 表示
+    m.classList.add("active");
   } else {
-    m.classList.remove("active"); // 非表示
+    m.classList.remove("active");
   }
 }
 function onCancelFetch() {

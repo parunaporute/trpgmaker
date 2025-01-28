@@ -1,13 +1,14 @@
 // scenarioWizard.js
 
 let wizardData = {
-  genre: "",           // 「【舞台】...【テーマ】...【雰囲気】...」 or 自由入力
-  scenarioType: "",    // "objective" or "exploration"
+  genre: "",
+  scenarioType: "",
   clearCondition: "",
   scenarioSummary: "",
+  scenarioSummaryEn: "",  // ★ 英語版
   introScene: "",
   party: [],
-  partyId: 0,          // ★追加: 紐づけるパーティID
+  partyId: 0,
   sections: []
 };
 
@@ -27,7 +28,7 @@ let wizardCurrentOtherCategory = "";
 let wizardDeletingChipLabel = "";
 let wizardDeletingChipCategory = "";
 
-// 軸選択 or 自由入力 の選択状態 ("axis" | "free" | "")
+// 軸選択 or 自由入力
 let wizardChoice = "";
 
 window.apiKey = localStorage.getItem("apiKey") || "";
@@ -57,7 +58,6 @@ window.addEventListener("load", async function () {
   document.getElementById("confirm-scenario-ok").addEventListener("click", onConfirmScenarioModalOK);
   document.getElementById("confirm-scenario-cancel").addEventListener("click", onConfirmScenarioModalCancel);
 
-  // キャンセルボタン(loading用)
   const cancelReqBtn = document.getElementById("cancel-request-button");
   if (cancelReqBtn) {
     cancelReqBtn.addEventListener("click", onCancelFetch);
@@ -72,7 +72,7 @@ window.addEventListener("load", async function () {
   document.getElementById("wizard-delete-confirm-ok").addEventListener("click", wizardDeleteConfirmOk);
   document.getElementById("wizard-delete-confirm-cancel").addEventListener("click", wizardDeleteConfirmCancel);
 
-  // ▼ 軸 or 自由入力のチップ
+  // 軸 or 自由入力
   const axisChip = document.getElementById("choice-axis");
   const freeChip = document.getElementById("choice-free");
   axisChip.addEventListener("click", () => {
@@ -90,7 +90,6 @@ window.addEventListener("load", async function () {
     enableFreeInput(true);
   });
 
-  // 初期状態は未選択
   wizardChoice = "";
   axisChip.classList.remove("selected");
   freeChip.classList.remove("selected");
@@ -132,7 +131,6 @@ function enableFreeInput(flag) {
 }
 
 function initWizardChips() {
-  // localStorage 読み込み
   const sjson = localStorage.getItem("elementStageArr");
   if (sjson) {
     try {
@@ -236,14 +234,13 @@ function createWizardChip(label, category) {
   }
 
   chip.addEventListener("click", () => {
-    if (!canEditAxisInput()) return; // 軸入力が無効なら無視
+    if (!canEditAxisInput()) return;
     if (isOther) {
       openWizardOtherModal(category);
       return;
     }
 
     if (category === "stage") {
-      // 複数トグル
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
         wizStoredStageArr = wizStoredStageArr.filter(x => x !== label);
@@ -253,7 +250,6 @@ function createWizardChip(label, category) {
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     } else if (category === "theme") {
-      // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
         wizStoredTheme = "";
@@ -267,7 +263,6 @@ function createWizardChip(label, category) {
         localStorage.setItem("elementTheme", wizStoredTheme);
       }
     } else if (category === "mood") {
-      // 単一
       if (chip.classList.contains("selected")) {
         chip.classList.remove("selected");
         wizStoredMood = "";
@@ -298,7 +293,6 @@ function createWizardChip(label, category) {
   return chip;
 }
 
-/** 軸入力が有効なときのみチップを操作できるようにする */
 function canEditAxisInput() {
   return (wizardChoice === "axis");
 }
@@ -313,7 +307,6 @@ function addWizardRemoveButton(chip, label, category) {
     e.stopPropagation();
     wizardDeletingChipLabel = label;
     wizardDeletingChipCategory = category;
-    // 変更：.modal.active で表示
     document.getElementById("wizard-delete-confirm-modal").classList.add("active");
   });
   chip.appendChild(span);
@@ -328,7 +321,6 @@ function openWizardOtherModal(category) {
 
   document.getElementById("wizard-other-input-modal-category").textContent = catText;
   document.getElementById("wizard-other-input-text").value = "";
-  // 変更：.modal.active で表示
   document.getElementById("wizard-other-input-modal").classList.add("active");
 }
 
@@ -388,7 +380,6 @@ async function wizardOtherGenerate() {
 
 function wizardOtherOk() {
   const val = document.getElementById("wizard-other-input-text").value.trim();
-  // 変更：.modal.active → remove
   document.getElementById("wizard-other-input-modal").classList.remove("active");
 
   if (!val) {
@@ -418,7 +409,6 @@ function wizardOtherOk() {
 }
 
 function wizardOtherCancel() {
-  // 変更：.modal.active → remove
   document.getElementById("wizard-other-input-modal").classList.remove("active");
 }
 
@@ -449,7 +439,6 @@ function wizardDeleteConfirmOk() {
   wizardDeletingChipLabel = "";
   wizardDeletingChipCategory = "";
 
-  // 変更：.modal.active → remove
   document.getElementById("wizard-delete-confirm-modal").classList.remove("active");
   updateWizGenreResultText();
 }
@@ -457,7 +446,6 @@ function wizardDeleteConfirmOk() {
 function wizardDeleteConfirmCancel() {
   wizardDeletingChipLabel = "";
   wizardDeletingChipCategory = "";
-  // 変更：.modal.active → remove
   document.getElementById("wizard-delete-confirm-modal").classList.remove("active");
 }
 
@@ -472,12 +460,10 @@ function updateWizGenreResultText() {
 
 /* STEP1 -> STEP2 */
 async function onGoStep2() {
-  // 軸 or 自由入力 の選択必須
   if (!wizardChoice) {
     alert("「選択して入力」か「自由入力」を選んでください。");
     return;
   }
-
   if (wizardChoice === "axis") {
     const result = buildChipsGenre();
     if (!result) {
@@ -486,7 +472,6 @@ async function onGoStep2() {
     }
     wizardData.genre = result;
   } else {
-    // "free"の場合
     const freeVal = document.getElementById("free-genre-input").value.trim();
     if (!freeVal) {
       alert("自由入力ジャンルを入力してください。");
@@ -494,7 +479,6 @@ async function onGoStep2() {
     }
     wizardData.genre = freeVal;
   }
-
   await saveWizardDataToIndexedDB(wizardData);
 
   document.getElementById("wizard-step1").style.display = "none";
@@ -533,31 +517,32 @@ function onSelectScenarioType(type) {
   const textEl = document.getElementById("confirm-genre-type-text");
   textEl.textContent = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${typeLabel}`;
 
-  // 変更：.modal.active で開く
   document.getElementById("confirm-scenario-modal").classList.add("active");
 }
 
 function onConfirmScenarioModalCancel() {
-  // 変更：.modal.active → remove
   document.getElementById("confirm-scenario-modal").classList.remove("active");
 }
 
 /** シナリオ生成(ステップ2 OK) */
 async function onConfirmScenarioModalOK() {
-  // 変更：ロード画面モーダルを .classList.add("active")
   showLoadingModal(true);
+
   document.getElementById("confirm-scenario-modal").classList.remove("active");
 
   try {
-    // 1) カレントパーティをwizardDataに格納
+    // 1) パーティ情報をwizardDataへ
     await storePartyInWizardData();
 
-    // 2) シナリオ概要＆クリア条件などをGPT生成
+    // 2) シナリオ概要 + クリア条件の生成
     if (wizardData.scenarioType === "objective") {
       await generateScenarioSummaryAndClearCondition();
     } else {
       await generateScenarioSummary();
     }
+
+    // ★ 2.5) 英語版の要約を生成
+    await generateScenarioSummaryEn();
 
     // 3) セクション
     await generateSections();
@@ -591,6 +576,7 @@ async function onStartScenario() {
         type: "scene",
         sceneId: "intro_" + Date.now(),
         content: wizardData.introScene,
+        content_en: "", // あとで翻訳をつくってもよい
         prompt: introPrompt
       };
       await addSceneEntry(firstScene);
@@ -612,11 +598,11 @@ async function generateScenarioSummaryAndClearCondition() {
     wizardData.clearCondition = "";
 
     const prompt = `
-      あなたはTRPG用のシナリオ作成に長けたアシスタントです。
-      ジャンル:${wizardData.genre}, タイプ:目的達成型。
-      1) シナリオ概要(短めで背景黒が前提の装飾のタグ(br,h3,h4,h5,p style="color:red"等)あり)
-      2) 【クリア条件】(非公開,プレイヤー非表示)。必ず明示してください。
-    `;
+あなたはTRPG用のシナリオ作成に長けたアシスタントです。
+ジャンル:${wizardData.genre}, タイプ:目的達成型。
+1) シナリオ概要(短めで背景黒が前提の装飾タグあり)
+2) 【クリア条件】(非公開)
+`;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -626,7 +612,7 @@ async function generateScenarioSummaryAndClearCondition() {
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。最終的な文言は日本語で。" },
           { role: "user", content: prompt }
         ],
         temperature: 0.7
@@ -672,7 +658,7 @@ async function generateScenarioSummary() {
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。" },
+          { role: "system", content: "あなたは優秀なTRPGシナリオメーカーです。最終的な文言は日本語で。" },
           { role: "user", content: prompt }
         ],
         temperature: 0.7
@@ -689,9 +675,49 @@ async function generateScenarioSummary() {
   }
 }
 
+/** ★ シナリオ概要の英語版を生成して wizardData.scenarioSummaryEn に保存 */
+async function generateScenarioSummaryEn() {
+  const jp = wizardData.scenarioSummary || "";
+  if (!window.apiKey) return; // 未設定ならスキップ
+  if (!jp.trim()) return;
+
+  showLoadingModal(true);
+  try {
+    const prompt = `
+以下の日本語テキストを英訳し、TRPGの概要として自然な英文にしてください。
+テキスト:
+${jp}
+`;
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀な翻訳家です。" },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    wizardData.scenarioSummaryEn = data.choices[0].message.content || "";
+    await saveWizardDataToIndexedDB(wizardData);
+  } catch (err) {
+    console.error("シナリオ概要英訳失敗:", err);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
 async function generateSections() {
   wizardData.sections = [];
-  const count = Math.floor(Math.random() * 4) + 2; // 2..5
+  const count = Math.floor(Math.random() * 4) + 2;
 
   const systemPrompt = `
 あなたはTRPGシナリオを小分けにして目標を作るエキスパートです。
@@ -737,7 +763,6 @@ async function generateSections() {
     }
   } catch (err) {
     console.error("セクション生成失敗:", err);
-    // ダミー
     for (let i = 0; i < count; i++) {
       wizardData.sections.push({
         number: (i + 1),
@@ -778,7 +803,7 @@ async function generateIntroScene() {
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          { role: "system", content: "あなたは優秀なTRPGシナリオライターです。" },
+          { role: "system", content: "あなたは優秀なTRPGシナリオライターです。日本語で出力。" },
           { role: "user", content: pro }
         ],
         temperature: 0.7
@@ -795,7 +820,6 @@ async function generateIntroScene() {
   await saveWizardDataToIndexedDB(wizardData);
 }
 
-/** カレントパーティ情報を wizardData に格納 */
 async function storePartyInWizardData() {
   const cpidStr = localStorage.getItem("currentPartyId") || "";
   if (!cpidStr) {
@@ -846,9 +870,9 @@ function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
   if (!m) return;
   if (show) {
-    m.classList.add("active");   // 表示
+    m.classList.add("active");
   } else {
-    m.classList.remove("active"); // 非表示
+    m.classList.remove("active");
   }
 }
 
@@ -891,8 +915,7 @@ ${sceneText}
       console.warn("intro prompt失敗:", data.error);
       return "";
     }
-    const result = (data.choices[0].message.content || "").trim();
-    return result;
+    return (data.choices[0].message.content || "").trim();
   } catch (e) {
     console.error("generateIntroImagePrompt失敗:", e);
     return "";
