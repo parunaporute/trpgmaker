@@ -7,19 +7,19 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン8:
- *  - scenarios ストア (keyPath: 'scenarioId', autoIncrement)
- *  - sceneEntries ストア (keyPath: 'entryId', autoIncrement)
- *    → content_en を保持できるようにする
- *  - characterData ストア (keyPath: 'id')
- *  - wizardState ストア (keyPath: 'id')
- *  - parties ストア (keyPath: 'partyId', autoIncrement)
- *  - bgImages ストア (keyPath: 'id', autoIncrement)
- *  - ★追加: sceneSummaries ストア (keyPath: 'summaryId', autoIncrement)
+ * バージョン9:
+ *  - characterData
+ *  - scenarios
+ *  - sceneEntries
+ *  - wizardState
+ *  - parties
+ *  - bgImages
+ *  - sceneSummaries
+ *  - ★追加: endings (keyPath: ["scenarioId","type"])
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 8);
+    const request = indexedDB.open("trpgDB", 9);
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -46,7 +46,7 @@ function initIndexedDB() {
         });
         sceneStore.createIndex("scenarioId", "scenarioId", { unique: false });
       } else {
-        // 既存ストアがある場合は再取得して、必要に応じてIndex追加
+        // 既存ストア
         sceneStore = request.transaction.objectStore("sceneEntries");
       }
       // content_en用index(重複可)
@@ -54,7 +54,7 @@ function initIndexedDB() {
         try {
           sceneStore.createIndex("content_en", "content_en", { unique: false });
         } catch (e) {
-          console.warn("content_enのIndex作成に失敗/または既に存在:", e);
+          console.warn("content_enのIndex作成に失敗/既に存在:", e);
         }
       }
 
@@ -80,14 +80,19 @@ function initIndexedDB() {
         });
       }
 
-      // ★ 新ストア: sceneSummaries
+      // sceneSummaries
       if (!db.objectStoreNames.contains("sceneSummaries")) {
         const sumStore = db.createObjectStore("sceneSummaries", {
           keyPath: "summaryId",
           autoIncrement: true
         });
-        // summaryIndex (0,1,2,3...) を保存したければ追加インデックスを作る
         sumStore.createIndex("chunkIndex", "chunkIndex", { unique: true });
+      }
+
+      // ★ 新ストア: endings
+      if (!db.objectStoreNames.contains("endings")) {
+        // 複合キー
+        db.createObjectStore("endings", { keyPath: ["scenarioId", "type"] });
       }
     };
     request.onsuccess = (event) => {
@@ -277,7 +282,6 @@ function updateScenario(scenario) {
 
 /* -------------------------------------------
     シーン履歴 (sceneEntries) の操作
-    content_enフィールドを併せて扱う
 -------------------------------------------*/
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
@@ -357,7 +361,7 @@ function deleteSceneEntry(entryId) {
   });
 }
 
-/* ★ シナリオ削除 */
+/* シナリオ削除 */
 function deleteScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -370,7 +374,7 @@ function deleteScenarioById(scenarioId) {
     // 1) シナリオ本体を削除
     const deleteReq = scenarioStore.delete(scenarioId);
     deleteReq.onsuccess = () => {
-      // 2) sceneEntriesで scenarioId === scenarioId のものを全削除
+      // 2) sceneEntriesで scenarioId === scenarioId のものを削除
       const idx = sceneEntriesStore.index("scenarioId");
       const range = IDBKeyRange.only(scenarioId);
 
@@ -396,8 +400,7 @@ function deleteScenarioById(scenarioId) {
 }
 
 /* -------------------------------------------
-   sceneSummariesストアへの操作
-   - chunkIndex (0,1,2...)ごとに英語版と日本語版を保存
+   sceneSummariesストア
 -------------------------------------------*/
 function addSceneSummaryRecord(summaryObj) {
   return new Promise((resolve, reject) => {
@@ -435,7 +438,6 @@ function updateSceneSummaryRecord(summaryObj) {
     if (!db) {
       return reject("DB未初期化");
     }
-    // summaryIdを持っている想定
     const tx = db.transaction("sceneSummaries", "readwrite");
     const store = tx.objectStore("sceneSummaries");
     const putReq = store.put(summaryObj);
@@ -456,7 +458,7 @@ function deleteSceneSummaryByChunkIndex(chunkIndex) {
     try {
       const sumRec = await getSceneSummaryByChunkIndex(chunkIndex);
       if (!sumRec) {
-        return resolve(); // 特になし
+        return resolve(); // 何もなければ終了
       }
       const tx = db.transaction("sceneSummaries", "readwrite");
       const store = tx.objectStore("sceneSummaries");
@@ -591,5 +593,58 @@ window.deletePartyById = function (partyId) {
     req.onerror = (err) => {
       reject(err);
     };
+  });
+};
+
+/* -------------------------------------------
+   endingsストアの操作
+-------------------------------------------*/
+/**
+ * 指定シナリオ+タイプ("clear" or "bad")のエンディングを取得
+ */
+window.getEnding = function (scenarioId, type) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("endings", "readonly");
+    const store = tx.objectStore("endings");
+    const getReq = store.get([scenarioId, type]);
+    getReq.onsuccess = (evt) => {
+      resolve(evt.target.result || null);
+    };
+    getReq.onerror = (err) => reject(err);
+  });
+};
+
+/**
+ * エンディングを保存
+ */
+window.saveEnding = function (scenarioId, type, story) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("endings", "readwrite");
+    const store = tx.objectStore("endings");
+    const rec = {
+      scenarioId,
+      type,
+      story,
+      createdAt: new Date().toISOString()
+    };
+    const putReq = store.put(rec);
+    putReq.onsuccess = () => resolve();
+    putReq.onerror = (err) => reject(err);
+  });
+};
+
+/**
+ * エンディング削除
+ */
+window.deleteEnding = function (scenarioId, type) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("endings", "readwrite");
+    const store = tx.objectStore("endings");
+    const delReq = store.delete([scenarioId, type]);
+    delReq.onsuccess = () => resolve();
+    delReq.onerror = (err) => reject(err);
   });
 };

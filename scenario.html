@@ -171,6 +171,20 @@
     </div>
   </div>
 
+  <!-- ▼ エンディング関連ボタン&モーダル（追加） -->
+  <button id="ending-button" style="margin-top:20px; display:none;">エンディング</button>
+  <button id="clear-ending-button" style="margin-top:20px; display:none;">クリア・エンディング</button>
+
+  <div id="ending-modal" class="modal">
+    <div class="modal-content" style="width: 80vw;">
+      <h2 id="ending-modal-title"></h2>
+      <div id="ending-modal-story" style="white-space:pre-wrap; text-align:left; margin-top:10px;"></div>
+      <button id="ending-modal-close-button" style="margin-top:10px;">閉じる</button>
+      <button id="ending-modal-regenerate-button" style="margin-top:10px;">再生成</button>
+    </div>
+  </div>
+  <!-- ▲ エンディング関連ここまで -->
+
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
