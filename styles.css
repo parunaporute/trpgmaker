@@ -10,13 +10,14 @@ body {
 
 .container {
   box-sizing: border-box;
-  max-width: calc(100vw - 40px);
+  max-width: 90%;
   margin: 20px auto;
   padding: 20px;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.7);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   color: #f0f0f0;
 }
+
 
 h1 {
   text-align: center;
@@ -70,9 +71,9 @@ button:hover {
 .scene-history {
   max-height: 50vh;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  border: none;
   padding: 0;
-  background-color: #000000;
+  background-color: transparent;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -85,8 +86,8 @@ button:hover {
 .history-tile.summary {
   font-size: 0.8rem;
   font-family: serif;
-  background-color: #111;
-  padding: 5px 20px;
+  background-color: #1111115e;
+  padding: 10px 20px;
   align-items: flex-start;
 }
 .history-tile.summary.separator{
@@ -102,7 +103,7 @@ button:hover {
   position: relative;
   box-sizing: border-box;
   padding: 20px 20px 60px 20px;
-  background-color: #000000;
+  background-color: transparent;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 0 auto;
   text-align: right;
@@ -112,7 +113,11 @@ button:hover {
 }
 
 .history-tile:nth-child(odd) {
-  background-color: #111;
+  background-color: #111111a8
+}
+.history-tile:last-of-type{
+  padding-bottom: 0;
+
 }
 .scene-text,
 .action-text,
@@ -143,17 +148,34 @@ button:hover {
 
 .history-tile button {
   position: absolute;
-  max-width: 10rem;
-  background-color: transparent;
-  width: 100%;
   bottom: 20px;
   margin-bottom: 0px;
+  max-width: 10rem;
+  background-color: transparent;
+  border: 1px dashed #bbb;
+  color: #bbb;
+  width: 100%;
   border-radius: 20px;
-  border: 1px solid #555;
-  color: #555;
+
 }
+
+.delete-scene {
+  max-width: 10rem;
+  background-color: transparent;
+  border: 1px dashed #bbb;
+  color: #bbb;
+  width: 100%;
+  border-radius: 20px;
+}
+.delete-scene:hover {
+  background-color: #aaa;
+  color: #000;
+}
+
+
 .history-tile button:hover {
   background-color: #aaa;
+  color: #000;
 }
 
 .scene-text[contenteditable]:focus,
@@ -166,7 +188,6 @@ button:hover {
 #story {
   font-size: 1.4rem;
   padding-bottom: 10px;
-  border-bottom: 1px solid #ccc;
   min-height: 60px;
 }
 

@@ -535,7 +535,8 @@ function updateSceneHistory() {
 
       // 削除ボタン
       const delBtn = document.createElement("button");
-      delBtn.textContent = "シーンの削除";
+      delBtn.className = "delete-scene"
+      delBtn.textContent = "シーンを削除";
       delBtn.addEventListener("click", async () => {
         await deleteSceneAndPreviousAction(e);
       });
@@ -664,7 +665,8 @@ function showLastScene() {
 
     // 「このシーンを削除」ボタン
     const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "このシーンを削除";
+    deleteBtn.className = "delete-scene"
+    deleteBtn.textContent = "シーンを削除";
     deleteBtn.style.marginBottom = "10px";
     deleteBtn.addEventListener("click", async () => {
       await deleteSceneAndPreviousAction(lastScene);
