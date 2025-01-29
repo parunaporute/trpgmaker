@@ -22,6 +22,13 @@ const DOMPURIFY_CONFIG = {
   ALLOWED_ATTR: ["style"]
 };
 
+/** 日本語チェック用関数 */
+function containsJapanese(text) {
+  // 平仮名 or カタカナが含まれているかどうか
+  // 例: /[ぁ-んァ-ン]/ にマッチすれば日本語(少なくとも仮名)とみなす
+  return /[ぁ-んァ-ン]/.test(text);
+}
+
 /** DBからシナリオ情報を読み込み */
 async function loadScenarioData(scenarioId) {
   try {
@@ -49,7 +56,6 @@ async function loadScenarioData(scenarioId) {
     }));
 
     // sceneSummaries の読み込み
-    // chunkIndex:0,1,2,3... という順で取って window.sceneSummaries[] にセット
     for (let i = 0; i < 100; i++) {
       const sumRec = await getSceneSummaryByChunkIndex(i);
       if (!sumRec) break;
@@ -75,10 +81,7 @@ async function loadScenarioData(scenarioId) {
   }
 }
 
-/** 次のシーンを生成 */
-
-
-/** 次のシーンを生成（ご提示のロジックをマージ） */
+/** 次のシーンを生成（日本語チェック・リトライ付き） */
 async function getNextScene() {
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -118,31 +121,27 @@ async function getNextScene() {
 ・時々パーティを会話させる
 `;
 
-  // システムプロンプト2
   const wd = (window.currentScenario && window.currentScenario.wizardData) || {};
-  console.log("WD:", wd);
   const sections = wd.sections || [];
-  console.log("sections:", sections);
-
-
-  if (!sections.length) {
-    text = "";
-  } else {
-    systemText += "\n======\n：";
+  if (sections.length > 0) {
+    systemText += "\n======\n";
     for (const sec of sections) {
       systemText += `【セクション${sec.number}】` + (sec.cleared ? "(クリア済み)" : "(未クリア)") + "\n";
-      systemText += "条件: " + (decompressCondition(sec.conditionZipped)) + "\n\n";
+      systemText += "条件: " + decompressCondition(sec.conditionZipped) + "\n\n";
     }
     systemText += "======\n";
   }
 
+  // メッセージ履歴
   const msgs = [{ role: "system", content: systemText }];
 
   // シナリオ概要 + パーティ情報
   if (window.currentScenario) {
-    const wd = window.currentScenario.wizardData || {};
+    const scenarioWd = window.currentScenario.wizardData || {};
     // 英語があれば英語を使う、なければ日本語を使う
-    const summ = wd.scenarioSummaryEn?.trim() ? wd.scenarioSummaryEn : (wd.scenarioSummary || "");
+    const summ = scenarioWd.scenarioSummaryEn?.trim()
+      ? scenarioWd.scenarioSummaryEn
+      : (scenarioWd.scenarioSummary || "");
     msgs.push({ role: "user", content: "シナリオ概要:" + summ });
 
     const charData = await loadCharacterDataFromIndexedDB();
@@ -175,10 +174,7 @@ async function getNextScene() {
   for (const e of window.sceneHistory) {
     if (e.type === "action") {
       actionCounter++;
-      if (actionCounter <= skipCount) {
-        // 要約済みなのでスキップ
-        continue;
-      }
+      if (actionCounter <= skipCount) continue;
       // 英語があれば英語を使う
       const actText = e.content_en?.trim() ? e.content_en : e.content;
       msgs.push({ role: "user", content: "player action:" + actText });
@@ -196,37 +192,55 @@ async function getNextScene() {
   if (pinput) {
     msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
   }
-  // console.log("msgs", msgs); プロンプトのテスト用
-  // GPT呼び出し
+
+  let nextScene = "";
   try {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages: msgs,
-        temperature: 0.7
-      }),
-      signal
-    });
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-    const data = await resp.json();
-    if (window.cancelRequested) {
-      showLoadingModal(false);
-      return;
-    }
-    if (data.error) throw new Error(data.error.message);
+    // 最大3回リトライして日本語含有を確認
+    let isSuccess = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      // GPT呼び出し
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${window.apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: msgs,
+          temperature: 0.7
+        }),
+        signal
+      });
 
-    const nextScene = data.choices[0].message.content || "";
+      if (window.cancelRequested) {
+        showLoadingModal(false);
+        return;
+      }
+
+      const data = await resp.json();
+      if (window.cancelRequested) {
+        showLoadingModal(false);
+        return;
+      }
+      if (data.error) throw new Error(data.error.message);
+
+      const candidate = data.choices[0].message.content || "";
+      if (containsJapanese(candidate)) {
+        nextScene = candidate;
+        isSuccess = true;
+        break; // 日本語を含むので成功
+      } else {
+        // 3回目ならあきらめてそれを使う
+        if (attempt === 3) {
+          nextScene = candidate;
+          alert("日本語を検出できませんでしたが、3回目の結果で進行します。");
+        }
+      }
+    }
 
     // (1) 行動をDBに保存
     if (pinput) {
@@ -279,12 +293,24 @@ async function getNextScene() {
     // (4) セクション達成チェック
     await checkSectionClearViaChatGPT(pinput, nextScene);
 
-    // (5) 行動数判定して要約作成 (15,25,35,45...到達なら該当範囲を要約する)
+    // (5) 行動数判定して要約作成
     await handleSceneSummaries();
 
     // (6) 画面再描画
     updateSceneHistory();
     showLastScene();
+
+    // (7) シーン生成のたびに回答候補コンテナをクリア
+    const candidatesContainer = document.getElementById("action-candidates-container");
+    if (candidatesContainer) {
+      candidatesContainer.innerHTML = "";
+    }
+
+    // (8) 「自動的に生成する」チェックが入っていたら回答候補を生成
+    const autoGenCheckbox = document.getElementById("auto-generate-candidates-checkbox");
+    if (autoGenCheckbox && autoGenCheckbox.checked) {
+      onGenerateActionCandidates(); 
+    }
 
   } catch (e) {
     if (e.name === "AbortError") {
@@ -363,7 +389,7 @@ async function handleSceneSummaries() {
   }
 }
 
-/** 与えられたテキストを、5行程度に要約する (英語or日本語) */
+/** 与えられたテキストを、(英語or日本語)で N行程度に要約する */
 async function generateSummaryWithLimit(text, lines = 5, lang = "en") {
   if (!text.trim()) return "";
   let sys = "You are a talented summarizer. The final language must be English.";
@@ -403,7 +429,7 @@ ${text}
   }
 }
 
-/** リスナー内でシーンや行動の日本語が編集されたら英訳を作り直す */
+/** シーン or 行動を編集したら英訳を作り直す */
 async function onSceneOrActionContentEdited(entry, newText) {
   if (!window.apiKey) {
     return;
@@ -484,10 +510,11 @@ function updateSceneHistory() {
 
   for (const e of showEntries) {
     if (e.type === "scene") {
+      // 履歴に表示するシーン
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
-      // 削除
+      // 削除ボタン
       const delBtn = document.createElement("button");
       delBtn.textContent = "削除";
       delBtn.style.marginBottom = "5px";
@@ -524,10 +551,10 @@ function updateSceneHistory() {
       his.appendChild(tile);
 
     } else if (e.type === "action") {
+      // 履歴に表示する行動
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
-      // 削除
       const delBtn = document.createElement("button");
       delBtn.textContent = "削除";
       delBtn.style.backgroundColor = "#f44336";
@@ -536,15 +563,12 @@ function updateSceneHistory() {
         await deleteSceneEntry(e.entryId);
         window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
 
-        // 行動数を数えて要約削除
         await handleSceneSummaries();
-
         updateSceneHistory();
         showLastScene();
       });
       tile.appendChild(delBtn);
 
-      // 行動
       const at = document.createElement("p");
       at.className = "action-text";
       at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -557,6 +581,7 @@ function updateSceneHistory() {
       his.appendChild(tile);
 
     } else if (e.type === "image") {
+      // 履歴に表示する画像
       const tile = document.createElement("div");
       tile.className = "history-tile";
 
@@ -566,7 +591,6 @@ function updateSceneHistory() {
       img.style.maxHeight = "250px";
       tile.appendChild(img);
 
-      // 再生成
       const reBtn = document.createElement("button");
       reBtn.textContent = "再生成";
       reBtn.addEventListener("click", () => {
@@ -578,7 +602,6 @@ function updateSceneHistory() {
       });
       tile.appendChild(reBtn);
 
-      // 画像削除
       const delBtn = document.createElement("button");
       delBtn.textContent = "画像だけ削除";
       delBtn.addEventListener("click", async () => {
@@ -619,6 +642,32 @@ function showLastScene() {
       await onSceneOrActionContentEdited(lastScene, st.innerHTML.trim());
     });
     storyDiv.appendChild(st);
+
+    // 「このシーンを削除」ボタン
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "このシーンを削除";
+    deleteBtn.style.marginBottom = "10px";
+    deleteBtn.addEventListener("click", async () => {
+      // 最新シーンを削除
+      const removeIds = [lastScene.entryId];
+      // 画像もまとめて削除
+      window.sceneHistory.forEach(x => {
+        if (x.type === "image" && x.sceneId === lastScene.sceneId) {
+          removeIds.push(x.entryId);
+        }
+      });
+
+      for (const rid of removeIds) {
+        await deleteSceneEntry(rid);
+      }
+      window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
+
+      // 要約再計算
+      await handleSceneSummaries();
+      updateSceneHistory();
+      showLastScene();
+    });
+    storyDiv.appendChild(deleteBtn);
 
     // 画像エリア
     lastSceneImagesDiv.innerHTML = "";
@@ -1038,7 +1087,7 @@ async function onCustomImageGenerate() {
 async function generateEnglishTranslation(japaneseText) {
   if (!japaneseText.trim()) return "";
   const sys = "あなたは優秀な翻訳家です。";
-  const u = `以下を自然な英語に翻訳:\n${japaneseText}`;
+  const u = `以下のテキストを自然な英語に翻訳:\n${japaneseText}`;
   try {
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -1069,3 +1118,5 @@ window.generateImageFromCurrentScene = generateImageFromCurrentScenePrompt;
 window.onCustomImageGenerate = onCustomImageGenerate;
 window.openImagePromptModal = openImagePromptModal;
 window.closeImagePromptModal = closeImagePromptModal;
+window.onCancelFetch = onCancelFetch;
+window.getNextScene = getNextScene; // ほかのスクリプトから呼び出せるように

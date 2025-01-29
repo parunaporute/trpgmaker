@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
@@ -99,9 +100,16 @@
       </div>
 
       <div id="player-action" style="margin-top:20px;">プレイヤーの行動を入力してください</div>
-      <div style="margin-top:10px;">
+      <!-- 回答候補を生成ボタンとチェックボックス -->
+      <div style="margin-top:10px;display: flex;">
         <button id="generate-action-candidates-button">回答候補を生成</button>
+        <label style="margin-left:10px;display: flex;">
+          <input type="checkbox" id="auto-generate-candidates-checkbox" />
+          <p style="width: 100%;">自動的に生成する</p>
+        </label>
       </div>
+      <div id="action-candidates-container" style="margin-top:10px;"></div>
+
       <div id="action-candidates-container" style="margin-top:10px;"></div>
 
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
@@ -207,6 +215,19 @@
         });
       }
     });
+    window.addEventListener('DOMContentLoaded', () => {
+      const autoCbx = document.getElementById("auto-generate-candidates-checkbox");
+      if (autoCbx) {
+        // 初期状態読み込み
+        autoCbx.checked = (localStorage.getItem("autoGenerateCandidates") === "true");
+
+        // 変更時に保存
+        autoCbx.addEventListener("change", () => {
+          localStorage.setItem("autoGenerateCandidates", autoCbx.checked);
+        });
+      }
+    });
   </script>
 </body>
+
 </html>

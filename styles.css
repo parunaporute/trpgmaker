@@ -43,6 +43,14 @@ textarea {
   margin-bottom: 10px;
 }
 
+input[type=checkbox] {
+  width: initial;
+  margin: auto 10px auto 0;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+}
+
 button {
   padding: 10px 20px;
   background-color: #4caf50;
