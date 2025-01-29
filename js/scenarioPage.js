@@ -319,7 +319,7 @@ function openEndingModal(type, story) {
   } else {
     titleEl.textContent = "エンディング";
   }
-  storyEl.innerHTML = story || "";
+  storyEl.innerHTML = DOMPurify.sanitize(story, DOMPURIFY_CONFIG) || "";
   modal.classList.add("active");
 }
 
