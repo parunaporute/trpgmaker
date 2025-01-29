@@ -103,7 +103,7 @@ async function getNextScene() {
     actionEn = await generateEnglishTranslation(pinput);
   }
 
-  // システムプロンプト1
+  // システムプロンプト
   let systemText =
     `あなたは経験豊かなやさしいTRPGのゲームマスターです。
 以下を守ってください。
@@ -309,7 +309,7 @@ async function getNextScene() {
     // (8) 「自動的に生成する」チェックが入っていたら回答候補を生成
     const autoGenCheckbox = document.getElementById("auto-generate-candidates-checkbox");
     if (autoGenCheckbox && autoGenCheckbox.checked) {
-      onGenerateActionCandidates(); 
+      onGenerateActionCandidates();
     }
 
   } catch (e) {
@@ -365,7 +365,7 @@ async function handleSceneSummaries() {
           content_en: enSummary,
           content_ja: jaSummary
         };
-        const newId = await addSceneSummaryRecord(sumRec);
+        await addSceneSummaryRecord(sumRec);
         window.sceneSummaries[chunkIndex] = {
           en: enSummary,
           ja: jaSummary
@@ -435,7 +435,7 @@ async function onSceneOrActionContentEdited(entry, newText) {
     return;
   }
   if (newText.trim() === entry.content.trim()) {
-    return; // 変化なし
+    return;
   }
   // 翻訳を作り直す
   // モーダルを一時的に表示
@@ -463,35 +463,39 @@ function updateSceneHistory() {
   if (!his) return;
   his.innerHTML = "";
 
-  // 未クリアセクションの最小番号
+  // セクション表示
   const wd = window.currentScenario?.wizardData;
   let sections = [];
   if (wd && wd.sections) {
     sections = wd.sections;
   }
-  const sorted = [...sections].sort((a, b) => a.number - b.number);
+  let sorted = [...sections].sort((a, b) => a.number - b.number);
   const firstUncleared = sorted.find(s => !s.cleared);
-
+  sorted = sections;
+  console.log(sorted);
   if (!firstUncleared && sorted.length > 0) {
     const tile = document.createElement("div");
-    tile.className = "history-tile";
-    tile.textContent = "シナリオ達成";
+    tile.className = "history-tile summary title";
+    tile.textContent = "シナリオ達成!";
     his.appendChild(tile);
-  } else if (sorted.length > 0) {
-    for (const s of sorted) {
-      if (s.number < (firstUncleared?.number || 99999)) {
-        const t = document.createElement("div");
-        t.className = "history-tile";
-        t.textContent = `セクション${s.number} (クリア済み)`;
-        his.appendChild(t);
-      } else if (s.number === firstUncleared.number) {
-        const t = document.createElement("div");
-        t.className = "history-tile";
-        t.textContent = `セクション${s.number} (未クリア)`;
-        his.appendChild(t);
-      }
-    }
   }
+
+  for (const s of sorted) {
+    const t = document.createElement("div");
+    if (s.number < (firstUncleared?.number || Infinity)) {
+      t.className = "history-tile summary";
+      console.log("クリア済");
+      t.textContent = `${decompressCondition(s.conditionZipped)}(クリア済み)`;
+    } else if (s.number === firstUncleared.number) {
+      t.className = "history-tile summary";
+      console.log("未クリア");
+      t.textContent = `セクション${s.number} (未クリア)`;
+    }
+    his.appendChild(t);
+  }
+  tile = document.createElement("div");
+  tile.className = "history-tile summary separator";
+  his.appendChild(tile);
 
   // 最後のシーンは後で showLastScene() 側で表示するので履歴には表示しない
   const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
@@ -508,36 +512,35 @@ function updateSceneHistory() {
     .filter(e => !skipIds.includes(e.entryId))
     .sort((a, b) => a.entryId - b.entryId);
 
+  tile = document.createElement("div");
   for (const e of showEntries) {
-    if (e.type === "scene") {
+    if (e.type === "action") {
+      tile = document.createElement("div");
+
+      // 履歴に表示する行動
+      tile.className = "history-tile";
+
+      const at = document.createElement("p");
+      at.className = "action-text";
+      at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+      at.innerHTML = DOMPurify.sanitize(e.content);
+      at.addEventListener("blur", async () => {
+        await onSceneOrActionContentEdited(e, at.innerHTML.trim());
+      });
+      tile.appendChild(at);
+      his.appendChild(tile);
+    } else if (e.type === "scene") {
       // 履歴に表示するシーン
-      const tile = document.createElement("div");
       tile.className = "history-tile";
 
       // 削除ボタン
       const delBtn = document.createElement("button");
-      delBtn.textContent = "削除";
-      delBtn.style.marginBottom = "5px";
+      delBtn.textContent = "シーンの削除";
       delBtn.addEventListener("click", async () => {
-        const removeIds = [e.entryId];
-        window.sceneHistory.forEach(x => {
-          if (x.type === "image" && x.sceneId === e.sceneId) {
-            removeIds.push(x.entryId);
-          }
-        });
-        for (const rid of removeIds) {
-          await deleteSceneEntry(rid);
-        }
-        window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
-
-        // 行動数を数えて要約削除
-        await handleSceneSummaries();
-
-        updateSceneHistory();
-        showLastScene();
+        await deleteSceneAndPreviousAction(e);
       });
-      tile.appendChild(delBtn);
 
+      tile.appendChild(delBtn);
       // シーン本文 (contenteditable)
       const st = document.createElement("p");
       st.className = "scene-text";
@@ -550,49 +553,26 @@ function updateSceneHistory() {
 
       his.appendChild(tile);
 
-    } else if (e.type === "action") {
-      // 履歴に表示する行動
-      const tile = document.createElement("div");
-      tile.className = "history-tile";
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "削除";
-      delBtn.style.backgroundColor = "#f44336";
-      delBtn.style.marginBottom = "5px";
-      delBtn.addEventListener("click", async () => {
-        await deleteSceneEntry(e.entryId);
-        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
-
-        await handleSceneSummaries();
-        updateSceneHistory();
-        showLastScene();
-      });
-      tile.appendChild(delBtn);
-
-      const at = document.createElement("p");
-      at.className = "action-text";
-      at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
-      at.innerHTML = DOMPurify.sanitize(e.content);
-      at.addEventListener("blur", async () => {
-        await onSceneOrActionContentEdited(e, at.innerHTML.trim());
-      });
-      tile.appendChild(at);
-
-      his.appendChild(tile);
-
     } else if (e.type === "image") {
       // 履歴に表示する画像
-      const tile = document.createElement("div");
       tile.className = "history-tile";
 
       const img = document.createElement("img");
       img.src = e.dataUrl;
       img.alt = "生成画像";
-      img.style.maxHeight = "250px";
+      img.style.maxHeight = "350px";
+      img.style.alignSelf = "flex-end";
+      img.style.width = "100%";
+      img.style.objectFit = "contain";
+      img.style.marginBottom = "60px";
+      img.style.objectPosition = "right";
       tile.appendChild(img);
 
       const reBtn = document.createElement("button");
       reBtn.textContent = "再生成";
+      reBtn.style.width = "10rem";
+      reBtn.style.right = "calc(10rem + 4rem)";
+      reBtn.style.bottom = "70px";
       reBtn.addEventListener("click", () => {
         if (!window.apiKey) return;
         const idx = window.sceneHistory.indexOf(e);
@@ -603,7 +583,10 @@ function updateSceneHistory() {
       tile.appendChild(reBtn);
 
       const delBtn = document.createElement("button");
-      delBtn.textContent = "画像だけ削除";
+      delBtn.textContent = "画像削除";
+      delBtn.style.bottom = "70px";
+      delBtn.style.right = "20px";
+
       delBtn.addEventListener("click", async () => {
         await deleteSceneEntry(e.entryId);
         window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
@@ -616,6 +599,42 @@ function updateSceneHistory() {
     }
   }
   his.scrollTop = his.scrollHeight;
+}
+
+/** シーン削除 + 直前アクション削除 → 再描画 */
+async function deleteSceneAndPreviousAction(sceneEntry) {
+  // このシーンと同じ sceneId の画像をまとめて削除
+  const removeIds = [sceneEntry.entryId];
+  window.sceneHistory.forEach(x => {
+    if (x.type === "image" && x.sceneId === sceneEntry.sceneId) {
+      removeIds.push(x.entryId);
+    }
+  });
+
+  // さらに「直前のアクション」を探して削除する
+  //   → sceneEntry より前にある entryId の中から最後に出てくる type==="action"
+  //   → findLastIndex のようなイメージで走査
+  const idx = window.sceneHistory.findIndex(e => e.entryId === sceneEntry.entryId);
+  if (idx > 0) {
+    for (let i = idx - 1; i >= 0; i--) {
+      if (window.sceneHistory[i].type === "action") {
+        removeIds.push(window.sceneHistory[i].entryId);
+        break;
+      }
+    }
+  }
+
+  // DB削除
+  for (const rid of removeIds) {
+    await deleteSceneEntry(rid);
+  }
+  // メモリ上から削除
+  window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
+
+  // 要約再計算 & 再描画
+  await handleSceneSummaries();
+  updateSceneHistory();
+  showLastScene();
 }
 
 /** 最新シーンを表示 */
@@ -648,24 +667,7 @@ function showLastScene() {
     deleteBtn.textContent = "このシーンを削除";
     deleteBtn.style.marginBottom = "10px";
     deleteBtn.addEventListener("click", async () => {
-      // 最新シーンを削除
-      const removeIds = [lastScene.entryId];
-      // 画像もまとめて削除
-      window.sceneHistory.forEach(x => {
-        if (x.type === "image" && x.sceneId === lastScene.sceneId) {
-          removeIds.push(x.entryId);
-        }
-      });
-
-      for (const rid of removeIds) {
-        await deleteSceneEntry(rid);
-      }
-      window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
-
-      // 要約再計算
-      await handleSceneSummaries();
-      updateSceneHistory();
-      showLastScene();
+      await deleteSceneAndPreviousAction(lastScene);
     });
     storyDiv.appendChild(deleteBtn);
 
@@ -680,6 +682,7 @@ function showLastScene() {
       i.src = imgEntry.dataUrl;
       i.alt = "シーン画像";
       i.style.maxWidth = "100%";
+      //      i.style.alignSelf = "flex-end";
       c.appendChild(i);
 
       const reBtn = document.createElement("button");
@@ -1119,4 +1122,4 @@ window.onCustomImageGenerate = onCustomImageGenerate;
 window.openImagePromptModal = openImagePromptModal;
 window.closeImagePromptModal = closeImagePromptModal;
 window.onCancelFetch = onCancelFetch;
-window.getNextScene = getNextScene; // ほかのスクリプトから呼び出せるように
+window.getNextScene = getNextScene;
