@@ -642,17 +642,42 @@ function showPartyModal() {
   renderPartyCardsInModal();
 }
 
+// メイン関数：パーティカードを表示
 function renderPartyCardsInModal() {
   const container = document.getElementById("party-modal-card-container");
   if (!container) return;
   container.innerHTML = "";
 
-  const partyCards = window.characterData.filter(c => c.group === "Party");
-  if (!partyCards.length) {
-    container.textContent = "パーティにカードがありません。";
+  const scenario = window.currentScenario;
+  if (!scenario?.wizardData?.party) {
+    container.textContent = "パーティ情報がありません。";
     return;
   }
-  partyCards.forEach(card => {
+
+  // ① シナリオの wizardData.party
+  const wizardPartyCards = scenario.wizardData.party;
+
+  // ② DB上の全カード
+  const dbCards = window.characterData;
+
+  // ③ wizardPartyCards の各カードについて、同じ id を持つ DBカードがあれば
+  //    それで上書きする。無ければ wizardData のカードをそのまま使う
+  const merged = wizardPartyCards.map(wCard => {
+    const dbMatch = dbCards.find(dbC => dbC.id === wCard.id);
+    if (!dbMatch) {
+      return wCard;
+    }
+    return {
+      ...dbMatch, 
+      ...wCard,
+      // DB版に画像があればそちらを優先
+      imageData: dbMatch.imageData || wCard.imageData
+    };
+  });
+
+  // ④ 最終的に merged.length は wizardPartyCards.length と同じ
+  //    → 4件なら4件だけ描画
+  merged.forEach(card => {
     const cardEl = createPartyCardElement(card);
     container.appendChild(cardEl);
   });

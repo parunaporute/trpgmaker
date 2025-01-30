@@ -844,6 +844,7 @@ async function storePartyInWizardData() {
     special: c.special,
     caption: c.caption,
     backgroundcss: c.backgroundcss,
+    imageprompt: c.imageprompt,
     role: c.role
   }));
   wizardData.party = stripped;

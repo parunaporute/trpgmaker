@@ -143,10 +143,7 @@ async function getNextScene() {
       ? scenarioWd.scenarioSummaryEn
       : (scenarioWd.scenarioSummary || "");
     msgs.push({ role: "user", content: "シナリオ概要:" + summ });
-
-    const charData = await loadCharacterDataFromIndexedDB();
-    const party = charData.filter(e => e.group === "Party");
-    const ptxt = buildPartyInsertionText(party);
+    const ptxt = buildPartyInsertionText(scenarioWd.party);
     msgs.push({ role: "user", content: ptxt });
   }
 
@@ -848,39 +845,89 @@ YESかNOのみで答えてください。判断が難しい時はYESにしてく
 /** パーティ文章 */
 function buildPartyInsertionText(party) {
   let txt = "【パーティ編成情報】\n";
+
+  // ▼ アバター（1人だけ）
   const ava = party.find(e => e.role === "avatar");
   if (ava) {
-    txt += `プレイヤー: ${ava.name}\n\n`;
-  }
-  const pt = party.filter(e => e.role === "partner");
-  if (pt.length > 0) {
-    txt += "パートナー:\n";
-    pt.forEach(p => (txt += " - " + p.name + "\n"));
+    txt += "◆プレイヤー(アバター)\n";
+    txt += buildCardDescription(ava);
     txt += "\n";
   }
+
+  // ▼ パートナー（複数可）
+  const pt = party.filter(e => e.role === "partner");
+  if (pt.length > 0) {
+    txt += "◆パートナー\n";
+    pt.forEach(p => {
+      txt += buildCardDescription(p);
+      txt += "\n";
+    });
+  }
+
+  // ▼ その他 (none)
   const others = party.filter(e => !e.role || e.role === "none");
   if (others.length > 0) {
     const cset = others.filter(x => x.type === "キャラクター");
     const mset = others.filter(x => x.type === "モンスター");
     const iset = others.filter(x => x.type === "アイテム");
+
     if (cset.length > 0) {
       txt += "◆キャラクター\n";
-      cset.forEach(c => (txt += " - " + c.name + "\n"));
-      txt += "\n";
+      cset.forEach(c => {
+        txt += buildCardDescription(c);
+        txt += "\n";
+      });
     }
     if (mset.length > 0) {
       txt += "◆モンスター\n";
-      mset.forEach(m => (txt += " - " + m.name + "\n"));
-      txt += "\n";
+      mset.forEach(m => {
+        txt += buildCardDescription(m);
+        txt += "\n";
+      });
     }
     if (iset.length > 0) {
       txt += "◆アイテム\n";
-      iset.forEach(i => (txt += " - " + i.name + "\n"));
-      txt += "\n";
+      iset.forEach(i => {
+        txt += buildCardDescription(i);
+        txt += "\n";
+      });
     }
   }
-  txt += "以上を踏まえて、プレイヤー、パートナーは味方NPC、アイテムは登場するアイテム、キャラクターは中立NPC、モンスターは敵対NPCとして扱ってください。シナリオ概要を優先するため、世界観が合わない場合は調整してもよいです。例えば、レーザーガンは西部劇ならリボルバーになりますし、エイリアンは時代劇なら浮浪者になって良いです。";
-  return txt;
+  txt +=
+    "以上を踏まえて、プレイヤー、パートナーは味方NPC、アイテムは登場するアイテム、" +
+    "キャラクターは中立NPC、モンスターは敵対NPCとして扱ってください。" +
+    "シナリオ概要を優先するため、世界観が合わない場合は調整してもよいです。例：レーザーガン→リボルバー。";
+    console.log(txt);
+    return txt;
+}
+
+/**
+ * 1件のカードデータから、レア度・名前・状態(キャラ/モンスターのみ)・特技・キャプション・外見
+ * をまとめたテキストを返す。
+ */
+function buildCardDescription(card) {
+  let result = "";
+  // 【名前】: card.name
+  // レア度
+  result += ` - 【名前】${card.name}\n`;
+  result += `   【レア度】${card.rarity || "★0"}\n`;
+
+  // キャラクター / モンスターだけが「状態」を持つ想定なら
+  if (card.type === "キャラクター" || card.type === "モンスター") {
+    result += `   【状態】${card.state || "なし"}\n`;
+  }
+
+  // 特技
+  result += `   【特技】${card.special || "なし"}\n`;
+
+  // キャプション
+  result += `   【キャプション】${card.caption || "なし"}\n`;
+
+  // 外見 (imageprompt)
+  // 「外見」や「imageprompt」が実はUI上で別名になっている場合は適宜変更
+  result += `   【外見】${card.imageprompt || "なし"}\n`;
+
+  return result;
 }
 
 function showLoadingModal(show) {
