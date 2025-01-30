@@ -390,7 +390,7 @@
           if (card.imageData) {
             openImagePreview(card.imageData);
           } else {
-            alert("画像がありません。");
+            showToast("画像がありません。");
           }
         }
       }
@@ -501,7 +501,7 @@
     }
     if (btnEl) btnEl.disabled = true;
 
-    alert("画像を生成しています...");
+    showToast("画像を生成しています...");
     const rarityNum = parseInt((card.rarity || "").replace("★", "").trim()) || 0;
     const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
 
@@ -540,12 +540,12 @@
         window.characterData[idx].imageData = dataUrl;
         await saveCharacterDataToIndexedDB(window.characterData);
       }
-      alert("画像の生成が完了しました");
+      showToast("画像の生成が完了しました");
       // 再描画しなくてもよいが、最新を反映したいなら
       loadTabContent(currentTab);
     } catch (err) {
       console.error("画像生成失敗:", err);
-      alert("画像生成に失敗しました:\n" + err.message);
+      showToast("画像生成に失敗しました:\n" + err.message);
     } finally {
       if (btnEl) btnEl.disabled = false;
     }
@@ -606,7 +606,7 @@
 
     const selectedEls = st.containerEl.querySelectorAll(".card.selected");
     if (selectedEls.length === 0) {
-      alert("カードが選択されていません。");
+      showToast("カードが選択されていません。");
       return;
     }
     if (!confirm("選択したカードを削除します。よろしいですか？")) {
@@ -632,7 +632,7 @@
   async function addSelectedCardsToParty() {
     if (warehouseMode !== "party") return;
     if (!currentPartyIdForAdd) {
-      alert("パーティIDがありません。");
+      showToast("パーティIDがありません。");
       return;
     }
     const st = tabStates[currentTab];
@@ -640,7 +640,7 @@
 
     const selectedEls = st.containerEl.querySelectorAll(".card.selected");
     if (selectedEls.length === 0) {
-      alert("カードが選択されていません。");
+      showToast("カードが選択されていません。");
       return;
     }
     selectedEls.forEach(el => {
