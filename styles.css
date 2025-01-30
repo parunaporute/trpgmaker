@@ -18,6 +18,16 @@ body {
   color: #f0f0f0;
 }
 
+.button-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: center;
+}
+#warehouse-card-container {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
 
 h1 {
   text-align: center;
@@ -90,7 +100,7 @@ button:hover {
   padding: 10px 20px;
   align-items: flex-start;
 }
-.history-tile.summary.separator{
+.history-tile.summary.separator {
   padding: 0;
   border-bottom: 1px dashed #666;
 }
@@ -113,11 +123,10 @@ button:hover {
 }
 
 .history-tile:nth-child(odd) {
-  background-color: #111111a8
+  background-color: #111111a8;
 }
-.history-tile:last-of-type{
+.history-tile:last-of-type {
   padding-bottom: 0;
-
 }
 .scene-text,
 .action-text,
@@ -156,7 +165,6 @@ button:hover {
   color: #bbb;
   width: 100%;
   border-radius: 20px;
-
 }
 
 .delete-scene {
@@ -171,7 +179,6 @@ button:hover {
   background-color: #aaa;
   color: #000;
 }
-
 
 .history-tile button:hover {
   background-color: #aaa;
@@ -216,6 +223,8 @@ button:hover {
 .modal.active {
   opacity: 1;
   pointer-events: auto;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* モーダル内部 */
@@ -536,11 +545,23 @@ button:hover {
   gap: 20px;
 }
 
-.card.selected {
-  outline: 4px solid #f44336;
-  outline-offset: -4px;
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
+.card.selected .bezel {
+  outline: 10px solid #f44336;
+  outline-offset: -10px;
+  outline: 10px solid #f44336;
+  outline-offset: -10px;
+  background-image: none;
+  -webkit-mask-image: none;
+  background-color: #0000004d;
+}
+
+.manipulate-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
 }
 
 .chips-container {
@@ -671,4 +692,8 @@ button:hover {
 .card.rarity5 .card-front .gen-image-btn {
   top: calc(40% - 0.8rem);
   bottom: initial;
+}
+
+#scenario-list-container{
+  text-align: right;
 }

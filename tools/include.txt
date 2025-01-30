@@ -1,8 +1,7 @@
 ..\\index.html 
 ..\\partyCreate.html 
 ..\\partyList.html 
-..\\js\\indexedDB.js 
 ..\\js\\menu.js 
 ..\\js\\partyCreate.js 
-..\\js\\partyList.js 
+..\\js\\warehouse.js
 ..\\styles.css 

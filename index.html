@@ -1,25 +1,23 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <title>TRPG メニュー</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <!-- 黒背景 + 白文字ベースのcssを読み込む -->
+  <!-- 黒背景 + 白文字ベースのcssを読み込む（編集不要のstyles.css） -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- カード表示などでDOMPurifyを使用 -->
+  <!-- DOMPurify(カード表示などで使用) -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 
-  <!-- 背景管理用スクリプト（既存） -->
+  <!-- 背景管理用スクリプト（編集不要） -->
   <script src="js/background.js"></script>
 </head>
-
 <body>
   <div class="container" style="text-align:center; margin-top:50px;">
     <h1>TRPG メニュー</h1>
 
-    <!-- ▼ 追加：背景を変更するボタン（デザイン変更） -->
+    <!-- ▼ 背景を変更するボタン -->
     <button id="change-bg-button" style="
         color: #000;
         background-color: #DDD;
@@ -36,19 +34,9 @@
     <div id="bg-modal" class="modal">
       <div class="modal-content bg-modal-content">
         <h2>背景選択</h2>
-
-        <!-- ストック画像のサムネイルを並べる領域 -->
-        <div id="bg-stock-container" class="bg-stock-grid">
-          <!-- ここにIndexedDBから取得した背景画像サムネイルを並べる -->
-        </div>
-
-        <!-- 背景無しボタン -->
+        <div id="bg-stock-container" class="bg-stock-grid"></div>
         <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
-
-        <!-- 生成ボタン -->
         <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
-
-        <!-- 閉じるボタン -->
         <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
       </div>
     </div>
@@ -90,12 +78,8 @@
     <!-- 進行中のシナリオ一覧 -->
     <div id="ongoing-scenarios" style="margin-top:30px;">
       <h2>進行中のシナリオ</h2>
-      <div id="active-scenarios-container">
-        <!-- 進行中シナリオのリンクがここに表示される（現在未使用） -->
-      </div>
-      <div id="scenario-list-container">
-        <!-- JavaScriptで一覧表示 & 削除ボタン -->
-      </div>
+      <div id="active-scenarios-container"></div>
+      <div id="scenario-list-container"></div>
     </div>
   </div>
 
@@ -109,83 +93,43 @@
     </div>
   </div>
 
-  <!-- 倉庫モーダル -->
-  <div id="warehouse-modal" class="modal">
-    <div class="modal-content">
-      <h2>倉庫</h2>
-      <!-- 倉庫側の選択モードボタン -->
-      <button id="toggle-warehouse-selection-mode-btn">選択モード</button>
-      <!-- 倉庫選択カードを削除するボタン -->
-      <button id="delete-selected-warehouse-btn" style="display:none; margin:10px;">選択したカードを削除</button>
-      <button id="close-warehouse-btn" style="margin:10px;">閉じる</button>
-
-      <div id="warehouse-card-container" style="margin:10px 0;"></div>
-    </div>
-  </div>
-
-  <!-- ▼ 画像プレビュー用モーダル -->
-  <div id="card-image-preview-modal" class="modal">
-    <div class="modal-content">
-      <img
-        id="card-preview-img"
-        src=""
-        alt="card image"
-        style="max-width: 95vw;max-height: 95vh;"
-      />
-      <button id="card-preview-close-btn" style="margin-top:10px;">閉じる</button>
-    </div>
-  </div>
-
-  <!-- ▼ 「メタデータ」「画像」用に分割したエクスポート/インポートボタン -->
+  <!-- ▼ エクスポート/インポート関連 -->
   <div style="text-align:center; margin-top:30px;">
     <button id="export-metadata-button">メタデータZIPエクスポート</button>
     <button id="export-images-button" style="margin-left:30px;">画像ZIPエクスポート</button>
-
     <hr>
-    <!-- メタデータZIP用 -->
     <button id="import-metadata-button">メタデータZIPインポート</button>
     <input type="file" id="import-metadata-file" accept=".zip" style="display:none;" />
-    <!-- 画像ZIP用 -->
     <button id="import-images-button" style="margin-left:30px;">画像ZIPインポート</button>
     <input type="file" id="import-images-file" accept=".zip" style="display:none;" />
   </div>
 
-  <!-- 外部JavaScript(IndexedDB) -->
+  <!-- ▼ スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
-  <!-- 背景管理用スクリプト（すでに<head>で読み込み済み） -->
 
+  <!-- DB初期化を先に行い、その後メニュー初期化を呼ぶ -->
   <script>
-    // ページ読み込み時
-    window.addEventListener("load", async () => {
-      await initIndexedDB();
-      // 背景初期化(選択済みがあれば適用)
-      await initBackground("index");
-
-      const scriptEl = document.createElement("script");
-      scriptEl.src = "js/menu.js";
-      document.head.appendChild(scriptEl);
-    });
-
-    // エレメント作成ページへ
-    document.getElementById("character-create").addEventListener("click", () => {
-      window.location.href = "characterCreate.html";
-    });
-
-    // パーティ一覧
-    document.getElementById("party-list").addEventListener("click", () => {
-      window.location.href = "partyList.html";
-    });
-
-    // 新しいシナリオ
-    document.getElementById("start-new-scenario-button").addEventListener("click", () => {
-      window.location.href = "scenarioWizard.html";
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await initIndexedDB();  // ★ここでDBを初期化
+        // 背景初期化(選択済みがあれば適用)
+        await initBackground("index");
+        // メニュー初期化
+        initMenuPage();
+      } catch (e) {
+        console.error("DB初期化エラー:", e);
+      }
     });
   </script>
 
-  <!-- ▼ 追加: JSZip / FileSaver 読み込み + exportImportMulti.js -->
+  <!-- menu.js (メニュー専用ロジック) -->
+  <script src="js/menu.js"></script>
+  <!-- warehouse.js (倉庫共通ロジック) -->
+  <script src="js/warehouse.js"></script>
+
+  <!-- exportImportMulti.js (ZIP入出力) -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-  <!-- ここで新しい exportImportMulti.js を読み込み -->
   <script src="js/exportImportMulti.js"></script>
 
 </body>
