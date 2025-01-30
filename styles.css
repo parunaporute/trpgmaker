@@ -713,6 +713,11 @@ button:hover {
   margin-bottom: 20px;
 }
 
+.scenario-wizard-section {
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
 .element-section button {
   margin: 0;
 }

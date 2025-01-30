@@ -112,7 +112,7 @@ window.initPartyCreatePage = async function () {
 
   // 「メニューに戻る」
   document.getElementById("back-to-menu").addEventListener("click", () => {
-    window.location.href = "index.html";
+    window.location.href = "partyList.html";
   });
 
   // パーティ描画

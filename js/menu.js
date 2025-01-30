@@ -28,16 +28,22 @@ window.initMenuPage = async function () {
     } else {
       scenarioList.forEach(scenario => {
         const div = document.createElement("div");
-        div.style.margin = "10px 0";
+        div.style.display = "flex";
+        div.style.justifyContent = "flex-end";
+        div.style.gap = "10px";
 
         const infoText = document.createElement("span");
+        infoText.style.flex = 1;
+        infoText.style.textAlign = "left";
+        
         infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
         div.appendChild(infoText);
 
         // 続きへ
         const btnContinue = document.createElement("button");
         btnContinue.textContent = "続きへ";
-        btnContinue.style.marginRight = "6px";
+        btnContinue.style.marginBottom = "0px";
+        btnContinue.style.flex = 0.1;
         btnContinue.addEventListener("click", () => {
           window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
         });
@@ -46,7 +52,8 @@ window.initMenuPage = async function () {
         // コピー
         const btnCopy = document.createElement("button");
         btnCopy.textContent = "コピーする";
-        btnCopy.style.marginRight = "6px";
+        btnCopy.style.marginBottom = "0px";
+        btnCopy.style.flex = 0.1;
         btnCopy.addEventListener("click", async () => {
           try {
             const newScenarioId = await copyScenarioById(scenario.scenarioId);
@@ -62,6 +69,7 @@ window.initMenuPage = async function () {
         // 削除
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "削除";
+        btnDelete.style.marginBottom = "0px";
         btnDelete.style.backgroundColor = "#f44336";
         btnDelete.addEventListener("click", () => {
           scenarioIdToDelete = scenario.scenarioId;
