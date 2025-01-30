@@ -1,10 +1,29 @@
 // js/exportImport.js
 
 /**
- * エクスポート / インポート 機能
- * - 「エクスポート」ボタン押下 -> IndexedDB全ストア + localStorage をZIPに固めてダウンロード
- * - 「インポート」ボタン押下 -> ZIPを選択し、解凍してIndexedDB + localStorage を復元
+ * 不正なサロゲートペアを除去するreplacer
+ * JSON.stringify(..., removeInvalidSurrogates, 2)
  */
+function removeInvalidSurrogates(key, value) {
+  if (typeof value === "string") {
+    // サロゲートペアの上位 (D800-DBFF) / 下位 (DC00-DFFF) が不正に並んでいるものを除去
+    // あるいは余っているもの (単体の D800-DBFF, DC00-DFFF) を除去
+    return value.replace(/[\uD800-\uDFFF]/g, "");
+  }
+  return value;
+}
+
+// ここで IndexedDB の全ストアを列挙 (必要に応じて追加・編集してください)
+const STORE_NAMES = [
+  "characterData",
+  "scenarios",
+  "sceneEntries",
+  "wizardState",
+  "parties",
+  "bgImages",
+  "sceneSummaries",
+  "endings"
+];
 
 document.addEventListener("DOMContentLoaded", function () {
   const exportBtn = document.getElementById("export-button");
@@ -16,7 +35,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   if (importBtn) {
     importBtn.addEventListener("click", function () {
-      // ファイル選択ダイアログを出す
       importFileInput.click();
     });
   }
@@ -26,12 +44,11 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /**
- * エクスポートボタン押下時
- * IndexedDB内の全ストア + localStorageの内容を１つのJSONにまとめてZIPダウンロードする
+ * エクスポートボタン押下 -> IndexedDB全ストア + localStorage をそれぞれ分割し、ZIPに固める
  */
 async function onExportData() {
   try {
-    // 1) localStorage の取得
+    // 1) localStorage の取得 -> localStorage.json
     const localStorageData = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -39,27 +56,22 @@ async function onExportData() {
       localStorageData[key] = value;
     }
 
-    // 2) IndexedDB の全ストアデータ取得
-    const indexedDBData = {
-      characterData: await getAllFromStore("characterData"),
-      scenarios: await getAllFromStore("scenarios"),
-      sceneEntries: await getAllFromStore("sceneEntries"),
-      wizardState: await getAllFromStore("wizardState"),
-      parties: await getAllFromStore("parties"),
-      bgImages: await getAllFromStore("bgImages")
-    };
+    const zip = new JSZip();
 
-    const exportObj = {
-      localStorage: localStorageData,
-      indexedDB: indexedDBData
-    };
+    // localStorage.json を保存
+    const localStorageStr = JSON.stringify(localStorageData, removeInvalidSurrogates, 2);
+    zip.file("localStorage.json", localStorageStr);
 
-    const jsonStr = JSON.stringify(exportObj, null, 2);
+    // 2) IndexedDB の全ストアデータをストアごとに取得し、storeName.json ファイルとして追加
+    for (const storeName of STORE_NAMES) {
+      const dataArray = await getAllFromStore(storeName);
+      // 文字列化 (不正文字除去のため replacer 指定)
+      const jsonStr = JSON.stringify(dataArray, removeInvalidSurrogates, 2);
+      // 例: "indexedDB/characterData.json" のようにフォルダ分けしてもOK
+      zip.file(`indexedDB/${storeName}.json`, jsonStr);
+    }
 
     // 3) ZIP生成
-    const zip = new JSZip();
-    zip.file("export.json", jsonStr);
-
     const blob = await zip.generateAsync({ type: "blob" });
     saveAs(blob, "trpg_export.zip");
 
@@ -71,15 +83,13 @@ async function onExportData() {
 }
 
 /**
- * インポートボタン押下 -> ファイル選択後に呼ばれる
+ * ファイル選択 -> インポート実行
  */
 async function onImportFileSelected(evt) {
   const file = evt.target.files[0];
   if (!file) return;
-  // ファイル選択後は input をリセットしておく
   evt.target.value = "";
 
-  // インポート実行
   try {
     await importDataFromZip(file);
     alert("インポートが完了しました。\nページを再読み込みします。");
@@ -91,48 +101,42 @@ async function onImportFileSelected(evt) {
 }
 
 /**
- * ZIPファイルから export.json を取り出して IndexedDB + localStorage を復元
+ * ZIPファイルから localStorage.json や indexedDB/*.json を復元
  */
 async function importDataFromZip(file) {
-  // 1) ZIPを展開
   const zip = await JSZip.loadAsync(file);
-  const exportFile = zip.file("export.json");
-  if (!exportFile) throw new Error("ZIP内にexport.jsonが見つかりません。");
 
-  const jsonText = await exportFile.async("string");
-  const parsed = JSON.parse(jsonText);
-
-  // 2) localStorage を上書き復元
-  if (parsed.localStorage) {
+  // 1) localStorage.json -> localStorage 復元
+  const localStorageFile = zip.file("localStorage.json");
+  if (localStorageFile) {
+    const localJsonText = await localStorageFile.async("string");
+    const localObj = JSON.parse(localJsonText);
     localStorage.clear();
-    for (const [k, v] of Object.entries(parsed.localStorage)) {
+    for (const [k, v] of Object.entries(localObj)) {
       localStorage.setItem(k, v);
     }
   }
 
-  // 3) IndexedDB を上書き復元
-  // 3-1) まず、全ストアをクリアしてから、保存されたデータを put する
-  const storeNames = [
-    "characterData", "scenarios", "sceneEntries",
-    "wizardState", "parties", "bgImages"
-  ];
-  // トランザクションはストアごとに分けて行う
-  for (const storeName of storeNames) {
-    const dataArr = parsed.indexedDB?.[storeName];
-    if (!dataArr) continue;
-
-    await clearAndPutStoreData(storeName, dataArr);
+  // 2) IndexedDB の各ストアに対して、indexedDB/xxx.json を探す
+  //    あれば読み込んで clear -> put
+  for (const storeName of STORE_NAMES) {
+    const storeJsonFile = zip.file(`indexedDB/${storeName}.json`);
+    if (storeJsonFile) {
+      const storeJsonText = await storeJsonFile.async("string");
+      const dataArray = JSON.parse(storeJsonText);
+      // ストアを clear してから put
+      await clearAndPutStoreData(storeName, dataArray);
+    }
   }
 }
 
 /**
- * 指定ストアの全データを取得して返す (readwrite, store.getAll)
+ * 指定ストアの全データを取得
  */
 function getAllFromStore(storeName) {
   return new Promise((resolve, reject) => {
     if (!db) {
-      reject("DB未初期化");
-      return;
+      return reject("DB未初期化");
     }
     const tx = db.transaction(storeName, "readonly");
     const store = tx.objectStore(storeName);
@@ -145,29 +149,25 @@ function getAllFromStore(storeName) {
 }
 
 /**
- * 指定ストアをclear()した後、配列のデータをput()する
+ * 指定ストアをクリアしてから、配列のデータを put
  */
 function clearAndPutStoreData(storeName, dataArray) {
   return new Promise((resolve, reject) => {
     if (!db) {
-      reject("DB未初期化");
-      return;
+      return reject("DB未初期化");
     }
     const tx = db.transaction(storeName, "readwrite");
     const store = tx.objectStore(storeName);
 
-    // 1) clear
     const clearReq = store.clear();
     clearReq.onsuccess = () => {
-      // 2) データをput
       let i = 0;
       function putNext() {
         if (i >= dataArray.length) {
           resolve();
           return;
         }
-        const item = dataArray[i];
-        i++;
+        const item = dataArray[i++];
         const putReq = store.put(item);
         putReq.onsuccess = putNext;
         putReq.onerror = err => reject(err);
