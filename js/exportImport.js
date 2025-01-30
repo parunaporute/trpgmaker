@@ -1,19 +1,19 @@
 // js/exportImport.js
 
 /**
- * 不正なサロゲートペアを除去するreplacer
- * JSON.stringify(..., removeInvalidSurrogates, 2)
+ * 不正サロゲートペアを除去する replacer (念のため)
  */
 function removeInvalidSurrogates(key, value) {
   if (typeof value === "string") {
-    // サロゲートペアの上位 (D800-DBFF) / 下位 (DC00-DFFF) が不正に並んでいるものを除去
-    // あるいは余っているもの (単体の D800-DBFF, DC00-DFFF) を除去
     return value.replace(/[\uD800-\uDFFF]/g, "");
   }
   return value;
 }
 
-// ここで IndexedDB の全ストアを列挙 (必要に応じて追加・編集してください)
+// 画像を含むストアの名前(例として2つ: characterData, bgImages)
+const IMAGE_STORES = ["characterData", "bgImages"];
+
+// すべてのストア名
 const STORE_NAMES = [
   "characterData",
   "scenarios",
@@ -34,9 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
     exportBtn.addEventListener("click", onExportData);
   }
   if (importBtn) {
-    importBtn.addEventListener("click", function () {
-      importFileInput.click();
-    });
+    importBtn.addEventListener("click", () => importFileInput.click());
   }
   if (importFileInput) {
     importFileInput.addEventListener("change", onImportFileSelected);
@@ -44,38 +42,80 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /**
- * エクスポートボタン押下 -> IndexedDB全ストア + localStorage をそれぞれ分割し、ZIPに固める
+ * Base64 -> バイナリ(Uint8Array) の変換
+ */
+function base64ToUint8Array(base64) {
+  const binStr = atob(base64.replace(/^data:\w+\/\w+;base64,/, "")); 
+  const len = binStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binStr.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/**
+ * Uint8Array -> Base64データURL へ変換 (インポート時に使う)
+ *   mimeType は "image/png" など
+ */
+function uint8ArrayToBase64(uint8Arr, mimeType = "image/png") {
+  let binary = "";
+  for (let i = 0; i < uint8Arr.length; i++) {
+    binary += String.fromCharCode(uint8Arr[i]);
+  }
+  const base64 = btoa(binary);
+  return `data:${mimeType};base64,${base64}`;
+}
+
+
+/**
+ * 1) エクスポート (画像は個別ファイル化)
  */
 async function onExportData() {
   try {
-    // 1) localStorage の取得 -> localStorage.json
-    const localStorageData = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      const value = localStorage.getItem(key);
-      localStorageData[key] = value;
-    }
-
     const zip = new JSZip();
 
-    // localStorage.json を保存
-    const localStorageStr = JSON.stringify(localStorageData, removeInvalidSurrogates, 2);
-    zip.file("localStorage.json", localStorageStr);
+    // (A) localStorage を localStorage.json に保存
+    const localObj = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      localObj[key] = localStorage.getItem(key);
+    }
+    zip.file("localStorage.json", JSON.stringify(localObj, removeInvalidSurrogates, 2));
 
-    // 2) IndexedDB の全ストアデータをストアごとに取得し、storeName.json ファイルとして追加
+    // (B) IndexedDB の各ストア
     for (const storeName of STORE_NAMES) {
       const dataArray = await getAllFromStore(storeName);
-      // 文字列化 (不正文字除去のため replacer 指定)
-      const jsonStr = JSON.stringify(dataArray, removeInvalidSurrogates, 2);
-      // 例: "indexedDB/characterData.json" のようにフォルダ分けしてもOK
-      zip.file(`indexedDB/${storeName}.json`, jsonStr);
+
+      // 画像ストアなら、画像を別ファイルにして JSON 側は参照パスに置き換える
+      if (IMAGE_STORES.includes(storeName)) {
+        for (const record of dataArray) {
+          if (record.imageData) {
+            // Base64 -> バイナリ
+            const bin = base64ToUint8Array(record.imageData);
+
+            // ファイル名を決める (例: bgImages/123.png)
+            // record.id や keyPath をそのまま使うなど、お好みで
+            const fileName = `${storeName}/${record.id || "no_id"}.png`;
+
+            // ZIP 内にファイル追加
+            zip.file(fileName, bin);
+
+            // JSON 側では "imageData" を "__EXTERNAL__...(ファイル名)" に置き換え
+            record.imageData = `__EXTERNAL__${fileName}`;
+          }
+        }
+      }
+
+      // (C) ストアの内容を JSON ファイル化
+      const jsonText = JSON.stringify(dataArray, removeInvalidSurrogates, 2);
+      zip.file(`indexedDB/${storeName}.json`, jsonText);
     }
 
-    // 3) ZIP生成
+    // (D) ZIP生成 & ダウンロード
     const blob = await zip.generateAsync({ type: "blob" });
     saveAs(blob, "trpg_export.zip");
-
-    alert("エクスポートが完了しました。");
+    alert("エクスポート完了");
   } catch (err) {
     console.error("エクスポート失敗:", err);
     alert("エクスポートに失敗しました:\n" + err.message);
@@ -83,12 +123,13 @@ async function onExportData() {
 }
 
 /**
- * ファイル選択 -> インポート実行
+ * 2) インポート
+ *    ZIP -> localStorage.json, indexedDB/*.json, さらに __EXTERNAL__ の画像ファイルを復元
  */
 async function onImportFileSelected(evt) {
   const file = evt.target.files[0];
   if (!file) return;
-  evt.target.value = "";
+  evt.target.value = ""; // リセット
 
   try {
     await importDataFromZip(file);
@@ -100,67 +141,75 @@ async function onImportFileSelected(evt) {
   }
 }
 
-/**
- * ZIPファイルから localStorage.json や indexedDB/*.json を復元
- */
 async function importDataFromZip(file) {
   const zip = await JSZip.loadAsync(file);
 
-  // 1) localStorage.json -> localStorage 復元
-  const localStorageFile = zip.file("localStorage.json");
-  if (localStorageFile) {
-    const localJsonText = await localStorageFile.async("string");
-    const localObj = JSON.parse(localJsonText);
+  // (A) localStorage.json
+  const localFile = zip.file("localStorage.json");
+  if (localFile) {
+    const txt = await localFile.async("string");
+    const obj = JSON.parse(txt);
     localStorage.clear();
-    for (const [k, v] of Object.entries(localObj)) {
+    for (const [k, v] of Object.entries(obj)) {
       localStorage.setItem(k, v);
     }
   }
 
-  // 2) IndexedDB の各ストアに対して、indexedDB/xxx.json を探す
-  //    あれば読み込んで clear -> put
+  // (B) IndexedDB の各ストアをクリア->復元
   for (const storeName of STORE_NAMES) {
     const storeJsonFile = zip.file(`indexedDB/${storeName}.json`);
-    if (storeJsonFile) {
-      const storeJsonText = await storeJsonFile.async("string");
-      const dataArray = JSON.parse(storeJsonText);
-      // ストアを clear してから put
-      await clearAndPutStoreData(storeName, dataArray);
+    if (!storeJsonFile) continue; // 無ければスキップ
+
+    // JSON読み込み
+    const jsonText = await storeJsonFile.async("string");
+    let dataArray = JSON.parse(jsonText);
+
+    // (C) 画像ストアなら、__EXTERNAL__... を本来の Base64 画像に戻す
+    if (IMAGE_STORES.includes(storeName)) {
+      for (const record of dataArray) {
+        if (typeof record.imageData === "string" && record.imageData.startsWith("__EXTERNAL__")) {
+          // "__EXTERNAL__bgImages/123.png" みたいな文字列を取り出す
+          const filePath = record.imageData.replace("__EXTERNAL__", ""); 
+          // ZIP 内のファイルを探す
+          const imgFile = zip.file(filePath);
+          if (imgFile) {
+            const uint8 = await imgFile.async("uint8array");
+            // PNG前提なら "image/png"
+            record.imageData = uint8ArrayToBase64(uint8, "image/png");
+          } else {
+            // 画像ファイルが見つからない場合はエラー
+            console.warn("画像ファイルがZIP内に見つかりません:", filePath);
+            record.imageData = ""; // 画像なしとして扱う or そのままエラーにする
+          }
+        }
+      }
     }
+
+    // (D) DBに書き戻し
+    await clearAndPutStoreData(storeName, dataArray);
   }
 }
 
-/**
- * 指定ストアの全データを取得
- */
+/** IndexedDB操作: 全件取得 */
 function getAllFromStore(storeName) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction(storeName, "readonly");
     const store = tx.objectStore(storeName);
     const req = store.getAll();
-    req.onsuccess = evt => {
-      resolve(evt.target.result || []);
-    };
-    req.onerror = err => reject(err);
+    req.onsuccess = (evt) => resolve(evt.target.result || []);
+    req.onerror = (err) => reject(err);
   });
 }
 
-/**
- * 指定ストアをクリアしてから、配列のデータを put
- */
+/** IndexedDB操作: ストアを clear して配列のデータを put */
 function clearAndPutStoreData(storeName, dataArray) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction(storeName, "readwrite");
     const store = tx.objectStore(storeName);
 
-    const clearReq = store.clear();
-    clearReq.onsuccess = () => {
+    store.clear().onsuccess = () => {
       let i = 0;
       function putNext() {
         if (i >= dataArray.length) {
@@ -170,10 +219,10 @@ function clearAndPutStoreData(storeName, dataArray) {
         const item = dataArray[i++];
         const putReq = store.put(item);
         putReq.onsuccess = putNext;
-        putReq.onerror = err => reject(err);
+        putReq.onerror = (err) => reject(err);
       }
       putNext();
     };
-    clearReq.onerror = err => reject(err);
+    tx.onerror = (err) => reject(err);
   });
 }

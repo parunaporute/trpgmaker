@@ -136,23 +136,28 @@
     </div>
   </div>
 
-  <!-- ▼ ここから追加のエクスポート/インポートボタン -->
+  <!-- ▼ 「メタデータ」「画像」用に分割したエクスポート/インポートボタン -->
   <div style="text-align:center; margin-top:30px;">
-    <button id="export-button" style="margin-right:20px;">エクスポート</button>
-    <button id="import-button">インポート</button>
-    <!-- 非表示のファイル入力要素（インポート時にzipを選択） -->
-    <input type="file" id="import-file-input" accept=".zip" style="display:none;" />
+    <button id="export-metadata-button">メタデータZIPエクスポート</button>
+    <button id="export-images-button" style="margin-left:30px;">画像ZIPエクスポート</button>
+
+    <hr>
+    <!-- メタデータZIP用 -->
+    <button id="import-metadata-button">メタデータZIPインポート</button>
+    <input type="file" id="import-metadata-file" accept=".zip" style="display:none;" />
+    <!-- 画像ZIP用 -->
+    <button id="import-images-button" style="margin-left:30px;">画像ZIPインポート</button>
+    <input type="file" id="import-images-file" accept=".zip" style="display:none;" />
   </div>
 
   <!-- 外部JavaScript(IndexedDB) -->
   <script src="js/indexedDB.js"></script>
-  <!-- 新規: 背景管理用スクリプト（すでに<head>で読み込み済み） -->
+  <!-- 背景管理用スクリプト（すでに<head>で読み込み済み） -->
 
   <script>
     // ページ読み込み時
     window.addEventListener("load", async () => {
       await initIndexedDB();
-
       // 背景初期化(選択済みがあれば適用)
       await initBackground("index");
 
@@ -177,11 +182,11 @@
     });
   </script>
 
-  <!-- ▼ 追加: JSZip / FileSaver 読み込み + exportImport.js -->
+  <!-- ▼ 追加: JSZip / FileSaver 読み込み + exportImportMulti.js -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-  <script src="js/exportImport.js"></script>
+  <!-- ここで新しい exportImportMulti.js を読み込み -->
+  <script src="js/exportImportMulti.js"></script>
 
 </body>
-
 </html>
