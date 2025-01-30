@@ -681,7 +681,6 @@ async function generateScenarioSummaryEn() {
   if (!window.apiKey) return; // 未設定ならスキップ
   if (!jp.trim()) return;
 
-  showLoadingModal(true);
   try {
     const prompt = `
 以下の日本語テキストを英訳し、TRPGの概要として自然な英文にしてください。
@@ -710,8 +709,6 @@ ${jp}
     await saveWizardDataToIndexedDB(wizardData);
   } catch (err) {
     console.error("シナリオ概要英訳失敗:", err);
-  } finally {
-    showLoadingModal(false);
   }
 }
 
