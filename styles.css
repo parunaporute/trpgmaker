@@ -694,6 +694,25 @@ button:hover {
   bottom: initial;
 }
 
-#scenario-list-container{
+#scenario-list-container {
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scenario-list-container,
+.scenario-wizard-section,
+.api-key-section,
+.element-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.element-section button {
+  margin: 0;
 }

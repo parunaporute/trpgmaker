@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>パーティ編成</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- DOMPurify(カード表示などで使用) -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
 
-  <!-- 背景管理用スクリプト（編集不要） -->
+  <!-- 背景管理用スクリプト -->
   <script src="js/background.js"></script>
 </head>
+
 <body>
-  <div class="container" style="text-align:center; margin-top:50px;">
+  <!-- 戻るボタン -->
+  <button id="back-to-menu" style="margin-top:20px;">一覧に戻る</button>
+  <div class="container" >
 
     <!-- 背景を変更するボタン -->
     <button id="change-bg-button" style="
@@ -42,50 +45,44 @@
         <p>背景画像を生成中...</p>
       </div>
     </div>
+    <h1>パーティ編成</h1>
 
-    <div class="container">
-      <h1>パーティ編成</h1>
-
-      <!-- パーティ名入力欄 -->
-      <div>
-        <label for="party-name-input">パーティ名：</label>
-        <input type="text" id="party-name-input" placeholder="例: 勇者一行" style="margin-bottom:10px;" />
-        <button id="save-party-name-btn">保存</button>
-      </div>
-
-      <!-- 倉庫ボタン -->
-      <button id="show-warehouse-btn">倉庫</button>
-
-      <!-- 選択モードボタン & 倉庫に戻すボタン -->
-      <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
-      <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">
-        選択したカードを倉庫に戻す
-      </button>
-
-      <!-- ▼ プレイヤーの分身（アバター） -->
-      <section style="margin-top:20px;">
-        <h2>プレイヤーの分身（アバター）</h2>
-        <p style="color:#EEE; font-size:14px;">
-          ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
-        </p>
-        <div id="avatar-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
-      </section>
-
-      <!-- ▼ パートナー（複数可） -->
-      <section style="margin-top:20px;">
-        <h2>パートナー（複数可）</h2>
-        <div id="partner-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
-      </section>
-
-      <!-- ▼ その他パーティ枠 -->
-      <section style="margin-top:20px;">
-        <h2>その他パーティ枠</h2>
-        <div id="party-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
-      </section>
-
-      <!-- 戻るボタン -->
-      <button id="back-to-menu" style="margin-top:20px;">メニューに戻る</button>
+    <!-- パーティ名入力欄 -->
+    <div>
+      <label for="party-name-input">パーティ名：</label>
+      <input type="text" id="party-name-input" placeholder="例: 勇者一行" style="margin-bottom:10px;" />
+      <button id="save-party-name-btn">保存</button>
     </div>
+
+    <!-- 倉庫ボタン -->
+    <button id="show-warehouse-btn">倉庫</button>
+
+    <!-- 選択モードボタン & 倉庫に戻すボタン -->
+    <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
+    <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">
+      選択したカードを倉庫に戻す
+    </button>
+
+    <!-- ▼ プレイヤーの分身（アバター） -->
+    <section style="margin-top:20px;">
+      <h2>プレイヤーの分身（アバター）</h2>
+      <p style="color:#EEE; font-size:14px;">
+        ※ ここに配置できるのは1つだけ。複数設定された場合、自動で以前のアバター設定が解除されます。
+      </p>
+      <div id="avatar-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
+    </section>
+
+    <!-- ▼ パートナー（複数可） -->
+    <section style="margin-top:20px;">
+      <h2>パートナー（複数可）</h2>
+      <div id="partner-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
+    </section>
+
+    <!-- ▼ その他パーティ枠 -->
+    <section style="margin-top:20px;">
+      <h2>その他パーティ枠</h2>
+      <div id="party-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
+    </section>
   </div>
   <!-- ▼ スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
@@ -96,13 +93,14 @@
   <script>
     window.addEventListener("DOMContentLoaded", async () => {
       try {
-        await initIndexedDB(); 
+        await initIndexedDB();
         await initBackground("partyCreate");
         initPartyCreatePage();
-      } catch(e) {
+      } catch (e) {
         console.error("DB初期化エラー:", e);
       }
     });
   </script>
 </body>
+
 </html>
