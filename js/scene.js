@@ -81,7 +81,7 @@ async function loadScenarioData(scenarioId) {
   }
 }
 
-/** 次のシーンを生成（日本語チェック・リトライ付き） */
+/** 次のシーンを生成（英語結果なら日本語翻訳してDB保存 + 画面表示） */
 async function getNextScene() {
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -195,49 +195,50 @@ async function getNextScene() {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
 
-    // 最大3回リトライして日本語含有を確認
-    let isSuccess = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      // GPT呼び出し
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${window.apiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: msgs,
-          temperature: 0.7
-        }),
-        signal
-      });
+    // GPT呼び出し(1回だけ)
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: msgs,
+        temperature: 0.7
+      }),
+      signal
+    });
 
-      if (window.cancelRequested) {
-        showLoadingModal(false);
-        return;
-      }
-
-      const data = await resp.json();
-      if (window.cancelRequested) {
-        showLoadingModal(false);
-        return;
-      }
-      if (data.error) throw new Error(data.error.message);
-
-      const candidate = data.choices[0].message.content || "";
-      if (containsJapanese(candidate)) {
-        nextScene = candidate;
-        isSuccess = true;
-        break; // 日本語を含むので成功
-      } else {
-        // 3回目ならあきらめてそれを使う
-        if (attempt === 3) {
-          nextScene = candidate;
-          alert("日本語を検出できませんでしたが、3回目の結果で進行します。");
-        }
-      }
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
     }
+
+    const data = await resp.json();
+    if (window.cancelRequested) {
+      showLoadingModal(false);
+      return;
+    }
+    if (data.error) throw new Error(data.error.message);
+
+    // まずGPTから返ってきた生テキスト
+    const rawScene = data.choices[0].message.content || "";
+
+    // 日本語が含まれない(＝ほぼ英語)場合は日本語に翻訳
+    // 含まれていればそのまま
+    let finalSceneJa = rawScene;
+    let finalSceneEn = "";
+    if (!containsJapanese(rawScene)) {
+      // GPT結果が英語 → 翻訳して日本語を最終出力
+      finalSceneJa = await generateJapaneseTranslation(rawScene);
+      finalSceneEn = rawScene;
+    } else {
+      // GPT結果が日本語 → 英語バージョンを作る
+      finalSceneEn = await generateEnglishTranslation(rawScene);
+    }
+
+    nextScene = finalSceneJa; // 画面やDBに保存するのは最終的に日本語にしたテキスト
 
     // (1) 行動をDBに保存
     if (pinput) {
@@ -255,13 +256,12 @@ async function getNextScene() {
 
     // (2) 新シーンをDBに追加
     const sid = "scene_" + Date.now();
-    const sceneEn = await generateEnglishTranslation(nextScene);
     const se = {
       scenarioId: window.currentScenarioId || 0,
       type: "scene",
       sceneId: sid,
-      content: nextScene,
-      content_en: sceneEn,
+      content: nextScene,       // 日本語（最終的な表示用）
+      content_en: finalSceneEn, // 英語（GPTが英語だった場合はそのまま or GPTが日本語だった場合は翻訳）
       prompt: ""
     };
     const newSid = await addSceneEntry(se);
@@ -469,7 +469,6 @@ function updateSceneHistory() {
   let sorted = [...sections].sort((a, b) => a.number - b.number);
   const firstUncleared = sorted.find(s => !s.cleared);
   sorted = sections;
-  console.log(sorted);
   if (!firstUncleared && sorted.length > 0) {
     const tile = document.createElement("div");
     tile.className = "history-tile summary title";
@@ -481,16 +480,14 @@ function updateSceneHistory() {
     const t = document.createElement("div");
     if (s.number < (firstUncleared?.number || Infinity)) {
       t.className = "history-tile summary";
-      console.log("クリア済");
       t.textContent = `${decompressCondition(s.conditionZipped)}(クリア済み)`;
-    } else if (s.number === firstUncleared.number) {
+    } else if (s.number === firstUncleared?.number) {
       t.className = "history-tile summary";
-      console.log("未クリア");
       t.textContent = `セクション${s.number} (未クリア)`;
     }
     his.appendChild(t);
   }
-  tile = document.createElement("div");
+  let tile = document.createElement("div");
   tile.className = "history-tile summary separator";
   his.appendChild(tile);
 
@@ -681,7 +678,6 @@ function showLastScene() {
       i.src = imgEntry.dataUrl;
       i.alt = "シーン画像";
       i.style.maxWidth = "100%";
-      //      i.style.alignSelf = "flex-end";
       c.appendChild(i);
 
       const reBtn = document.createElement("button");
@@ -897,34 +893,23 @@ function buildPartyInsertionText(party) {
     "以上を踏まえて、プレイヤー、パートナーは味方NPC、アイテムは登場するアイテム、" +
     "キャラクターは中立NPC、モンスターは敵対NPCとして扱ってください。" +
     "シナリオ概要を優先するため、世界観が合わない場合は調整してもよいです。例：レーザーガン→リボルバー。";
-    console.log(txt);
-    return txt;
+  return txt;
 }
 
 /**
- * 1件のカードデータから、レア度・名前・状態(キャラ/モンスターのみ)・特技・キャプション・外見
+ * 1件のカードデータから、
+ * レア度・名前・状態(キャラ/モンスターのみ)・特技・キャプション・外見(imageprompt)
  * をまとめたテキストを返す。
  */
 function buildCardDescription(card) {
   let result = "";
-  // 【名前】: card.name
-  // レア度
   result += ` - 【名前】${card.name}\n`;
   result += `   【レア度】${card.rarity || "★0"}\n`;
-
-  // キャラクター / モンスターだけが「状態」を持つ想定なら
   if (card.type === "キャラクター" || card.type === "モンスター") {
     result += `   【状態】${card.state || "なし"}\n`;
   }
-
-  // 特技
   result += `   【特技】${card.special || "なし"}\n`;
-
-  // キャプション
   result += `   【キャプション】${card.caption || "なし"}\n`;
-
-  // 外見 (imageprompt)
-  // 「外見」や「imageprompt」が実はUI上で別名になっている場合は適宜変更
   result += `   【外見】${card.imageprompt || "なし"}\n`;
 
   return result;
@@ -1162,6 +1147,36 @@ async function generateEnglishTranslation(japaneseText) {
   } catch (err) {
     console.error("翻訳失敗:", err);
     return "";
+  }
+}
+
+/** 英語->日本語翻訳 （追加） */
+async function generateJapaneseTranslation(englishText) {
+  if (!englishText.trim()) return "";
+  const sys = "あなたは優秀な翻訳家です。";
+  const u = `以下の英文を自然な日本語に翻訳:\n${englishText}`;
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: u }
+        ],
+        temperature: 0.3
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("翻訳失敗:", err);
+    return englishText; // 失敗したら英語のまま
   }
 }
 
