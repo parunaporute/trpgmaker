@@ -16,8 +16,10 @@
 </head>
 
 <body>
-  <div class="container" style="text-align:center; margin-top:50px;font-family: serif;">
-    <h1>one and only <div style="font-size: 0.8rem;font-family: serif;">～ 選択の先に ～</div></h1>
+  <div class="container" style="text-align:center; margin-top:50px;">
+    <h1 style="letter-spacing:0.05;">one and only 
+      <div style="font-size: 0.8rem;font-family: serif;">～ <span style="letter-spacing:1rem;">選択の先に</span></div>
+    </h1>
     <!-- ▼ 背景を変更するボタン -->
     <button id="change-bg-button" style="
         color: #000;
@@ -106,11 +108,41 @@
     <input type="file" id="import-images-file" accept=".zip" style="display:none;" />
   </div>
 
+  <!-- ▼ BGM関連（ここから） -->
+  <!-- ループ再生のため loop 属性を付与 -->
+  <audio id="bgm" src="main-back.mp3" loop></audio>
+
+  <div style="text-align:center; margin-top:50px;">
+    <!-- BGM停止ボタン -->
+    <button id="stop-bgm-button" style="font-size:1rem; padding:10px;">
+      BGM停止
+    </button>
+  </div>
+  <!-- ▼ BGM関連（ここまで） -->
+
   <!-- ▼ スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
 
   <!-- DB初期化を先に行い、その後メニュー初期化を呼ぶ -->
   <script>
+    // --- フェードイン再生を行う関数 ---
+    function fadeInPlay(audio) {
+      // 初期音量0
+      audio.volume = 0;
+      audio.play().then(() => {
+        // 100msごとに音量を0.01ずつ上げる
+        const fadeInInterval = setInterval(() => {
+          if (audio.volume < 1.0) {
+            audio.volume = Math.min(audio.volume + 0.01, 1);
+          } else {
+            clearInterval(fadeInInterval);
+          }
+        }, 100);
+      }).catch(err => {
+        console.error("フェードイン再生失敗:", err);
+      });
+    }
+
     window.addEventListener("DOMContentLoaded", async () => {
       try {
         await initIndexedDB();  // ★ここでDBを初期化
@@ -120,6 +152,59 @@
         initMenuPage();
       } catch (e) {
         console.error("DB初期化エラー:", e);
+      }
+
+      // ▼ ここからBGMの自動再生 & フェードイン処理
+      const bgmAudio = document.getElementById("bgm");
+      const stopBgmButton = document.getElementById("stop-bgm-button");
+
+      if (!bgmAudio) return;
+
+      // 1. まず自動再生を試みる
+      fadeInPlay(bgmAudio);
+
+      // 2. 自動再生がブロックされた場合の対応
+      bgmAudio.addEventListener("play", () => {
+        // 再生されたら特に何もしない（正常動作）
+      });
+
+      bgmAudio.addEventListener("error", (e) => {
+        console.error("audio error:", e);
+      });
+
+      bgmAudio.addEventListener("abort", (e) => {
+        console.error("audio abort:", e);
+      });
+
+      // play() がブロックされたときの catch は fadeInPlay 内にあるが、
+      // UI的にユーザーに再生手段を与えるために、初回失敗時にフォールバック:
+      // → 最初の失敗後に画面をクリックしたら再度再生を試みる
+      bgmAudio.addEventListener("playing", () => {
+        // もし playing イベントが発火したら、成功
+        // 念のための保険で removeEventListener しておく
+        document.removeEventListener("click", handleUserGesture);
+      });
+
+      function handleUserGesture() {
+        // ユーザーがクリックしたら再度フェードイン再生を試みる
+        if (bgmAudio.paused) {
+          fadeInPlay(bgmAudio);
+        }
+      }
+
+      // fadeInPlayで失敗したときにだけイベントを仕掛けたいので、
+      // 一度だけ仕掛ける。成功したら `playing` イベントで外す想定。
+      // ただし "NotAllowedError" 等が起きるかどうかを判定するには
+      // catch が走る必要があるため、ここでは常に仕掛けておいて
+      // 成功したら removeEventListener する流れがシンプル。
+      document.addEventListener("click", handleUserGesture);
+
+      // 停止ボタンの処理
+      if (stopBgmButton) {
+        stopBgmButton.addEventListener("click", () => {
+          bgmAudio.pause();
+          bgmAudio.currentTime = 0; // 再生位置を先頭に戻す
+        });
       }
     });
   </script>
