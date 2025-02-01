@@ -7,15 +7,8 @@
 window.initMenuPage = async function () {
   // すでに initIndexedDB() は呼ばれている前提
 
-  // APIキーを読み込む
+  // localStorage から APIキーを読み込む
   window.apiKey = localStorage.getItem("apiKey") || "";
-  const savedApiKey = window.apiKey;
-  if (savedApiKey) {
-    const inputEl = document.getElementById("api-key-input");
-    if (inputEl) {
-      inputEl.value = savedApiKey;
-    }
-  }
 
   // シナリオ一覧を取得して表示
   try {
@@ -95,7 +88,7 @@ window.initMenuPage = async function () {
     window.characterData = [];
   }
 
-  // 各種ボタンのイベント設定
+  // メニュー上のボタン類をセットアップ
   setupMenuButtons();
 };
 
@@ -104,23 +97,48 @@ let scenarioIdToDelete = null;
 
 /** メニュー画面のボタン類設定 */
 function setupMenuButtons() {
-  // APIキーの設定・クリア
-  document.getElementById("set-api-key-button").addEventListener("click", function () {
-    const apiKey = document.getElementById("api-key-input").value.trim();
-    if (apiKey) {
-      localStorage.setItem("apiKey", apiKey);
-      window.apiKey = apiKey;
-      showToast("APIキーが設定されました。");
-    } else {
-      showToast("APIキーを入力してください。");
-    }
+  // 「APIキー設定」または「キー設定済」のボタン
+  const setApiKeyButton = document.getElementById("set-api-key-button");
+  const apiKeyModal = document.getElementById("api-key-modal");
+  const apiKeyInput = document.getElementById("api-key-input");
+  const apiKeyOkButton = document.getElementById("api-key-ok-button");
+  const apiKeyClearButton = document.getElementById("api-key-clear-button");
+
+  // すでにキーがあれば「キー設定済」、なければ「APIキー設定」と表示
+  if (!window.apiKey) {
+    setApiKeyButton.textContent = "APIキー設定";
+  } else {
+    setApiKeyButton.textContent = "キー設定済";
+  }
+
+  // 「APIキー設定」ボタンをクリック -> モーダルを開く
+  setApiKeyButton.addEventListener("click", () => {
+    apiKeyModal.classList.add("active");
+    apiKeyInput.value = window.apiKey; // すでにキーがあれば反映
   });
 
-  document.getElementById("clear-api-key-button").addEventListener("click", function () {
+  // モーダル内のOKボタン
+  apiKeyOkButton.addEventListener("click", () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+      localStorage.setItem("apiKey", key);
+      window.apiKey = key;
+      setApiKeyButton.textContent = "キー設定済";
+      // showToast("APIキーを設定しました。");
+    }
+    // モーダルを閉じる
+    apiKeyModal.classList.remove("active");
+  });
+
+  // モーダル内のクリアボタン
+  apiKeyClearButton.addEventListener("click", () => {
     if (confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？")) {
       localStorage.removeItem("apiKey");
       window.apiKey = "";
-      showToast("APIキーがクリアされました。");
+      setApiKeyButton.textContent = "APIキー設定";
+      // showToast("APIキーをクリアしました。");
+      // モーダルを閉じる
+      apiKeyModal.classList.remove("active");
     }
   });
 
@@ -153,7 +171,7 @@ function setupMenuButtons() {
     window.location.href = "scenarioWizard.html";
   });
 
-  // 削除モーダルのOK/CANCEL
+  // シナリオ削除モーダルのOK/CANCEL
   document.getElementById("delete-scenario-ok").addEventListener("click", async () => {
     if (scenarioIdToDelete == null) {
       showDeleteScenarioModal(false);
