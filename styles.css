@@ -801,6 +801,19 @@ button:hover {
   margin-bottom: 20px;
 }
 
+.scenario-list {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scenario-list .info {
+  box-sizing: border-box;
+  text-align: left;
+  width: 100%;
+}
+
 .scenario-wizard-section {
   margin-top: 40px;
   margin-bottom: 40px;
@@ -847,8 +860,8 @@ button:hover {
     flex-wrap: wrap;
     justify-content: center;
   }
-  .warehouse-tab{
-    min-width:5rem;
+  .warehouse-tab {
+    min-width: 5rem;
   }
   .warehouse-header-bar {
     flex-direction: column;
