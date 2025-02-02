@@ -50,15 +50,19 @@
       <input type="text" id="party-name-input" placeholder="例: 勇者一行" style="margin-bottom:10px;" />
       <button id="save-party-name-btn">保存</button>
     </div>
+    <div class="r-flexbox">
 
-    <!-- 倉庫ボタン -->
-    <button id="show-warehouse-btn">倉庫</button>
-
+      <!-- 倉庫ボタン -->
+      <button id="show-warehouse-btn">倉庫から持ってくる</button>
+    </div>
     <!-- 選択モードボタン & 倉庫に戻すボタン -->
-    <button id="toggle-party-selection-mode-btn" style="margin-left:10px;">選択モード</button>
-    <button id="move-selected-to-warehouse-btn" style="margin-left:10px; display:none;">
-      選択したカードを倉庫に戻す
-    </button>
+    <div class="l-flexbox">
+      <button id="toggle-party-selection-mode-btn" >選択モード</button>
+      <button id="move-selected-to-warehouse-btn" style="display:none;">
+        選択したカードを倉庫に戻す
+      </button>
+
+    </div>
 
     <!-- ▼ プレイヤーの分身（アバター） -->
     <section style="margin-top:20px;">
