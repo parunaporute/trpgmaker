@@ -784,6 +784,7 @@ button:hover {
 
 #scenario-list-container {
   text-align: right;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 10px;
