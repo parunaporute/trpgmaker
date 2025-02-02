@@ -88,6 +88,9 @@
       <button id="clear-character-btn" style="background-color:#f44336;display: none;">全エレメントをクリア</button>
     </div>
     <div class="element-section">
+      <button id="you-avatar-btn">あなたの分身</button>
+    </div>
+    <div class="element-section">
       <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn">倉庫</button>
     </div>
@@ -140,7 +143,7 @@
 
   <!-- ▼ スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
-
+  <script src="js/avatar.js"></script>
   <!-- DB初期化を先に行い、その後メニュー初期化を呼ぶ -->
   <script>
     // --- フェードイン再生を行う関数 ---
@@ -164,6 +167,7 @@
     window.addEventListener("DOMContentLoaded", async () => {
       try {
         await initIndexedDB();  // ★ここでDBを初期化
+        initAvatar(); // ←呼び出す
         // 背景初期化(選択済みがあれば適用)
         await initBackground("index");
         // メニュー初期化
@@ -237,6 +241,7 @@
   <script src="js/menu.js"></script>
   <!-- warehouse.js (倉庫共通ロジック) -->
   <script src="js/warehouse.js"></script>
+  <script src="js/avatar.js"></script>
 
   <!-- exportImportMulti.js (ZIP入出力) -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>

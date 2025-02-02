@@ -7,7 +7,7 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン9:
+ * バージョン10:
  *  - characterData
  *  - scenarios
  *  - sceneEntries
@@ -15,11 +15,13 @@ let db = null;
  *  - parties
  *  - bgImages
  *  - sceneSummaries
- *  - ★追加: endings (keyPath: ["scenarioId","type"])
+ *  - endings
+ *  - ★追加: avatarData
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("trpgDB", 9);
+    const request = indexedDB.open("trpgDB", 11);
+
     request.onupgradeneeded = (event) => {
       db = event.target.result;
 
@@ -89,12 +91,17 @@ function initIndexedDB() {
         sumStore.createIndex("chunkIndex", "chunkIndex", { unique: true });
       }
 
-      // ★ 新ストア: endings
+      // endings
       if (!db.objectStoreNames.contains("endings")) {
-        // 複合キー
         db.createObjectStore("endings", { keyPath: ["scenarioId", "type"] });
       }
+
+      // ★ 新ストア: avatarData
+      if (!db.objectStoreNames.contains("avatarData")) {
+        db.createObjectStore("avatarData", { keyPath: "id" });
+      }
     };
+
     request.onsuccess = (event) => {
       db = event.target.result;
       resolve();
@@ -599,9 +606,6 @@ window.deletePartyById = function (partyId) {
 /* -------------------------------------------
    endingsストアの操作
 -------------------------------------------*/
-/**
- * 指定シナリオ+タイプ("clear" or "bad")のエンディングを取得
- */
 window.getEnding = function (scenarioId, type) {
   return new Promise((resolve, reject) => {
     if (!db) return reject("DB未初期化");
@@ -615,9 +619,6 @@ window.getEnding = function (scenarioId, type) {
   });
 };
 
-/**
- * エンディングを保存
- */
 window.saveEnding = function (scenarioId, type, story) {
   return new Promise((resolve, reject) => {
     if (!db) return reject("DB未初期化");
@@ -635,9 +636,6 @@ window.saveEnding = function (scenarioId, type, story) {
   });
 };
 
-/**
- * エンディング削除
- */
 window.deleteEnding = function (scenarioId, type) {
   return new Promise((resolve, reject) => {
     if (!db) return reject("DB未初期化");

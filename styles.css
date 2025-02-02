@@ -671,6 +671,10 @@ button:hover {
   box-shadow: inset 0px 0px 8px 2px #161616;
 }
 
+.chip-mini {
+  min-width: 6rem;
+}
+
 .chip:hover {
   border: 1px solid #00d14c;
   background-color: #00d14c;
@@ -1000,6 +1004,13 @@ button:hover {
   margin-bottom: 20px;
 }
 
+@media (max-width: 600px) {
+  .mobile-col {
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+}
+
 .s-flexbox {
   display: flex;
   flex-direction: row;
@@ -1058,8 +1069,8 @@ button:hover {
   display: flex;
   align-items: center;
   cursor: pointer;
-  width: 100%;         /* 行全体をラベルにする */
-  padding: 10px 15px;  /* 余白を少し広めに */
+  width: 100%; /* 行全体をラベルにする */
+  padding: 10px 15px; /* 余白を少し広めに */
   box-sizing: border-box;
 }
 
@@ -1074,13 +1085,15 @@ button:hover {
   border-radius: 50%;
   border: 2px solid #fff;
   margin-right: 12px;
-  transition: background-color 0.1s, border-color 0.1s;
+  transition:
+    background-color 0.1s,
+    border-color 0.1s;
   box-sizing: border-box;
 }
 
 /* 選択状態: input[type="radio"]:checked + .wizard-party-label::before で円を塗りつぶす */
 .wizard-party-row input[type="radio"]:checked + .wizard-party-label::before {
-  background-color: #019a39;   /* 選択時の色 (例: 緑) */
+  background-color: #019a39; /* 選択時の色 (例: 緑) */
   border-color: #00d14c;
 }
 
@@ -1110,9 +1123,27 @@ button:hover {
 }
 
 #confirm-party-text,
-#confirm-genre-type-text{
+#confirm-genre-type-text {
   text-align: left;
   width: 100%;
   margin: 0;
   margin-bottom: 10px;
+}
+#you-avatar-btn {
+  width: 10rem;
+}
+
+#avatar-card-preview-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+#avatar-form-container {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  justify-content: left;
+  align-items: flex-start;
 }
