@@ -24,7 +24,6 @@ let wizardData = {
   introScene: "",
   party: [],
   partyId: 0,
-  sections: [],
   currentPartyName: "" // ← 追加: 選択中のパーティ名を保管
 };
 
@@ -133,14 +132,30 @@ window.addEventListener("load", async () => {
 /************************************************************
  * ステップ0: パーティ選択
  ************************************************************/
-/** パーティ一覧を取得してラジオボタンで表示 */
+/**
+ * パーティ一覧を取得してラジオボタンで表示。
+ * ここで「あなたの分身」をダミーのパーティ(-1)として先頭に追加
+ */
 async function loadAndDisplayPartyList() {
   try {
+    // ▼ 追加：avatarData(“myAvatar”) を読み込む
+    let avatarImageBase64 = "";
+    const avatarTx = db.transaction("avatarData", "readonly");
+    const avatarStore = avatarTx.objectStore("avatarData");
+    const avatarReq = avatarStore.get("myAvatar");
+    const avatarData = await new Promise(resolve => {
+      avatarReq.onsuccess = () => resolve(avatarReq.result || null);
+      avatarReq.onerror = () => resolve(null);
+    });
+    if (avatarData && avatarData.imageData) {
+      avatarImageBase64 = avatarData.imageData;
+    }
+
     // 1) パーティ一覧 & 全カードを取得
     const allParties = await listAllParties();
     const allChars = await loadCharacterDataFromIndexedDB();
 
-    // 2) パーティごとに「カードが1枚以上あるか」をチェック
+    // パーティごとに「カードが1枚以上あるか」をチェック
     const filtered = [];
     for (const p of allParties) {
       const cards = allChars.filter(c => c.group === "Party" && c.partyId === p.partyId);
@@ -168,21 +183,22 @@ async function loadAndDisplayPartyList() {
     // 日付が新しい順にソート
     filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
+    // ▼ 「あなたの分身」を先頭に追加。
+    //   avatarImageBase64 が取得できていれば、それを入れる
+    const youAvatarAsParty = {
+      partyId: -1,
+      name: "あなたの分身",
+      updatedAt: "",
+      avatarImage: avatarImageBase64
+    };
+    filtered.unshift(youAvatarAsParty);
+
     // 3) 表示先をクリア
     const container = document.getElementById("wizard-party-list");
     container.innerHTML = "";
 
     // 4) パーティ一覧を1行ずつ生成
     filtered.forEach(p => {
-      // ★ DOM構造:
-      // <div class="wizard-party-row">
-      //   <input type="radio" id="radio-party-XXX" name="wizardPartyRadio" value="XXX" />
-      //   <label for="radio-party-XXX" class="wizard-party-label">
-      //     [画像 or no-image-box]
-      //     [パーティ名(更新日)]
-      //   </label>
-      // </div>
-
       const row = document.createElement("div");
       row.className = "wizard-party-row";
 
@@ -192,21 +208,19 @@ async function loadAndDisplayPartyList() {
       rb.name = "wizardPartyRadio";
       rb.value = p.partyId.toString();
 
-      // もし既に wizardData.partyId が p.partyId ならチェックする
       if (wizardData.partyId === p.partyId) {
         rb.checked = true;
       }
 
-      // ラジオボタンにIDを付与( for属性と対応 )
       const uniqueId = "radio-party-" + p.partyId;
       rb.id = uniqueId;
 
       // ラベル
       const label = document.createElement("label");
       label.className = "wizard-party-label";
-      label.setAttribute("for", uniqueId); // ← ここが重要
+      label.setAttribute("for", uniqueId);
 
-      // 画像 or no-image-box
+      // 画像
       if (p.avatarImage) {
         const img = document.createElement("img");
         img.src = p.avatarImage;
@@ -219,10 +233,15 @@ async function loadAndDisplayPartyList() {
         label.appendChild(noImg);
       }
 
-      // テキスト (パーティ名 + 更新日)
+      // テキスト
       const ymd = p.updatedAt.split("T")[0] || "";
       const infoSpan = document.createElement("span");
-      infoSpan.textContent = `${p.name} (更新:${ymd})`;
+      if (p.partyId === -1) {
+        // あなたの分身
+        infoSpan.textContent = p.name;
+      } else {
+        infoSpan.textContent = `${p.name} (更新:${ymd})`;
+      }
       label.appendChild(infoSpan);
 
       row.appendChild(rb);
@@ -242,7 +261,6 @@ async function loadAndDisplayPartyList() {
       const uniqueId = "radio-party-none";
       rb.id = uniqueId;
 
-      // もし wizardData.partyId が 0 ならチェック
       if (!wizardData.partyId) {
         rb.checked = true;
       }
@@ -256,13 +274,12 @@ async function loadAndDisplayPartyList() {
       row.appendChild(label);
       container.appendChild(row);
     }
+
     return filtered;
   } catch (err) {
     console.error("パーティ一覧表示失敗:", err);
   }
 }
-
-
 
 /** 「次へ」ボタン → 選択されたパーティを wizardData.partyId に保存 */
 function onWizardStep0Next() {
@@ -274,18 +291,20 @@ function onWizardStep0Next() {
   const pid = parseInt(checked.value, 10);
   wizardData.partyId = pid;
 
-  // パーティなしの場合
   if (pid === 0) {
+    // パーティなし
     wizardData.currentPartyName = "パーティなし";
+  } else if (pid === -1) {
+    // あなたの分身
+    wizardData.currentPartyName = "あなたの分身";
   } else {
-    // wizardPartyListから一致するpartyIdを探して名前を取得
+    // 通常のパーティ
     const chosen = wizardPartyList.find(x => x.partyId === pid);
     if (chosen) {
       wizardData.currentPartyName = chosen.name;
     } else {
       wizardData.currentPartyName = "不明パーティ";
     }
-    console.log("ほげ", wizardPartyList);
   }
 
   // DBに保存
@@ -297,13 +316,16 @@ function onWizardStep0Next() {
   document.getElementById("wizard-step1").style.display = "block";
 }
 
+function onBackToStep0() {
+  document.getElementById("wizard-step1").style.display = "none";
+  document.getElementById("wizard-step0").style.display = "block";
+}
 
 /************************************************************
  * ステップ1: ジャンル選択（軸選択/自由入力）
  ************************************************************/
 /** 軸入力用の初期化 */
 function initWizardChips() {
-  // 既存の localStorage 値を読む
   let stageJson = localStorage.getItem("elementStageArr") || "[]";
   try {
     wizStoredStageArr = JSON.parse(stageJson);
@@ -404,7 +426,6 @@ function createWizardChip(label, category) {
     }
   }
 
-  // イベント
   chip.addEventListener("click", () => {
     if (!canEditAxisInput()) return; // 軸入力モードでなければ無視
 
@@ -424,6 +445,7 @@ function createWizardChip(label, category) {
         wizStoredStageArr.push(label);
       }
       localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
+
     } else if (category === "theme") {
       // 単一選択
       const allChips = document.getElementById("wiz-theme-chips-container").querySelectorAll(".chip");
@@ -431,6 +453,7 @@ function createWizardChip(label, category) {
       chip.classList.add("selected");
       wizStoredTheme = label;
       localStorage.setItem("elementTheme", wizStoredTheme);
+
     } else if (category === "mood") {
       // 単一選択
       const allChips = document.getElementById("wiz-mood-chips-container").querySelectorAll(".chip");
@@ -443,7 +466,7 @@ function createWizardChip(label, category) {
     updateWizGenreResultText();
   });
 
-  // カスタムチップの削除ボタン
+  // カスタムチップ削除ボタン
   if (!isOther) {
     if (
       (category === "stage" && wizCustomStageChips.includes(label)) ||
@@ -507,7 +530,6 @@ function canEditAxisInput() {
   return (wizardChoice === "axis");
 }
 
-/** 「その他」モーダル開く */
 function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   let catText = "";
@@ -520,7 +542,7 @@ function openWizardOtherModal(category) {
   document.getElementById("wizard-other-input-modal").classList.add("active");
 }
 
-async function wizardOtherGenerate() {
+function wizardOtherGenerate() {
   if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
@@ -542,36 +564,38 @@ async function wizardOtherGenerate() {
   }
 
   showLoadingModal(true);
-  try {
-    const systemPrompt = "あなたは創造力豊かなアシスタントです。回答は1つだけ。";
-    const userPrompt = `既存候補:${existingList.join(" / ")}\nこれらに無い新しい案を1つ提案してください。`;
+  (async () => {
+    try {
+      const systemPrompt = "あなたは創造力豊かなアシスタントです。回答は1つだけ。";
+      const userPrompt = `既存候補:${existingList.join(" / ")}\nこれらに無い新しい案を1つ提案してください。`;
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.7
-      })
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${window.apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7
+        })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message);
 
-    const newCandidate = (data.choices[0].message.content || "").trim();
-    document.getElementById("wizard-other-input-text").value = newCandidate;
-  } catch (err) {
-    console.error(err);
-    alert("その他生成失敗:\n" + err.message);
-  } finally {
-    showLoadingModal(false);
-  }
+      const newCandidate = (data.choices[0].message.content || "").trim();
+      document.getElementById("wizard-other-input-text").value = newCandidate;
+    } catch (err) {
+      console.error(err);
+      alert("その他生成失敗:\n" + err.message);
+    } finally {
+      showLoadingModal(false);
+    }
+  })();
 }
 
 function wizardOtherOk() {
@@ -605,12 +629,10 @@ function wizardOtherCancel() {
   document.getElementById("wizard-other-input-modal").classList.remove("active");
 }
 
-/** カスタムチップ削除確認モーダル「OK」 */
 function wizardDeleteConfirmOk() {
   if (wizardDeletingChipCategory === "stage") {
     wizCustomStageChips = wizCustomStageChips.filter(c => c !== wizardDeletingChipLabel);
     localStorage.setItem("customStageChips", JSON.stringify(wizCustomStageChips));
-    // もし今選択中のものなら外す
     wizStoredStageArr = wizStoredStageArr.filter(s => s !== wizardDeletingChipLabel);
     localStorage.setItem("elementStageArr", JSON.stringify(wizStoredStageArr));
     renderWizardStageChips();
@@ -638,7 +660,6 @@ function wizardDeleteConfirmOk() {
   updateWizGenreResultText();
 }
 
-/** カスタムチップ削除確認モーダル「キャンセル」 */
 function wizardDeleteConfirmCancel() {
   document.getElementById("wizard-delete-confirm-modal").classList.remove("active");
   wizardDeletingChipLabel = "";
@@ -656,7 +677,7 @@ function updateWizGenreResultText() {
 /************************************************************
  * ステップ1 → ステップ2
  ************************************************************/
-async function onGoStep2() {
+function onGoStep2() {
   if (!wizardChoice) {
     alert("「選択して入力」か「自由入力」を選んでください。");
     return;
@@ -680,21 +701,15 @@ async function onGoStep2() {
     wizardData.genre = freeVal;
   }
 
-  await saveWizardDataToIndexedDB(wizardData);
+  saveWizardDataToIndexedDB(wizardData)
+    .catch(e => console.error(e));
 
   // 画面遷移
   document.getElementById("wizard-step1").style.display = "none";
   document.getElementById("wizard-step2").style.display = "block";
 
-  // ▼ 追加：パーティ名をステップ2画面に反映
   updateSelectedPartyDisplay();
   updateSelectedGenreDisplay();
-}
-
-function updateSelectedPartyDisplay() {
-  const el = document.getElementById("selected-party-display");
-  if (!el) return;
-  el.textContent = wizardData.currentPartyName || "(未選択)";
 }
 
 function buildChipsGenre() {
@@ -707,14 +722,15 @@ function buildChipsGenre() {
   return stagePart + themePart + moodPart;
 }
 
-function onBackToStep0() {
-  document.getElementById("wizard-step1").style.display = "none";
-  document.getElementById("wizard-step0").style.display = "block";
-}
-
 function onBackToStep1() {
   document.getElementById("wizard-step2").style.display = "none";
   document.getElementById("wizard-step1").style.display = "block";
+}
+
+function updateSelectedPartyDisplay() {
+  const el = document.getElementById("selected-party-display");
+  if (!el) return;
+  el.textContent = wizardData.currentPartyName || "(未選択)";
 }
 
 function updateSelectedGenreDisplay() {
@@ -733,13 +749,13 @@ function onSelectScenarioType(type) {
 
   const typeLabel = (type === "objective") ? "目的達成型" : "探索型";
 
-  // 1) パーティ表示
+  // パーティ表示
   const partyEl = document.getElementById("confirm-party-text");
   if (partyEl) {
     partyEl.textContent = "パーティ: " + (wizardData.currentPartyName || "(未選択)");
   }
 
-  // 2) ジャンル + シナリオタイプ表示
+  // ジャンル + シナリオタイプ表示
   const confirmText = `ジャンル: ${wizardData.genre}\nシナリオタイプ: ${typeLabel}`;
   document.getElementById("confirm-genre-type-text").textContent = confirmText;
 
@@ -747,11 +763,13 @@ function onSelectScenarioType(type) {
   document.getElementById("confirm-scenario-modal").classList.add("active");
 }
 
+function onConfirmScenarioModalCancel() {
+  document.getElementById("confirm-scenario-modal").classList.remove("active");
+}
 
 /** 確認モーダル「OK」→ シナリオ生成処理 */
 async function onConfirmScenarioModalOK() {
   showLoadingModal(true);
-
   document.getElementById("confirm-scenario-modal").classList.remove("active");
 
   try {
@@ -785,16 +803,38 @@ async function onConfirmScenarioModalOK() {
   }
 }
 
-/** パーティデータを wizardData.party に反映 */
+/**
+ * パーティデータを wizardData.party に反映。
+ *  - partyId=0 → パーティなし
+ *  - partyId=-1 → あなたの分身
+ *  - それ以外 → 通常パーティ
+ */
 async function storePartyInWizardData() {
   const pid = wizardData.partyId || 0;
+
   if (pid === 0) {
     // パーティなし
     wizardData.party = [];
     await saveWizardDataToIndexedDB(wizardData);
     return;
   }
-  // パーティあり
+
+  if (pid === -1) {
+    // ▼ あなたの分身 → avatarDataストアから読み出し
+    const avatarObj = await loadMyAvatarData();
+    if (avatarObj) {
+      // アバターをパーティのカード風に変換
+      const card = convertAvatarToPartyCard(avatarObj);
+      wizardData.party = [card];
+    } else {
+      // アバターが未保存の場合
+      wizardData.party = [];
+    }
+    await saveWizardDataToIndexedDB(wizardData);
+    return;
+  }
+
+  // ▼ 通常のパーティ
   const allChars = await loadCharacterDataFromIndexedDB();
   if (!allChars) {
     wizardData.party = [];
@@ -802,6 +842,7 @@ async function storePartyInWizardData() {
     return;
   }
   const partyCards = allChars.filter(c => c.group === "Party" && c.partyId === pid);
+
   // 軽量化のため一部フィールドだけ保持
   const stripped = partyCards.map(c => ({
     id: c.id,
@@ -813,25 +854,73 @@ async function storePartyInWizardData() {
     caption: c.caption,
     backgroundcss: c.backgroundcss,
     imageprompt: c.imageprompt,
-    role: c.role
+    role: c.role,
+    // 画像を仮に付ける
+    imageData: c.imageData
   }));
   wizardData.party = stripped;
   await saveWizardDataToIndexedDB(wizardData);
 }
-function onConfirmScenarioModalCancel() {
-  document.getElementById("confirm-scenario-modal").classList.remove("active");
+
+/** avatarDataストアから「myAvatar」を読み込み */
+function loadMyAvatarData() {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      console.warn("DB未初期化です");
+      resolve(null);
+      return;
+    }
+    const tx = db.transaction("avatarData", "readonly");
+    const store = tx.objectStore("avatarData");
+    const req = store.get("myAvatar");
+    req.onsuccess = (evt) => {
+      resolve(evt.target.result || null);
+    };
+    req.onerror = (err) => {
+      console.error("avatarData読み込み失敗:", err);
+      resolve(null);
+    };
+  });
 }
+
+/** avatarObj → wizardData.party の1カードに落とし込む */
+function convertAvatarToPartyCard(avatarObj) {
+  // avatarObjの構造例：
+  // {
+  //   id: "myAvatar",
+  //   name: "名前",
+  //   gender: "男",
+  //   skill: "特技",
+  //   serif: "セリフ",
+  //   rarity: "★2",
+  //   imageData: "data:image/png;base64,...",
+  //   ...
+  // }
+  return {
+    // DBのキャラIDでなくアバター専用の一時ID
+    id: "avatar-" + Date.now(),
+    name: avatarObj.name || "アバター",
+    type: "キャラクター", // あるいは"アバター"など
+    rarity: avatarObj.rarity || "★1",
+    state: "",
+    special: avatarObj.skill || "",
+    caption: avatarObj.serif || "",
+    backgroundcss: "",
+    imageprompt: "",
+    role: "avatar",
+    imageData: avatarObj.imageData || ""
+  };
+}
+
 /************************************************************
  * シナリオ生成関連
  ************************************************************/
-/** 目的達成型シナリオ → 概要 & クリア条件生成 */
 async function generateScenarioSummaryAndClearCondition() {
   if (!window.apiKey) {
     wizardData.scenarioSummary = "(APIキー無し)";
     wizardData.clearCondition = "(なし)";
     return;
   }
-  // 実際にはChatGPTに問い合わせるコード
   const prompt = `
 あなたはTRPG用のシナリオ作成に長けたアシスタントです。
 ジャンル:${wizardData.genre}, タイプ:目的達成型。
@@ -874,7 +963,6 @@ async function generateScenarioSummaryAndClearCondition() {
   }
 }
 
-/** 探索型シナリオ → 概要生成のみ */
 async function generateScenarioSummary() {
   if (!window.apiKey) {
     wizardData.scenarioSummary = "(APIキー無し)";
@@ -910,7 +998,6 @@ async function generateScenarioSummary() {
   }
 }
 
-/** シナリオ概要の英訳を作る */
 async function generateScenarioSummaryEn() {
   if (!window.apiKey) return;
   const jp = wizardData.scenarioSummary || "";
@@ -943,10 +1030,8 @@ async function generateScenarioSummaryEn() {
   }
 }
 
-/** セクション生成（例：2～5個の達成条件） */
 async function generateSections() {
   if (!window.apiKey) {
-    // APIキー無しならダミーだけ
     wizardData.sections = [];
     for (let i = 1; i <= 3; i++) {
       wizardData.sections.push({
@@ -996,7 +1081,6 @@ async function generateSections() {
     await saveWizardDataToIndexedDB(wizardData);
   } catch (err) {
     console.error(err);
-    // ダミー
     wizardData.sections = [];
     for (let i = 1; i <= count; i++) {
       wizardData.sections.push({
@@ -1015,7 +1099,6 @@ function zipString(str) {
   return btoa(String.fromCharCode(...def));
 }
 
-/** 導入シーン生成 */
 async function generateIntroScene() {
   if (!window.apiKey) {
     wizardData.introScene = "(導入生成失敗：APIキーなし)";
