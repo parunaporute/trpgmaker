@@ -17,6 +17,7 @@ window.initMenuPage = async function () {
     container.innerHTML = "";
 
     if (scenarioList.length === 0) {
+      container.style.justifyContent = "center";
       container.textContent = "進行中のシナリオはありません。";
     } else {
       scenarioList.forEach(scenario => {

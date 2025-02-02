@@ -2,6 +2,7 @@
 
 let wizardData = {
   genre: "",
+  title: "",         // ★ 追加: シナリオ概要から抽出したタイトル
   scenarioType: "",
   clearCondition: "",
   scenarioSummary: "",
@@ -316,8 +317,8 @@ function openWizardOtherModal(category) {
   wizardCurrentOtherCategory = category;
   const catText =
     (category === "stage") ? "舞台に追加する「その他」" :
-    (category === "theme") ? "テーマに追加する「その他」" :
-    "雰囲気に追加する「その他」";
+      (category === "theme") ? "テーマに追加する「その他」" :
+        "雰囲気に追加する「その他」";
 
   document.getElementById("wizard-other-input-modal-category").textContent = catText;
   document.getElementById("wizard-other-input-text").value = "";
@@ -565,8 +566,11 @@ async function onConfirmScenarioModalOK() {
 
 async function onStartScenario() {
   try {
-    let title = wizardData.genre || "新シナリオ";
-    const scenarioId = await createNewScenario(wizardData, title);
+    // ChatGPT API により概要からタイトルを生成する
+    wizardData.title = await generateTitleFromSummary();
+    await saveWizardDataToIndexedDB(wizardData);
+    
+    const scenarioId = await createNewScenario(wizardData, wizardData.title);
 
     // 導入シーンがあればDBに登録
     if (wizardData.introScene && wizardData.introScene.trim()) {
@@ -586,6 +590,47 @@ async function onStartScenario() {
   } catch (err) {
     console.error("シナリオ開始失敗:", err);
     alert("シナリオ開始失敗: " + err.message);
+  }
+}
+
+async function generateTitleFromSummary() {
+  const summary = wizardData.scenarioSummary || "";
+  if (!window.apiKey) {
+    console.warn("APIキー未設定のため、タイトルはデフォルト値となります。");
+    return "新シナリオ";
+  }
+  if (!summary.trim()) {
+    return "新シナリオ";
+  }
+  try {
+    const prompt = `
+以下のシナリオ概要をもとに、タイトルを1つ生成してください。概要の中にタイトルがある場合は、そのまま利用してください。
+シナリオ概要:
+${summary}
+    `;
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "あなたは優秀なTRPGシナリオタイトル生成アシスタントです。" },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    // APIからの返答内容をタイトルとして利用
+    const title = (data.choices[0].message.content || "").trim();
+    return title || "新シナリオ";
+  } catch (err) {
+    console.error("タイトル生成失敗:", err);
+    return "新シナリオ";
   }
 }
 
