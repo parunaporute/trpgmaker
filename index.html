@@ -16,36 +16,37 @@
 </head>
 
 <body>
-  <div class="container" style="text-align:center; margin-top:50px;">
+
+  <!-- 背景を変更するボタン -->
+  <button id="change-bg-button">
+    背景を変更する
+  </button>
+  <!-- ▼ 背景選択モーダル -->
+  <div id="bg-modal" class="modal">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+      <div class="c-flexbox">
+        <button id="bg-none-button" class="btn-secondary">背景無し</button>
+        <button id="bg-generate-button">生成する</button>
+      </div>
+      <div class="c-flexbox">
+        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+      </div>
+    </div>
+  </div>
+  <div id="bg-generate-modal" class="modal">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+
+  <div class="container">
     <h1 style="font-size:3rem;letter-spacing:-0.03rem;margin-bottom: 70px;margin-top: 80px;">one and only
       <div style="font-size: 0.8rem;font-family: serif;">
         <span style="letter-spacing:0.75rem;white-space: nowrap;">ー 選択の先に ー</span>
       </div>
     </h1>
-
-    <!-- ▼ 背景を変更するボタン -->
-    <button id="change-bg-button" style="
-        color: #000;
-        background-color: #DDD;
-        border-radius: 2px;
-        box-shadow: inset 0 0 3px #000;
-        position: absolute;
-        top: 0;
-        right: 0;
-      ">
-      背景を変更する
-    </button>
-
-    <!-- ▼ 背景選択モーダル -->
-    <div id="bg-modal" class="modal">
-      <div class="modal-content bg-modal-content">
-        <h2>背景選択</h2>
-        <div id="bg-stock-container" class="bg-stock-grid"></div>
-        <button id="bg-none-button" class="btn-secondary" style="margin-top:10px;">背景無し</button>
-        <button id="bg-generate-button" style="margin-top:10px;">生成する</button>
-        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
-      </div>
-    </div>
 
     <!-- 生成中モーダル -->
     <div id="bg-generate-modal" class="modal">
@@ -54,13 +55,16 @@
       </div>
     </div>
 
-    <!-- BGM停止/再生ボタン -->
-    <button id="stop-bgm-button"></button>
+
 
     <!-- ▼ ここから APIキー設定ボタン + モーダル -->
     <div class="api-key-section" style="margin-top:20px;">
+      <!-- BGM停止/再生ボタン -->
+      <button id="stop-bgm-button"></button>
       <!-- すでにキーがあれば「キー設定済」、なければ「APIキー設定」を表示 -->
-      <button id="set-api-key-button" style="margin-bottom: 0;">APIキー設定</button>
+      <button id="set-api-key-button" style="margin-bottom: 0;">
+        APIキー設定
+      </button>
     </div>
 
     <!-- APIキー設定用のモーダル -->
@@ -76,23 +80,21 @@
     </div>
     <!-- ▲ ここまで APIキー関連 -->
 
-      <!-- エレメント作成ボタン -->
-      <button id="character-create">エレメント作成</button>    <div class="element-section">
-
+    <div class="element-section">
+      <button id="character-create">ガチャ</button>
       <!-- パーティ一覧ボタン -->
-      <button id="party-list">パーティ一覧</button>
-
+      <button id="party-list">パーティ</button>
       <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;display: none;">全エレメントをクリア</button>
     </div>
     <div class="element-section">
       <!-- 倉庫確認ボタン -->
-      <button id="show-warehouse-btn">倉庫確認</button>
+      <button id="show-warehouse-btn">倉庫</button>
     </div>
 
     <!-- 新しいシナリオを始めるボタン -->
     <div class="scenario-wizard-section">
-      <button id="start-new-scenario-button" style="background-color:#2196F3;margin-bottom: 0;font-size: 1.4rem;">
+      <button id="start-new-scenario-button">
         新しいシナリオを始める
       </button>
     </div>
@@ -115,10 +117,11 @@
   </div>
 
   <!-- ▼ エクスポート/インポート関連 -->
-  <div style="text-align:center; margin-top:30px;">
+  <div class="c-flexbox">
     <button id="export-metadata-button">メタデータZIPエクスポート</button>
     <button id="export-images-button" style="margin-left:30px;">画像ZIPエクスポート</button>
-    <hr>
+  </div>
+  <div class="c-flexbox">
     <button id="import-metadata-button">メタデータZIPインポート</button>
     <input type="file" id="import-metadata-file" accept=".zip" style="display:none;" />
     <button id="import-images-button" style="margin-left:30px;">画像ZIPインポート</button>
@@ -197,12 +200,12 @@
 
       // ボタンの初期表示
       if (isBgmStopped) {
-        stopBgmButton.innerHTML = `<div class="iconmoon icB"></div>`;
-        stopBgmButton.style.backgroundColor = "rgb(255 115 68)"
+        stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
+        stopBgmButton.style.backgroundColor = "rgb(255,115,68)"
 
       }
       else {
-        stopBgmButton.innerHTML = `<div class="iconmoon icA"></div>`;
+        stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
         stopBgmButton.style.backgroundColor = "#4caf50"
       }
 
@@ -213,7 +216,7 @@
           fadeInPlay(bgmAudio);
           localStorage.setItem("bgmStopped", "false");
           stopBgmButton.style.backgroundColor = "#4caf50"
-          stopBgmButton.innerHTML = `<div class="iconmoon icA"></div>`;
+          stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
         } else {
           // 「停止」
           bgmAudio.pause();
@@ -222,7 +225,7 @@
 
           stopBgmButton.style.backgroundColor = "rgb(255 115 68)"
 
-          stopBgmButton.innerHTML = `<div class="iconmoon icB"></div>`;
+          stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
         }
       });
     });

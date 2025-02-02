@@ -70,8 +70,8 @@
     // まだ無い場合、body末尾に挿入
     const modalHTML = `
 <div id="warehouse-modal" class="modal">
-  <button id="close-warehouse-btn" style="margin: 0;display: flex;right: 20px;top: 20px;position: fixed;z-index:10;border-radius: 50%;height: 50px;width: 50px;padding: 0;align-items: center;justify-content: center;background-color: #cf0000;">✕</button>
   <div class="modal-content">
+  <div class="r-flexbox" style="width:100%"><button id="close-warehouse-btn">✕</button></div>
     <h2>倉庫</h2>
 
     <!-- ここから：ヘッダー部分を三分割 (左：選択モードボタン類、中央：タブ、右：ソートUI) -->
@@ -89,7 +89,7 @@
         </div>
       </div>
       <div class="warehouse-right">
-        <select id="warehouse-sort-dropdown" style="height:30px;">
+        <select id="warehouse-sort-dropdown">
           <option value="id">取得順</option>
           <option value="name">名前順</option>
           <option value="state">状態順</option>
@@ -643,10 +643,9 @@
     const config = getSortConfig(currentTab);
     const newDir = (config.sortDir === "asc") ? "desc" : "asc";
     setSortConfig(currentTab, config.sortKey, newDir);
-    sortDirBtn.textContent = (newDir === "asc") ? "↑" : "↓";
+    sortDirBtn.innerHTML = (newDir === "asc") ? `<span class="iconmoon icon-sort-alpha-asc"></span>` : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
     reloadCurrentView();
   }
-
   // タブ切り替え時やモーダルを開いたときに、UIの状態をローカルストレージから復元
   function applySortUIFromStorage(tabName) {
     const sortDropdown = document.getElementById("warehouse-sort-dropdown");
@@ -655,7 +654,8 @@
 
     const config = getSortConfig(tabName);
     sortDropdown.value = config.sortKey;
-    sortDirBtn.textContent = (config.sortDir === "asc") ? "↑" : "↓";
+//    sortDirBtn.textContent = (config.sortDir === "asc") ? "↑" : "↓";
+    sortDirBtn.innerHTML = (config.sortDir === "asc") ? `<span class="iconmoon icon-sort-alpha-asc"></span>` : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
   }
 
   // -------------------------------

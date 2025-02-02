@@ -661,7 +661,6 @@ function showLastScene() {
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-scene"
     deleteBtn.textContent = "シーンを削除";
-    deleteBtn.style.marginBottom = "10px";
     deleteBtn.addEventListener("click", async () => {
       await deleteSceneAndPreviousAction(lastScene);
     });
@@ -707,7 +706,7 @@ function showLastScene() {
     if (window.apiKey) {
       nextSceneBtn.style.display = "inline-block";
       playerInput.style.display = "inline-block";
-      playerActionLabel.textContent = "プレイヤーがどんな行動を？";
+      playerActionLabel.textContent = "プレイヤーはどんな行動をしますか？";
     } else {
       nextSceneBtn.style.display = "none";
       playerInput.style.display = "none";

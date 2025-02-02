@@ -108,7 +108,7 @@ function setupMenuButtons() {
   if (!window.apiKey) {
     setApiKeyButton.textContent = "APIキー設定";
   } else {
-    setApiKeyButton.textContent = "キー設定済";
+    setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
   }
 
   // 「APIキー設定」ボタンをクリック -> モーダルを開く
@@ -123,7 +123,7 @@ function setupMenuButtons() {
     if (key) {
       localStorage.setItem("apiKey", key);
       window.apiKey = key;
-      setApiKeyButton.textContent = "キー設定済";
+      setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
       // showToast("APIキーを設定しました。");
     }
     // モーダルを閉じる

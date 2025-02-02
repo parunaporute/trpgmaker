@@ -1,17 +1,56 @@
 @font-face {
-  font-family: 'icomoon';
-  src:  url('fonts/icomoon.eot?1r4kr6');
-  src:  url('fonts/icomoon.eot?1r4kr6#iefix') format('embedded-opentype'),
-    url('fonts/icomoon.ttf?1r4kr6') format('truetype'),
-    url('fonts/icomoon.woff?1r4kr6') format('woff'),
-    url('fonts/icomoon.svg?1r4kr6#icomoon') format('svg');
+  font-family: "icomoon";
+  src: url("fonts/icomoon.eot?1r4kr6");
+  src:
+    url("fonts/icomoon.eot?1r4kr6#iefix") format("embedded-opentype"),
+    url("fonts/icomoon.ttf?1r4kr6") format("truetype"),
+    url("fonts/icomoon.woff?1r4kr6") format("woff"),
+    url("fonts/icomoon.svg?1r4kr6#icomoon") format("svg");
   font-weight: normal;
   font-style: normal;
   font-display: block;
 }
+
 .iconmoon {
-  font-family: 'icomoon' !important;
+  font-family: "icomoon" !important;
 }
+
+/**/
+.icon-key:before {
+  content: "\e02c";
+}
+.icon-strategy:before {
+  content: "\e03b";
+}
+.icon-beaker:before {
+  content: "\e03c";
+}
+.icon-profile-male:before {
+  content: "\e040";
+}
+.icon-target:before {
+  content: "\e04e";
+}
+.icon-home3:before {
+  content: "\e902";
+}
+.icon-gift:before {
+  content: "\e99f";
+}
+.icon-volume-high:before {
+  content: "\ea26";
+}
+
+.icon-volume-mute2:before {
+  content: "\ea2a";
+}
+.icon-sort-alpha-asc:before {
+  content: "\ea48";
+}
+.icon-sort-alpha-desc:before {
+  content: "\ea49";
+}
+
 .icA:before {
   content: "\ea26";
 }
@@ -30,9 +69,10 @@ body {
 }
 
 .container {
+  position: relative;
   box-sizing: border-box;
   max-width: 90%;
-  margin: 20px auto;
+  margin: 80px auto 20px;
   padding: 20px;
   background-color: rgba(0, 0, 0, 0.7);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -84,18 +124,25 @@ input[type="checkbox"] {
 }
 
 button {
-  padding: 10px 20px;
+  text-shadow: 1px 1px 4px #000;
+  padding: 10px 10px;
   background-color: #4caf50;
+  background-color: #5f4c38;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-bottom: 10px;
-  min-height: 2.5rem;
+  min-height: 3rem;
+  min-width: 5.5rem;
+  box-sizing: border-box;
+  box-shadow: inset 0px 0px 8px 2px #161616;
+  border: 1px solid #876d51;
+  background-image: linear-gradient(0deg, #00000061, transparent);
 }
 
 button:hover {
   background-color: #45a049;
+  border: 1px solid #45a049;
 }
 
 /* シーン履歴 */
@@ -144,7 +191,7 @@ button:hover {
 }
 
 .history-tile:nth-child(odd) {
-  background-color: #111111a8;
+  background-color: #00000059;
 }
 .history-tile:last-of-type {
   padding-bottom: 0;
@@ -186,6 +233,17 @@ button:hover {
   color: #bbb;
   width: 100%;
   border-radius: 20px;
+  min-height: initial;
+  max-height: initial;
+  text-shadow: none;
+  box-shadow: none;
+  background-image: none;
+}
+
+.history-tile button:hover {
+  background-color: #aaaaaa73;
+  color: #000;
+  border-color: #000;
 }
 
 .delete-scene {
@@ -195,17 +253,18 @@ button:hover {
   color: #bbb;
   width: 100%;
   border-radius: 20px;
+  min-height: initial;
+  max-height: initial;
+  text-shadow: none;
+  box-shadow: none;
+  background-image: none;
 }
+
 .delete-scene:hover {
-  background-color: #aaa;
+  background-color: #aaaaaa73;
   color: #000;
+  border-color: #000;
 }
-
-.history-tile button:hover {
-  background-color: #aaa;
-  color: #000;
-}
-
 .scene-text[contenteditable]:focus,
 .action-text[contenteditable]:focus,
 .scenario-text[contenteditable]:focus {
@@ -259,7 +318,7 @@ button:hover {
   max-height: 100vh;
   overflow-y: auto;
   width: 100%;
-
+  padding: 20px;
   /* ふわっと拡大 */
   transform: scale(0.9);
   transition: transform 0.3s ease;
@@ -378,6 +437,8 @@ button:hover {
   border-radius: 4px;
   font-size: 0.8rem;
   z-index: 2;
+  box-shadow: none;
+  background-image: none;
 }
 
 .gen-image-btn:disabled {
@@ -591,27 +652,33 @@ button:hover {
   gap: 8px;
 }
 
+.warehouse-tab,
 .chip {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 10px;
+  border-radius: 30px;
   background-color: rgba(227, 227, 227, 0.4);
   color: #f0f0f0;
-  box-shadow: inset 0px 0px 4px #fff;
+
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s;
   min-width: 12rem;
   justify-content: center;
+  background-image: linear-gradient(0deg, #00000061, transparent);
+  border: 1px solid #999;
+  box-shadow: inset 0px 0px 8px 2px #161616;
 }
 
 .chip:hover {
-  background-color: #cfcfcf;
+  border: 1px solid #00d14c;
+  background-color: #00d14c;
 }
 
+.warehouse-tab.active,
 .chip.selected {
-  background-color: #8bc34a;
+  background-color: #009e39;
   color: #fff;
 }
 
@@ -759,13 +826,34 @@ button:hover {
 .warehouse-center,
 .warehouse-right {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 10px;
 }
 
 .warehouse-center {
   justify-content: center;
-  flex-grow: 1; /* 中央エリアを伸ばしてセンタリング */
+}
+
+.warehouse-left {
+  justify-content: left;
+}
+.warehouse-right {
+  justify-content: right;
+}
+
+@media (max-width: 700px) {
+  .warehouse-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .warehouse-tab{
+    min-width:5rem;
+  }
+  .warehouse-header-bar {
+    flex-direction: column;
+    width: 100%;
+  }
 }
 
 /* タブの見た目 */
@@ -774,24 +862,10 @@ button:hover {
   gap: 10px;
 }
 
-.warehouse-tab {
-  background-color: #444;
-  color: #fff;
-  border-radius: 4px;
-  padding: 6px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-.warehouse-tab:hover {
-  background-color: #555;
-}
-.warehouse-tab.active {
-  background-color: #666;
-  font-weight: bold;
-}
-
 /* ソートUI */
 #warehouse-sort-dropdown {
+  box-sizing: border-box;
+  height: 3rem;
   background-color: #333;
   color: #fff;
   border: 1px solid #666;
@@ -817,4 +891,125 @@ button:hover {
 }
 #warehouse-sort-direction-btn:hover {
   background-color: #444;
+}
+#stop-bgm-button {
+  margin: 0;
+}
+.close-warehouse-btn {
+  margin: 0;
+  display: flex;
+  right: 20px;
+  top: 20px;
+  position: fixed;
+  z-index: 10;
+  border-radius: 50%;
+  height: 50px;
+  width: 50px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  background-color: #cf0000;
+  max-width: initial;
+  max-height: initial;
+}
+
+#start-new-scenario-button {
+  background-color: #2196f3;
+  font-size: 1.4rem;
+  padding: 20px 35px;
+  border-color: #2196f3;
+}
+
+#start-new-scenario-button:hover {
+  background-color: #45a049;
+  border-color: #45a049;
+}
+
+#change-bg-button {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  right: 20px;
+}
+
+#token-adjust-button {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  right: 150px;
+}
+
+#back-to-menu {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  left: 20px;
+}
+
+#view-all-sections-button {
+  position: absolute;
+  z-index: 1;
+  left: 20px;
+}
+
+#clear-ending-button,
+#ending-button {
+  position: relative;
+}
+
+#get-card-button {
+  position: absolute;
+  left: 250px;
+  margin: 0;
+}
+
+#image-auto-generate-button {
+  width: 10rem;
+}
+
+.r-flexbox {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: right;
+  margin-bottom: 20px;
+}
+
+.l-flexbox {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: left;
+  margin-bottom: 20px;
+}
+
+.s-flexbox {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.c-flexbox {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+#player-action {
+  margin-bottom: 20px;
+}
+
+#player-input {
+  margin-bottom: 20px;
+}
+#next-scene {
+  width: 10rem;
 }
