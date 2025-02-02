@@ -17,9 +17,7 @@
   <button id="back-to-menu">一覧に戻る</button>
 
   <!-- 背景を変更するボタン -->
-  <button id="change-bg-button">
-    背景を変更する
-  </button>
+  <button id="change-bg-button">背景を変更する</button>
   <!-- ▼ 背景選択モーダル -->
   <div id="bg-modal" class="modal">
     <div class="modal-content bg-modal-content">
@@ -40,14 +38,37 @@
     </div>
   </div>
 
-
   <div class="container">
     <h1>シナリオ作成ウィザード</h1>
 
-    <!-- ステップ1：ジャンル選択 -->
-    <div id="wizard-step1" style="display:block;">
-      <h2>ステップ1：ジャンルを選択してください</h2>
+    <!-- ▼ ステップ0：パーティ選択 -->
+    <!-- ステップ0：パーティ選択 -->
+    <div id="wizard-step0" style="display:block;">
+      <h2>ステップ0：パーティを選択してください</h2>
+      <p style="margin-bottom:1rem;">
+        以下のリストから一つだけ選択してください。カードが1枚以上入ったパーティのみが表示されます。<br>
+        パーティが不要な場合は「パーティなし」を選んでください。
+      </p>
 
+      <!-- パーティ一覧を表示する領域 -->
+      <div id="wizard-party-list" style="margin-bottom:20px;"></div>
+
+      <!-- 次へボタン -->
+      <div class="c-flexbox" style="margin-top:20px;">
+        <button id="go-wizard-step1-btn">次へ</button>
+      </div>
+    </div>
+
+    <!-- ▲ ステップ0ここまで -->
+
+    <!-- ステップ1：ジャンル選択 -->
+    <div id="wizard-step1" style="display:none;">
+      <div class="l-flexbox">
+        <!-- ▼ 新しく追加する「戻る」ボタン -->
+        <button id="back-to-step0-button">ステップ0に戻る</button>
+      </div>
+
+      <h2>ステップ1：ジャンルを選択</h2>
       <p style="font-size:0.9em; margin-bottom:10px;">
         ジャンルの軸を選択しますか？それともジャンルを自由入力しますか？
       </p>
@@ -57,52 +78,58 @@
         <div class="chip" id="choice-free">自由入力</div>
       </div>
 
-      <!-- 軸入力 -->
+      <!-- 軸入力UI -->
       <div id="axis-input-group" style="opacity:0.5; pointer-events:none;">
         <div style="margin-top:10px;">
-          <strong>舞台（複数選択可）</strong><br>
+          <strong>舞台（複数選択可）</strong>
           <div id="wiz-stage-chips-container" class="chips-container"></div>
         </div>
-
         <div style="margin-top:10px;">
-          <strong>テーマ（単一選択）</strong><br>
+          <strong>テーマ（単一選択）</strong>
           <div id="wiz-theme-chips-container" class="chips-container"></div>
         </div>
-
         <div style="margin-top:10px;">
-          <strong>雰囲気（単一選択）</strong><br>
+          <strong>雰囲気（単一選択）</strong>
           <div id="wiz-mood-chips-container" class="chips-container"></div>
         </div>
-
         <div style="margin-top:30px;">
-          <p id="wiz-genre-result-text" style="border: 1px solid;padding: 10px;font-size: 1.5rem;background-color: #434343;"></p>
+          <p id="wiz-genre-result-text" style="border: 1px solid; padding: 10px; font-size: 1.2rem; background-color: #434343;"></p>
         </div>
       </div>
 
-      <!-- 自由入力 -->
+      <!-- 自由入力UI -->
       <div id="free-input-group" style="margin-top:10px; opacity:0.5; pointer-events:none;">
         <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
       </div>
 
-      <div style="margin-top:20px;">
+      <div class="c-flexbox">
+        <!-- 「次へ」ボタン -->
         <button id="go-step2-btn">次へ</button>
       </div>
+      <!-- ▲ ステップ1ここまで -->
     </div>
-
     <!-- ステップ2：シナリオタイプ -->
     <div id="wizard-step2" style="display:none;">
-      <h2>ステップ2：シナリオタイプ</h2>
+      <div class="l-flexbox">
+        <button id="back-to-step1-button">ステップ1に戻る</button>
+      </div>
 
+      <h2>ステップ2：シナリオタイプを選択</h2>
+
+      <!-- ▼ 追加: パーティ表示 -->
       <p>
+        選択したパーティ：
+        <span id="selected-party-display" style="font-weight:bold; color:#2196F3;">(未選択)</span>
+      </p>
+
+      <p style="margin-bottom: 1rem;">
         選択したジャンル：
         <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">（未選択）</span>
       </p>
 
-      <button id="type-objective-btn">目的達成型</button>
-      <button id="type-exploration-btn">探索型</button>
-
-      <div style="margin-top:10px;">
-        <button id="back-to-step1-button">ステップ1に戻る</button>
+      <div class="c-flexbox">
+        <button id="type-objective-btn">目的達成型</button>
+        <button id="type-exploration-btn">探索型</button>
       </div>
 
       <p style="margin-top:10px;">
@@ -110,14 +137,16 @@
         ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
       </p>
     </div>
+    <!-- ▲ ステップ2ここまで -->
 
-    <!-- シナリオ作成確認モーダル（.modal.active で開閉） -->
+    <!-- シナリオ作成確認モーダル -->
     <div id="confirm-scenario-modal" class="modal">
       <div class="modal-content" style="max-width:500px;">
         <h3>シナリオ生成の確認</h3>
+        <p id="confirm-party-text" style="white-space:pre-wrap;">パーティ: (未選択)</p>
         <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
-        <p>これでシナリオを作成します。よろしいですか？</p>
-        <div style="margin-top:10px;">
+        <p>この条件でシナリオを作成します。よろしいですか？</p>
+        <div class="c-flexbox">
           <button id="confirm-scenario-ok">OK</button>
           <button id="confirm-scenario-cancel">キャンセル</button>
         </div>
@@ -129,12 +158,16 @@
       <h2>ステップ3：シナリオ要約</h2>
       <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;"></div>
 
-      <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
-      <button id="start-scenario-button" style="background-color:#4CAF50;">このシナリオで始める</button>
+      <div class="c-flexbox">
+        <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
+        <button id="start-scenario-button" style="background-color:#4CAF50;">このシナリオで始める</button>
+      </div>
     </div>
-  </div>
+    <!-- ▲ ステップ3ここまで -->
 
-  <!-- ChatGPT応答待ちモーダル（.modal.activeで表示） -->
+  </div><!-- /.container -->
+
+  <!-- ChatGPT応答待ちモーダル -->
   <div id="loading-modal" class="modal">
     <div class="modal-content">
       <p>応答を待っています...</p>
@@ -163,27 +196,27 @@
   <!-- 「削除」確認モーダル -->
   <div id="wizard-delete-confirm-modal" class="modal">
     <div class="modal-content">
-      <p>この選択肢を削除しますが、よろしいですか？</p>
-      <button id="wizard-delete-confirm-ok">OK</button>
-      <button id="wizard-delete-confirm-cancel">キャンセル</button>
+      <p>この選択肢を削除します。よろしいですか？</p>
+      <div class="c-flexbox">
+        <button id="wizard-delete-confirm-ok">OK</button>
+        <button id="wizard-delete-confirm-cancel">キャンセル</button>
+      </div>
     </div>
   </div>
 
-  <!-- pakoを先に読み込む -->
+  <!-- pako -->
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-
   <!-- IndexedDBなどの共通スクリプト -->
   <script src="js/indexedDB.js"></script>
-  <!-- シナリオウィザード用スクリプト(改変版) -->
+  <!-- シナリオウィザード用スクリプト -->
   <script src="js/scenarioWizard.js"></script>
 
   <script>
-    document.getElementById("back-to-menu").addEventListener("click", function () {
+    document.getElementById("back-to-menu").addEventListener("click", () => {
       window.location.href = "index.html";
     });
 
     window.addEventListener("load", async () => {
-      await initIndexedDB();
       await initBackground("scenarioWizard");
     });
   </script>

@@ -362,13 +362,18 @@ async function generateEndingStory(type) {
   // "ハッピーエンド" or "バッドエンド" 指示
   const endTypePrompt = isClear ? "ハッピーエンド" : "バッドエンド";
 
-  const prompt = `
+  let prompt = `
 以下の情報をもとに、
-1)シナリオ概要
-2)パーティ構成
-3)あらすじ
-4)セクション
-5)その後の話
+${i = 1})シナリオ概要`;
+
+  if (party.length != 0) {
+    prompt += `
+  ${i += 1})パーティ構成`
+  }
+  prompt += `
+${i += 1})あらすじ
+${i += 1})セクション
+${i += 1})その後の話
 
 この5部構成でエンディングストーリーを作ってください。結末は必ず「${endTypePrompt}」にしてください。
 あらすじ部分は、下記のシーン履歴をベースにしつつ、あまり簡潔になりすぎないように描写してください。
@@ -376,15 +381,21 @@ async function generateEndingStory(type) {
 ■シナリオ概要
 ${scenarioSummary}
 
-■パーティ構成
+`;
+  if (party.length != 0) {
+    prompt += `■パーティ構成
 ${party.map(p => `- ${p.name}(${p.type || "?"})`).join("\n")}
 
-■シーン履歴(最新～最大10シーン)
+`;
+  }
+
+  prompt += `■シーン履歴(最新～最大10シーン)
 ${combinedScene}
 
 ■セクション情報
 ${joinedSections}
 `;
+  console.log(prompt);
 
   try {
     showLoadingModal(true);
@@ -668,7 +679,7 @@ function renderPartyCardsInModal() {
       return wCard;
     }
     return {
-      ...dbMatch, 
+      ...dbMatch,
       ...wCard,
       // DB版に画像があればそちらを優先
       imageData: dbMatch.imageData || wCard.imageData

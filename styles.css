@@ -787,7 +787,7 @@ button:hover {
   align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 30px;
 }
 
 .scenario-list-container,
@@ -1027,4 +1027,92 @@ button:hover {
 }
 #next-scene {
   width: 10rem;
+}
+/* ----- ステップ0のパーティ選択用クラス ----- */
+
+/* 1行ぶんの枠 */
+.wizard-party-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+
+  /* 背景を少し透過した感じにするなど */
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+/* ホバー時に少し明るくなる */
+.wizard-party-row:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 中にあるラジオボタンを隠して行全体クリックを可能にするための工夫 */
+.wizard-party-row input[type="radio"] {
+  /* 完全に隠したい場合 (見た目のラジオを後述の擬似要素で作る) */
+  display: none;
+}
+
+/* ラベル部分 */
+.wizard-party-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;         /* 行全体をラベルにする */
+  padding: 10px 15px;  /* 余白を少し広めに */
+  box-sizing: border-box;
+}
+
+/* ラジオボタンの擬似要素を表示: before を丸にしてチェック状にする */
+.wizard-party-label::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin-right: 12px;
+  transition: background-color 0.1s, border-color 0.1s;
+  box-sizing: border-box;
+}
+
+/* 選択状態: input[type="radio"]:checked + .wizard-party-label::before で円を塗りつぶす */
+.wizard-party-row input[type="radio"]:checked + .wizard-party-label::before {
+  background-color: #019a39;   /* 選択時の色 (例: 緑) */
+  border-color: #00d14c;
+}
+
+/* パーティ画像 */
+.wizard-party-label img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  margin-right: 10px;
+  border-radius: 4px;
+  border: 1px solid #222; /* ほんの少し枠をつける */
+  background-color: #161616;
+}
+
+/* 画像がない場合の No Image box */
+.no-image-box {
+  width: 60px;
+  height: 60px;
+  background-color: #555;
+  color: #fff;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid #222;
+}
+
+#confirm-party-text,
+#confirm-genre-type-text{
+  text-align: left;
+  width: 100%;
+  margin: 0;
+  margin-bottom: 10px;
 }

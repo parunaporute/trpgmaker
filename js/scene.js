@@ -143,8 +143,10 @@ async function getNextScene() {
       ? scenarioWd.scenarioSummaryEn
       : (scenarioWd.scenarioSummary || "");
     msgs.push({ role: "user", content: "シナリオ概要:" + summ });
-    const ptxt = buildPartyInsertionText(scenarioWd.party);
-    msgs.push({ role: "user", content: ptxt });
+    if (scenarioWd.party != []) {
+      const ptxt = buildPartyInsertionText(scenarioWd.party);
+      msgs.push({ role: "user", content: ptxt });
+    }
   }
 
   // 今回含めた行動数
