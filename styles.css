@@ -807,6 +807,7 @@ button:hover {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .scenario-list .info {
