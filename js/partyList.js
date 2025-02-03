@@ -86,10 +86,6 @@ async function renderPartyList() {
     return;
   }
 
-  // 現在のカレントIDをlocalStorageから読む
-  const currentPartyIdStr = localStorage.getItem("currentPartyId") || "";
-  const currentPartyId = currentPartyIdStr ? parseInt(currentPartyIdStr, 10) : null;
-
   parties.forEach(party => {
     const div = document.createElement("div");
     div.style.marginBottom = "10px";
@@ -100,36 +96,7 @@ async function renderPartyList() {
     info.textContent = `ID:${party.partyId} / ${party.name} (更新:${party.updatedAt || "なし"})`;
     div.appendChild(info);
 
-    // カレント設定ボタン
-    const setBtn = document.createElement("button");
-    setBtn.textContent = "カレントに設定";
-    setBtn.style.marginLeft = "10px";
-    setBtn.addEventListener("click", () => {
-      localStorage.setItem("currentPartyId", party.partyId.toString());
-      alert(`パーティ「${party.name}」をカレントに設定しました。`);
-      renderPartyList();
-    });
-    div.appendChild(setBtn);
-
-    // もしカレントならラベル表示
-    if (currentPartyId === party.partyId) {
-      const label = document.createElement("strong");
-      label.textContent = " (現在のパーティ)";
-      label.style.color = "#4CAF50";
-      div.appendChild(label);
-    }
-
-    // 名前変更ボタン
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "名前変更";
-    editBtn.style.marginLeft = "10px";
-    editBtn.addEventListener("click", () => {
-      editingPartyId = party.partyId;
-      showEditPartyModal(party.name);
-    });
-    div.appendChild(editBtn);
-
-    // ★ 追加: 編成ボタン( partyCreate.html?partyId=xxx へ遷移 )
+    // 編成ボタン( partyCreate.html?partyId=xxx へ遷移 )
     const arrangeBtn = document.createElement("button");
     arrangeBtn.textContent = "編成";
     arrangeBtn.style.marginLeft = "10px";
@@ -166,11 +133,6 @@ async function renderPartyList() {
         // 2) party本体を削除
         await deletePartyById(party.partyId);
 
-        // もしカレントパーティならカレントをクリア
-        if (currentPartyId === party.partyId) {
-          localStorage.removeItem("currentPartyId");
-        }
-
         // 再描画
         await renderPartyList();
       } catch (e) {
@@ -182,13 +144,4 @@ async function renderPartyList() {
 
     container.appendChild(div);
   });
-}
-
-function showEditPartyModal(currentName) {
-  document.getElementById("edit-party-name").value = currentName;
-  document.getElementById("edit-party-modal").style.display = "flex";
-}
-function hideEditPartyModal() {
-  document.getElementById("edit-party-modal").style.display = "none";
-  editingPartyId = null;
 }
