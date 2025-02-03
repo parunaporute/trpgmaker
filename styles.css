@@ -338,6 +338,7 @@ button:hover {
 #card-container,
 #party-modal-card-container,
 #warehouse-card-container {
+  margin-top: 20px;
   box-sizing: border-box;
   display: flex;
   gap: 20px;
