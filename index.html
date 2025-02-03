@@ -55,8 +55,6 @@
       </div>
     </div>
 
-
-
     <!-- ▼ ここから APIキー設定ボタン + モーダル -->
     <div class="api-key-section" style="margin-top:20px;">
       <!-- BGM停止/再生ボタン -->
@@ -94,6 +92,9 @@
       <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn">倉庫</button>
     </div>
+    <div class="element-section">
+      <button id="show-archive-btn">本棚</button>
+    </div>
 
     <!-- 新しいシナリオを始めるボタン -->
     <div class="scenario-wizard-section">
@@ -102,11 +103,19 @@
       </button>
     </div>
 
-    <!-- 進行中のシナリオ一覧 -->
-    <div id="ongoing-scenarios" style="margin-top:30px;">
-      <div id="active-scenarios-container"></div>
-      <div id="scenario-list-container"></div>
+    <!-- ▼ アコーディオン構造に変更 -->
+    <div class="accordion">
+      <!-- ヘッダー部分 -->
+      <div class="accordion-header" id="ongoing-scenarios-header">
+        進行中のシナリオ一覧
+      </div>
+      <!-- コンテンツ部分 -->
+      <div class="accordion-content" id="ongoing-scenarios-content">
+        <div id="active-scenarios-container"></div>
+        <div id="scenario-list-container"></div>
+      </div>
     </div>
+    <!-- ▲ アコーディオンここまで -->
   </div>
 
   <!-- シナリオ削除用の確認モーダル -->
@@ -137,11 +146,10 @@
   <!-- ループ再生のため loop 属性を付与 -->
   <audio id="bgm" src="main-back.mp3" loop></audio>
 
-  <div style="text-align:center; margin-top:50px;">
-  </div>
+  <div style="text-align:center; margin-top:50px;"></div>
   <!-- ▼ BGM関連（ここまで） -->
 
-  <!-- ▼ スクリプト読み込み -->
+  <!-- ▼ スクリプト読み込み（編集不要ファイルはそのまま） -->
   <script src="js/indexedDB.js"></script>
   <script src="js/avatar.js"></script>
   <!-- DB初期化を先に行い、その後メニュー初期化を呼ぶ -->
@@ -207,12 +215,10 @@
       // ボタンの初期表示
       if (isBgmStopped) {
         stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
-        stopBgmButton.style.backgroundColor = "rgb(255,115,68)"
-
-      }
-      else {
+        stopBgmButton.style.backgroundColor = "rgb(255,115,68)";
+      } else {
         stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
-        stopBgmButton.style.backgroundColor = "#4caf50"
+        stopBgmButton.style.backgroundColor = "#4caf50";
       }
 
       // ボタンのクリックで再生/停止をトグル
@@ -221,16 +227,14 @@
           // 「再生」
           fadeInPlay(bgmAudio);
           localStorage.setItem("bgmStopped", "false");
-          stopBgmButton.style.backgroundColor = "#4caf50"
+          stopBgmButton.style.backgroundColor = "#4caf50";
           stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
         } else {
           // 「停止」
           bgmAudio.pause();
           bgmAudio.currentTime = 0;
           localStorage.setItem("bgmStopped", "true");
-
-          stopBgmButton.style.backgroundColor = "rgb(255 115 68)"
-
+          stopBgmButton.style.backgroundColor = "rgb(255,115,68)";
           stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
         }
       });

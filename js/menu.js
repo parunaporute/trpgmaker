@@ -83,8 +83,38 @@ window.initMenuPage = async function () {
 
   // メニュー上のボタン類をセットアップ
   setupMenuButtons();
+  // ▼ アコーディオン初期化呼び出し
+  initAccordion();
 };
+/**
+ * アコーディオンの開閉状態をローカルストレージに保存・復元する関数
+ */
+function initAccordion() {
+  // ヘッダーとコンテンツの要素を取得
+  const header = document.getElementById('ongoing-scenarios-header');
+  const content = document.getElementById('ongoing-scenarios-content');
+  if (!header || !content) return;
 
+  // ローカルストレージから状態を読み込み
+  const savedState = localStorage.getItem('ongoingScenariosAccordionState');
+  // 'open' だった場合のみ開いておく
+  if (savedState === 'open') {
+    content.classList.add('open');
+  }
+
+  // ヘッダークリックでトグル
+  header.addEventListener('click', () => {
+    // openクラスをトグルする
+    content.classList.toggle('open');
+
+    // 現在の状態をlocalStorageに保存
+    if (content.classList.contains('open')) {
+      localStorage.setItem('ongoingScenariosAccordionState', 'open');
+    } else {
+      localStorage.setItem('ongoingScenariosAccordionState', 'closed');
+    }
+  });
+}
 // シナリオ削除用で使う変数
 let scenarioIdToDelete = null;
 

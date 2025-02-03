@@ -792,7 +792,6 @@ button:hover {
   align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 30px;
 }
 
 .scenario-list-container,
@@ -813,6 +812,12 @@ button:hover {
   gap: 10px;
   flex-wrap: wrap;
   width: 100%;
+  padding: 20px 10px;
+  box-sizing: border-box;
+}
+
+.scenario-list:nth-child(odd) {
+  background-color: #00000069;
 }
 
 .scenario-list .info {
@@ -1147,4 +1152,46 @@ button:hover {
   flex-direction: column;
   justify-content: left;
   align-items: flex-start;
+}
+
+.accordion-header:hover {
+  background-color: #45a049;
+  border: 1px solid #45a049;
+}
+
+/* アコーディオン全体のラッパ */
+.accordion {
+  margin-top: 30px;
+  /* 既存スタイルを移行 */
+}
+
+/* アコーディオンヘッダー */
+.accordion-header {
+  text-shadow: 1px 1px 4px #000;
+  background-color: #5f4c38;
+  color: #fff;
+  box-sizing: border-box;
+  box-shadow: inset 0px 0px 8px 2px #161616;
+  border: 1px solid #876d51;
+  background-image: linear-gradient(0deg, #00000061, transparent);
+  cursor: pointer;
+  padding: 10px 15px;
+  user-select: none;
+  border-radius: 5px 5px 0 0;
+}
+
+/* アコーディオンコンテンツ */
+.accordion-content {
+  overflow: hidden;
+  transition:
+    max-height 0.3s ease,
+    padding 0.3s ease;
+  max-height: 0;
+  margin-bottom: 0;
+}
+
+.accordion-content.open {
+  padding: 0;
+  margin-bottom: 20px;
+  max-height: 1000px;
 }
