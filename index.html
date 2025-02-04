@@ -92,8 +92,10 @@
       <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn">倉庫</button>
     </div>
+
+    <!-- 新たに本棚ボタン → bookshelf.htmlへ -->
     <div class="element-section">
-      <button id="show-archive-btn">本棚</button>
+      <button id="show-bookshelf-btn">本棚</button>
     </div>
 
     <!-- 新しいシナリオを始めるボタン -->
@@ -102,12 +104,12 @@
         新しいシナリオを始める
       </button>
     </div>
-
+    
     <!-- ▼ アコーディオン構造に変更 -->
     <div class="accordion">
       <!-- ヘッダー部分 -->
       <div class="accordion-header" id="ongoing-scenarios-header">
-        進行中のシナリオ一覧
+        <div>進行中のシナリオ一覧</div><div><label style="display: flex; align-items: center; justify-content: left;"><input type="checkbox" id="show-hidden-scenarios" />非表示を表示</label></div>
       </div>
       <!-- コンテンツ部分 -->
       <div class="accordion-content" id="ongoing-scenarios-content">
@@ -115,6 +117,7 @@
         <div id="scenario-list-container"></div>
       </div>
     </div>
+    
     <!-- ▲ アコーディオンここまで -->
   </div>
 
@@ -143,23 +146,15 @@
   </div>
 
   <!-- ▼ BGM関連（ここから） -->
-  <!-- ループ再生のため loop 属性を付与 -->
   <audio id="bgm" src="main-back.mp3" loop></audio>
-
-  <div style="text-align:center; margin-top:50px;"></div>
-  <!-- ▼ BGM関連（ここまで） -->
 
   <!-- ▼ スクリプト読み込み（編集不要ファイルはそのまま） -->
   <script src="js/indexedDB.js"></script>
   <script src="js/avatar.js"></script>
-  <!-- DB初期化を先に行い、その後メニュー初期化を呼ぶ -->
   <script>
-    // --- フェードイン再生を行う関数 ---
     function fadeInPlay(audio) {
-      // 初期音量0
       audio.volume = 0;
       audio.play().then(() => {
-        // 100msごとに音量を0.01ずつ上げる
         const fadeInInterval = setInterval(() => {
           if (audio.volume < 1.0) {
             audio.volume = Math.min(audio.volume + 0.01, 1);
@@ -168,38 +163,30 @@
           }
         }, 100);
       }).catch(err => {
-        // このエラーはブラウザのポリシーで出ることが多いので握る
       });
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
       try {
-        await initIndexedDB();  // ★ここでDBを初期化
-        initAvatar(); // ←呼び出す
-        // 背景初期化(選択済みがあれば適用)
+        await initIndexedDB(); 
+        initAvatar(); 
         await initBackground("index");
-        // メニュー初期化
         initMenuPage();
       } catch (e) {
         console.error("DB初期化エラー:", e);
       }
 
-      // ▼ BGM制御まわり
       const bgmAudio = document.getElementById("bgm");
       const stopBgmButton = document.getElementById("stop-bgm-button");
 
       if (!bgmAudio || !stopBgmButton) return;
 
-      // ローカルストレージから停止状態を確認
       const isBgmStopped = localStorage.getItem("bgmStopped") === "true";
 
-      // 停止状態でなければ、自動再生 + フェードイン
       if (!isBgmStopped) {
         fadeInPlay(bgmAudio);
 
-        // 自動再生がブロックされた場合の対応
         bgmAudio.addEventListener("playing", () => {
-          // 再生されたらリスナー解除
           document.removeEventListener("click", handleUserGesture);
         });
 
@@ -208,11 +195,9 @@
             fadeInPlay(bgmAudio);
           }
         }
-        // 初回再生失敗時のフォールバック
         document.addEventListener("click", handleUserGesture);
       }
 
-      // ボタンの初期表示
       if (isBgmStopped) {
         stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
         stopBgmButton.style.backgroundColor = "rgb(255,115,68)";
@@ -221,16 +206,13 @@
         stopBgmButton.style.backgroundColor = "#4caf50";
       }
 
-      // ボタンのクリックで再生/停止をトグル
       stopBgmButton.addEventListener("click", () => {
         if (bgmAudio.paused) {
-          // 「再生」
           fadeInPlay(bgmAudio);
           localStorage.setItem("bgmStopped", "false");
           stopBgmButton.style.backgroundColor = "#4caf50";
           stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
         } else {
-          // 「停止」
           bgmAudio.pause();
           bgmAudio.currentTime = 0;
           localStorage.setItem("bgmStopped", "true");
@@ -241,9 +223,9 @@
     });
   </script>
 
-  <!-- menu.js (メニュー専用ロジック) -->
+  <!-- menu.js -->
   <script src="js/menu.js"></script>
-  <!-- warehouse.js (倉庫共通ロジック) -->
+  <!-- warehouse.js -->
   <script src="js/warehouse.js"></script>
   <script src="js/avatar.js"></script>
 

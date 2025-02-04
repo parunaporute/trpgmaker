@@ -1167,6 +1167,9 @@ button:hover {
 
 /* アコーディオンヘッダー */
 .accordion-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   text-shadow: 1px 1px 4px #000;
   background-color: #5f4c38;
   color: #fff;
@@ -1194,4 +1197,9 @@ button:hover {
   padding: 0;
   margin-bottom: 20px;
   max-height: 1000px;
+}
+
+#show-hidden-scenarios{
+  width: 1rem;
+  height: 1rem;
 }

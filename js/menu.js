@@ -1,76 +1,215 @@
-// js/menu.js
+/*************************************************
+ * menu.js
+ *************************************************/
 
-// こちらでは「initMenuPage」という関数のみ定義し、
-// index.html 側で await initIndexedDB() の完了後に呼び出す形にして、
-// 「DB未初期化」エラーを防ぎます。
+/** シナリオ一覧再描画用(※非表示チェックの状態を見てフィルタする) */
+async function renderScenarioList() {
+  const container = document.getElementById("scenario-list-container");
+  container.innerHTML = "";
 
+  try {
+    const scenarioList = await listAllScenarios();
+
+    // 「非表示を表示する」チェックの状態を取得
+    const showHiddenCheckbox = document.getElementById("show-hidden-scenarios");
+    const showHidden = showHiddenCheckbox ? showHiddenCheckbox.checked : false;
+
+    // hideFromHistoryFlag = true のものも表示するかどうか
+    const filteredScenarios = scenarioList.filter((s) => {
+      if (showHidden) return true;
+      return s.hideFromHistoryFlag === false;
+    });
+
+    if (filteredScenarios.length === 0) {
+      container.style.justifyContent = "center";
+      container.textContent = "進行中のシナリオはありません。";
+      return;
+    } else {
+      container.style.justifyContent = "start";
+    }
+
+    // シナリオ一覧生成
+    filteredScenarios.forEach((scenario) => {
+      const div = document.createElement("div");
+      div.className = "scenario-list";
+
+      const infoText = document.createElement("span");
+      infoText.className = "info";
+      infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
+      div.appendChild(infoText);
+
+      // 続きへ
+      const btnContinue = document.createElement("button");
+      btnContinue.textContent = "続きへ";
+      btnContinue.addEventListener("click", () => {
+        window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
+      });
+      div.appendChild(btnContinue);
+
+      // コピー
+      const btnCopy = document.createElement("button");
+      btnCopy.textContent = "コピーする";
+      btnCopy.addEventListener("click", async () => {
+        try {
+          const newScenarioId = await copyScenarioById(scenario.scenarioId);
+          showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
+          // コピー後に再描画
+          renderScenarioList();
+        } catch (err) {
+          console.error(err);
+          showToast("シナリオのコピーに失敗:\n" + err.message);
+        }
+      });
+      div.appendChild(btnCopy);
+
+      // 「本棚へ」/「収納済」をトグルにするボタン
+      const btnShelf = document.createElement("button");
+      if (!scenario.bookShelfFlag) {
+        // bookShelfFlag === false => 「本棚へ」
+        btnShelf.textContent = "本棚へ";
+        btnShelf.style.backgroundColor = "";
+      } else {
+        // bookShelfFlag === true => 「収納済」
+        btnShelf.textContent = "収納済";
+        btnShelf.style.backgroundColor = "gray";
+      }
+      btnShelf.addEventListener("click", async () => {
+        try {
+          scenario.bookShelfFlag = !scenario.bookShelfFlag;
+          scenario.updatedAt = new Date().toISOString();
+          await updateScenario(scenario);
+          renderScenarioList(); // 変更内容を再描画
+        } catch (err) {
+          console.error(err);
+          showToast("本棚フラグ切り替えに失敗:\n" + err.message);
+        }
+      });
+      div.appendChild(btnShelf);
+
+      // 非表示フラグで「非表示」/「表示」ボタン切り替え
+      if (!scenario.hideFromHistoryFlag) {
+        // hideFromHistoryFlag === false => 「非表示」ボタン
+        const btnHide = document.createElement("button");
+        btnHide.textContent = "非表示にする";
+        btnHide.addEventListener("click", () => {
+          showHideConfirmModal(scenario);
+        });
+        div.appendChild(btnHide);
+      } else {
+        // hideFromHistoryFlag === true => 「表示」ボタン
+        const btnShow = document.createElement("button");
+        btnShow.textContent = "非表示";
+        btnShow.style.backgroundColor = "gray";
+
+        btnShow.addEventListener("click", async () => {
+          scenario.hideFromHistoryFlag = false;
+          scenario.updatedAt = new Date().toISOString();
+          await updateScenario(scenario);
+          renderScenarioList();
+        });
+        div.appendChild(btnShow);
+      }
+
+      // 削除
+      const btnDelete = document.createElement("button");
+      btnDelete.textContent = "削除";
+      btnDelete.style.backgroundColor = "#f44336";
+      btnDelete.addEventListener("click", () => {
+        scenarioIdToDelete = scenario.scenarioId;
+        showDeleteScenarioModal(true);
+      });
+      div.appendChild(btnDelete);
+
+      container.appendChild(div);
+    });
+  } catch (err) {
+    console.error("シナリオ一覧の取得に失敗:", err);
+    container.textContent = "シナリオ一覧の取得に失敗しました。再読み込みしてください。";
+  }
+}
+
+/** 「非表示」ボタン押下時の確認モーダル表示 */
+function showHideConfirmModal(scenario) {
+  let modal = document.getElementById("hide-from-history-modal");
+  if (!modal) {
+    // 存在しなければ新規作成
+    modal = document.createElement("div");
+    modal.id = "hide-from-history-modal";
+    modal.className = "modal";
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:400px;">
+        <p>本当に非表示にしますか？</p>
+        <div class="c-flexbox">
+          <button id="hide-from-history-ok">OK</button>
+          <button id="hide-from-history-cancel">キャンセル</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.classList.add("active");
+
+  // 前回リスナーが残っている場合を考慮し、一旦置き換えて再度 addEventListener
+  const okBtn = modal.querySelector("#hide-from-history-ok");
+  const cancelBtn = modal.querySelector("#hide-from-history-cancel");
+
+  // ボタンごと置き換え
+  okBtn.replaceWith(okBtn.cloneNode(true));
+  cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+
+  // OK
+  modal.querySelector("#hide-from-history-ok").addEventListener("click", async () => {
+    scenario.hideFromHistoryFlag = true;
+    scenario.updatedAt = new Date().toISOString();
+    await updateScenario(scenario);
+    showToast(`シナリオ(ID:${scenario.scenarioId})を非表示にしました。`);
+    modal.classList.remove("active");
+    renderScenarioList();
+  });
+
+  // キャンセル
+  modal.querySelector("#hide-from-history-cancel").addEventListener("click", () => {
+    modal.classList.remove("active");
+  });
+}
+
+// 削除用モーダル
+let scenarioIdToDelete = null;
+function showDeleteScenarioModal(show) {
+  const modal = document.getElementById("delete-scenario-modal");
+  if (!modal) return;
+  if (show) modal.classList.add("active");
+  else modal.classList.remove("active");
+}
+
+/** シナリオ削除モーダルでOK */
+async function confirmDeleteScenario() {
+  if (scenarioIdToDelete == null) {
+    showDeleteScenarioModal(false);
+    return;
+  }
+  try {
+    await deleteScenarioById(scenarioIdToDelete);
+    showToast(`シナリオ(ID:${scenarioIdToDelete})を削除しました。`);
+  } catch (err) {
+    console.error(err);
+    showToast("シナリオ削除に失敗:\n" + err.message);
+  }
+  scenarioIdToDelete = null;
+  showDeleteScenarioModal(false);
+  // 再描画
+  renderScenarioList();
+}
+
+/** initMenuPage: ページ読み込み時に呼び出されるメイン初期化 */
 window.initMenuPage = async function () {
   // すでに initIndexedDB() は呼ばれている前提
 
   // localStorage から APIキーを読み込む
   window.apiKey = localStorage.getItem("apiKey") || "";
 
-  // シナリオ一覧を取得して表示
-  try {
-    const scenarioList = await listAllScenarios();
-    const container = document.getElementById("scenario-list-container");
-    container.innerHTML = "";
-
-    if (scenarioList.length === 0) {
-      container.style.justifyContent = "center";
-      container.textContent = "進行中のシナリオはありません。";
-    } else {
-      scenarioList.forEach(scenario => {
-        const div = document.createElement("div");
-        div.className = "scenario-list";
-
-        const infoText = document.createElement("span");
-        infoText.className = "info";
-
-        infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
-        div.appendChild(infoText);
-
-        // 続きへ
-        const btnContinue = document.createElement("button");
-        btnContinue.textContent = "続きへ";
-        btnContinue.addEventListener("click", () => {
-          window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
-        });
-        div.appendChild(btnContinue);
-
-        // コピー
-        const btnCopy = document.createElement("button");
-        btnCopy.textContent = "コピーする";
-        btnCopy.addEventListener("click", async () => {
-          try {
-            const newScenarioId = await copyScenarioById(scenario.scenarioId);
-            showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
-            location.reload(); // リスト更新
-          } catch (err) {
-            console.error(err);
-            showToast("シナリオのコピーに失敗:\n" + err.message);
-          }
-        });
-        div.appendChild(btnCopy);
-
-        // 削除
-        const btnDelete = document.createElement("button");
-        btnDelete.textContent = "削除";
-        btnDelete.style.backgroundColor = "#f44336";
-        btnDelete.addEventListener("click", () => {
-          scenarioIdToDelete = scenario.scenarioId;
-          showDeleteScenarioModal(true);
-        });
-        div.appendChild(btnDelete);
-
-        container.appendChild(div);
-      });
-    }
-  } catch (err) {
-    console.error("シナリオ一覧の取得に失敗:", err);
-    const container = document.getElementById("scenario-list-container");
-    container.textContent = "シナリオ一覧の取得に失敗しました。再読み込みしてください。";
-  }
+  // シナリオ一覧を描画
+  await renderScenarioList();
 
   // characterDataのロード
   try {
@@ -83,42 +222,10 @@ window.initMenuPage = async function () {
 
   // メニュー上のボタン類をセットアップ
   setupMenuButtons();
-  // ▼ アコーディオン初期化呼び出し
   initAccordion();
 };
-/**
- * アコーディオンの開閉状態をローカルストレージに保存・復元する関数
- */
-function initAccordion() {
-  // ヘッダーとコンテンツの要素を取得
-  const header = document.getElementById('ongoing-scenarios-header');
-  const content = document.getElementById('ongoing-scenarios-content');
-  if (!header || !content) return;
 
-  // ローカルストレージから状態を読み込み
-  const savedState = localStorage.getItem('ongoingScenariosAccordionState');
-  // 'open' だった場合のみ開いておく
-  if (savedState === 'open') {
-    content.classList.add('open');
-  }
-
-  // ヘッダークリックでトグル
-  header.addEventListener('click', () => {
-    // openクラスをトグルする
-    content.classList.toggle('open');
-
-    // 現在の状態をlocalStorageに保存
-    if (content.classList.contains('open')) {
-      localStorage.setItem('ongoingScenariosAccordionState', 'open');
-    } else {
-      localStorage.setItem('ongoingScenariosAccordionState', 'closed');
-    }
-  });
-}
-// シナリオ削除用で使う変数
-let scenarioIdToDelete = null;
-
-/** メニュー画面のボタン類設定 */
+/** メニュー内のボタン等のイベント設定 */
 function setupMenuButtons() {
   // 「APIキー設定」または「キー設定済」のボタン
   const setApiKeyButton = document.getElementById("set-api-key-button");
@@ -127,45 +234,36 @@ function setupMenuButtons() {
   const apiKeyOkButton = document.getElementById("api-key-ok-button");
   const apiKeyClearButton = document.getElementById("api-key-clear-button");
 
-  // すでにキーがあれば「キー設定済」、なければ「APIキー設定」と表示
   if (!window.apiKey) {
     setApiKeyButton.textContent = "APIキー設定";
   } else {
     setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
   }
 
-  // 「APIキー設定」ボタンをクリック -> モーダルを開く
   setApiKeyButton.addEventListener("click", () => {
     apiKeyModal.classList.add("active");
-    apiKeyInput.value = window.apiKey; // すでにキーがあれば反映
+    apiKeyInput.value = window.apiKey;
   });
 
-  // モーダル内のOKボタン
   apiKeyOkButton.addEventListener("click", () => {
     const key = apiKeyInput.value.trim();
     if (key) {
       localStorage.setItem("apiKey", key);
       window.apiKey = key;
       setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
-      // showToast("APIキーを設定しました。");
     }
-    // モーダルを閉じる
     apiKeyModal.classList.remove("active");
   });
 
-  // モーダル内のクリアボタン
   apiKeyClearButton.addEventListener("click", () => {
     if (confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？")) {
       localStorage.removeItem("apiKey");
       window.apiKey = "";
       setApiKeyButton.textContent = "APIキー設定";
-      // showToast("APIキーをクリアしました。");
-      // モーダルを閉じる
       apiKeyModal.classList.remove("active");
     }
   });
 
-  // 全エレメントクリア
   document.getElementById("clear-character-btn").addEventListener("click", async () => {
     if (confirm("エレメント情報をクリアします。よろしいですか？")) {
       window.characterData = [];
@@ -174,55 +272,62 @@ function setupMenuButtons() {
     }
   });
 
-  // 倉庫確認 => showWarehouseModal("menu")
   document.getElementById("show-warehouse-btn").addEventListener("click", () => {
     showWarehouseModal("menu");
   });
 
-  // エレメント作成
   document.getElementById("character-create").addEventListener("click", () => {
     window.location.href = "characterCreate.html";
   });
 
-  // パーティ一覧
   document.getElementById("party-list").addEventListener("click", () => {
     window.location.href = "partyList.html";
   });
 
-  // 新しいシナリオ
   document.getElementById("start-new-scenario-button").addEventListener("click", () => {
     window.location.href = "scenarioWizard.html";
   });
 
-  // シナリオ削除モーダルのOK/CANCEL
-  document.getElementById("delete-scenario-ok").addEventListener("click", async () => {
-    if (scenarioIdToDelete == null) {
-      showDeleteScenarioModal(false);
-      return;
-    }
-    try {
-      await deleteScenarioById(scenarioIdToDelete);
-      showToast(`シナリオ(ID:${scenarioIdToDelete})を削除しました。`);
-    } catch (err) {
-      console.error(err);
-      showToast("シナリオ削除に失敗:\n" + err.message);
-    }
-    scenarioIdToDelete = null;
-    showDeleteScenarioModal(false);
-    location.reload();
-  });
+  // シナリオ削除モーダルOK/CANCEL
+  document.getElementById("delete-scenario-ok").addEventListener("click", confirmDeleteScenario);
   document.getElementById("delete-scenario-cancel").addEventListener("click", () => {
     scenarioIdToDelete = null;
     showDeleteScenarioModal(false);
   });
+
+  // 「本棚」ボタン(全シナリオ一覧へ飛ぶもの)
+  document.getElementById("show-bookshelf-btn").addEventListener("click", () => {
+    window.location.href = "bookshelf.html";
+  });
+
+  // 「非表示を表示する」チェックボックスの変更時イベント
+  const showHiddenCheckbox = document.getElementById("show-hidden-scenarios");
+  if (showHiddenCheckbox) {
+    showHiddenCheckbox.addEventListener("change", () => {
+      renderScenarioList();
+    });
+  }
 }
 
-/** シナリオ削除モーダルの表示/非表示 */
-function showDeleteScenarioModal(show) {
-  const modal = document.getElementById("delete-scenario-modal");
-  if (!modal) return;
-  if (show) modal.classList.add("active");
-  else modal.classList.remove("active");
+/** アコーディオンの展開状態管理 */
+function initAccordion() {
+  const header = document.getElementById("ongoing-scenarios-header");
+  const content = document.getElementById("ongoing-scenarios-content");
+  if (!header || !content) return;
+
+  const savedState = localStorage.getItem("ongoingScenariosAccordionState");
+  if (savedState === "open") {
+    content.classList.add("open");
+  }
+
+  header.addEventListener("click", () => {
+    content.classList.toggle("open");
+    if (content.classList.contains("open")) {
+      localStorage.setItem("ongoingScenariosAccordionState", "open");
+    } else {
+      localStorage.setItem("ongoingScenariosAccordionState", "closed");
+    }
+  });
 }
 
 /** シナリオをコピー */
@@ -236,10 +341,15 @@ async function copyScenarioById(originalScenarioId) {
     title: scenario.title + "_copy",
     wizardData: JSON.parse(JSON.stringify(scenario.wizardData || {})),
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    // 以下フラグは初期値に
+    bookShelfFlag: false,
+    hideFromHistoryFlag: false,
   };
+  // 新規シナリオ作成
   const newScenarioId = await createNewScenario(newScenario.wizardData, newScenario.title);
 
+  // シーン情報を複製
   const entries = await getSceneEntriesByScenarioId(originalScenarioId);
   for (const e of entries) {
     const copy = {
@@ -248,20 +358,24 @@ async function copyScenarioById(originalScenarioId) {
       sceneId: e.sceneId + "_copy_" + Date.now(),
       content: e.content,
       dataUrl: e.dataUrl || null,
-      prompt: e.prompt || null
+      prompt: e.prompt || null,
+      content_en: e.content_en || "",
     };
     await addSceneEntry(copy);
   }
 
+  // 反映
   const newScen = await getScenarioById(newScenarioId);
   newScen.title = scenario.title + "_copy";
   newScen.updatedAt = new Date().toISOString();
+  newScen.bookShelfFlag = false;
+  newScen.hideFromHistoryFlag = false;
   await updateScenario(newScen);
 
   return newScenarioId;
 }
 
-/** 簡易トースト表示 */
+/** トースト簡易表示 */
 function showToast(message) {
   const oldToast = document.getElementById("toast-message");
   if (oldToast) {
@@ -291,7 +405,6 @@ function showToast(message) {
     toast.style.opacity = "1";
   });
 
-  // 3秒後に消す
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.addEventListener("transitionend", () => {
