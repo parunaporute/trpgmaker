@@ -818,6 +818,10 @@ button:hover {
   box-sizing: border-box;
 }
 
+.scenario-list.selected{
+  border: 1px solid #FF0
+}
+
 .scenario-list:nth-child(odd) {
   background-color: #00000069;
 }
