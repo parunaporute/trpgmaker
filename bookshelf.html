@@ -62,12 +62,12 @@
         border-image-slice: 1;
         border-image-width: 1;
         border-image-outset: 0;
-        border-image-repeat: sretch;
-        white-space: nowrap; ">
+        border-image-repeat: stretch;
+        white-space: nowrap;">
       </div>
 
       <!-- 
-        2. リスト表示
+        2. リスト表示（本一覧）
       -->
       <div id="bookshelf-list-panel" style="
         flex: 0 0 300px; 
@@ -80,6 +80,29 @@
       </div>
     </div>
 
+  </div>
+  <!-- ▼ コピー確認用モーダル -->
+  <div id="copy-scenario-modal" class="modal">
+    <div class="modal-content">
+      <h3>シナリオコピーの確認</h3>
+      <p>このシナリオをコピーします。よろしいですか？</p>
+      <div class="c-flexbox">
+        <button id="copy-scenario-ok">OK</button>
+        <button id="copy-scenario-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▼ 削除確認用モーダル -->
+  <div id="delete-scenario-modal" class="modal">
+    <div class="modal-content">
+      <h3>シナリオ削除の確認</h3>
+      <p>このシナリオを削除します。よろしいですか？</p>
+      <div class="c-flexbox">
+        <button id="delete-scenario-ok">OK</button>
+        <button id="delete-scenario-cancel">キャンセル</button>
+      </div>
+    </div>
   </div>
 
   <!-- ▼ スクリプト読み込み -->
