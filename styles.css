@@ -792,6 +792,8 @@ button:hover {
   align-items: center;
   display: flex;
   flex-direction: column;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .scenario-list-container,
@@ -1196,10 +1198,44 @@ button:hover {
 .accordion-content.open {
   padding: 0;
   margin-bottom: 20px;
-  max-height: 1000px;
+  max-height: 100vh;
 }
 
-#show-hidden-scenarios{
+#show-hidden-scenarios {
   width: 1rem;
   height: 1rem;
 }
+
+.book {
+  top: 0px;
+  transition: ease 0.3s all;
+}
+
+.book:hover {
+  top: 0;
+  display: flex;
+  scale: 1;
+  z-index: 1000;
+  scale: 1.05;
+}
+/*
+悩み中…
+.book::after{
+  content: "";
+  width: 0px;
+  height: 100%;
+  border-radius: 0;
+  z-index: 100000;
+  left: 100%;
+  top: 0;
+  background-color: #610404;
+  transition: ease 0.3s all;}
+
+.book:hover::after{
+  width: 10px;
+  position: absolute;
+  display: flex
+;
+  transform-origin: left;
+}
+*/

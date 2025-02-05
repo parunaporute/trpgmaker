@@ -39,9 +39,9 @@ async function renderBooksOnShelf(scenarios) {
     // シナリオの action 数
     const entries = await getSceneEntriesByScenarioId(scenario.scenarioId);
     const actionCount = entries.filter(e => e.type === "action").length;
-    const spineWidth = 20 + actionCount * 2;
+    const spineWidth = 30 + actionCount;
 
-    // 簡易的にタイトル5文字を背に
+    // 簡易的にタイトル15文字を背に
     const shortTitle = scenario.title?.substring(0, 15) || "(無題)";
 
     // 最後に追加された画像
@@ -53,18 +53,22 @@ async function renderBooksOnShelf(scenarios) {
 
     // 背表紙要素 (bookSpine)
     const bookSpine = document.createElement("div");
-    bookSpine.style.display = "inline-block";
+    bookSpine.className = "book";
+    bookSpine.style.display = "inline-flex";
     bookSpine.style.verticalAlign = "bottom";
     bookSpine.style.height = "200px";
     bookSpine.style.width = spineWidth + "px";
-    bookSpine.style.marginRight = "1px";
+    bookSpine.style.margin = "0px 0px 0px 3px";
     bookSpine.style.backgroundColor = "#774400";
     bookSpine.style.position = "relative";
     bookSpine.style.cursor = "pointer";
+    bookSpine.style.justifyContent = "center";
+    bookSpine.style.alignItems ="center";
+
     // 角丸や内側の影等
-    bookSpine.style.borderRadius = "3px";
+    bookSpine.style.borderRadius = "4px";
     bookSpine.style.boxShadow = "inset 0 0 5px rgba(0,0,0,0.3)";
-    bookSpine.style.overflow = "hidden";
+//    bookSpine.style.overflow = "hidden";
 
     if (coverImage) {
       bookSpine.style.backgroundImage = `url(${coverImage.dataUrl})`;
@@ -79,16 +83,16 @@ async function renderBooksOnShelf(scenarios) {
 
     // - writing-mode: vertical-rl; を使えば縦書き
     // - text-orientation: upright; で文字の向きを調整
-    titleEl.style.position = "absolute";
-    titleEl.style.left = "0px";
-    titleEl.style.color = "#fff";
-    titleEl.style.fontSize = "0.8rem";
+    titleEl.style.position = "relative";
+    titleEl.style.boxSizing = "border-box";
+    titleEl.style.color = "rgb(255 255 255 / 90%)";
+    titleEl.style.fontSize = "0.75rem";
     titleEl.style.writingMode = "vertical-rl";
     titleEl.style.textOrientation = "upright";
+    titleEl.style.backgroundColor = "#00000080";
+    titleEl.style.padding = "0 5px";
 
     
-    // 背景色で文字が見辛い場合は、やや暗めの枠orシャドウ等も検討
-    titleEl.style.textShadow = "1px 1px 2px #000";
 
     bookSpine.appendChild(titleEl);
     bookSpine.addEventListener("click", () => {
