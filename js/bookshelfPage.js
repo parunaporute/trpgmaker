@@ -168,10 +168,7 @@ function renderBookshelfList(scenarios) {
   for (const sc of scenarios) {
     const div = document.createElement("div");
     div.className = "scenario-list";
-    div.style.border = "1px solid #777";
-    div.style.borderRadius = "4px";
-    div.style.marginBottom = "10px";
-    div.style.padding = "10px";
+    div.style.padding = "20px 10px";
     div.style.transition = "background-color 0.3s";
     div.setAttribute("data-scenario-id", sc.scenarioId);
 
@@ -207,6 +204,7 @@ function renderBookshelfList(scenarios) {
     // --- 「削除」ボタン ---
     const btnDelete = document.createElement("button");
     btnDelete.textContent = "削除";
+    btnDelete.style.backgroundColor="rgb(244, 67, 54)";
     btnDelete.addEventListener("click", () => {
       scenarioToDelete = sc;
       const modal = document.getElementById("delete-scenario-modal");
@@ -218,20 +216,30 @@ function renderBookshelfList(scenarios) {
   }
 }
 
-/** 
+/**
  * 本棚の背表紙クリック → リストの該当箇所へスクロール＋軽くハイライト
  */
 function focusBookshelfListItem(scenarioId) {
   const listContainer = document.getElementById("bookshelf-list-container");
+
+  // 1) すでに付与されている selected を全て除去
+  listContainer.querySelectorAll(".scenario-list.selected").forEach(el => {
+    el.classList.remove("selected");
+  });
+
+  // 2) 該当の item を探す
   const item = listContainer.querySelector(`[data-scenario-id="${scenarioId}"]`);
   if (item) {
+    // スクロール → selected を付与
     item.scrollIntoView({ behavior: "smooth", block: "center" });
+    item.classList.add("selected");
     item.style.backgroundColor = "#444";
     setTimeout(() => {
       item.style.backgroundColor = "";
     }, 1500);
   }
 }
+
 
 /** シナリオをコピー（シナリオ本体＋シーン履歴） */
 async function copyScenario(originalScenarioId) {
