@@ -1313,3 +1313,7 @@ button:hover {
   border-image-outset: 0;
   border-image-repeat: stretch;
 }
+
+.book-wrapper.facing-front:last-child {
+  padding-right: 140px;
+}
