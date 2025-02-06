@@ -818,8 +818,8 @@ button:hover {
   box-sizing: border-box;
 }
 
-.scenario-list.selected{
-  border: 1px solid #FF0
+.scenario-list.selected {
+  border: 1px solid #ff0;
 }
 
 .scenario-list:nth-child(odd) {
@@ -1218,9 +1218,7 @@ button:hover {
 .book:hover {
   top: 0;
   display: flex;
-  scale: 1;
   z-index: 1000;
-  scale: 1.05;
 }
 /*
 悩み中…
@@ -1243,3 +1241,75 @@ button:hover {
   transform-origin: left;
 }
 */
+/* =====================================
+   3D 回転のための追加クラス
+   （既存の .book は触らず、そのまま利用）
+===================================== */
+.book-wrapper {
+  perspective: 1000px;
+  display: inline-block;
+  vertical-align: bottom;
+  position: relative;
+}
+.book-inner {
+  transform-style: preserve-3d;
+  transition: transform 0.7s ease;
+  transform-origin: left center;
+  height: 200px;
+}
+
+.book {
+  transform: rotateY(0deg);
+  backface-visibility: hidden;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.book-front {
+  transform: rotateY(90deg); /* ← 重要 */
+  transform-origin: 0 0;
+  backface-visibility: hidden;
+  position: absolute;
+  left: 0px;
+  top: 0;
+  height: 200px; /* 7:5比率で */
+  width: 170px;
+  transition: all 1s ease;
+}
+
+.book-front img {
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  box-shadow: 0 5px 10px -4px #000;
+}
+
+.book-wrapper.facing-front .book-inner {
+  transform: rotateY(-90deg); /* 背表紙 0 + (-90) = -90, 表紙 90 + (-90) = 0 */
+}
+
+.book-front-title {
+  position: absolute;
+  top: 66px;
+  text-wrap: auto;
+}
+
+.bookshelf-board {
+  width: 100%;
+  border-bottom: 25px solid #fff;
+  border-image-source: linear-gradient(to right bottom, rgb(219 183 111), rgb(194 134 73));
+
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  border-bottom: 20px solid;
+  border-image-slice: 1;
+  border-image-width: 1;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+}

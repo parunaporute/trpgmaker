@@ -1,26 +1,24 @@
 /****************************************
  * bookshelfPage.js
- * 本棚画面の初期化やUI操作
+ * 1回の背表紙クリックでリストをハイライト + 3D表紙を表示
  ****************************************/
 
-// グローバルに削除対象シナリオを格納する
 let scenarioToDelete = null;
-let scenarioToCopy = null; // ← 追加（コピー用）
+let scenarioToCopy = null;
 
 async function initBookshelfPage() {
-  // 「メニューへ戻る」ボタン
   const backBtn = document.getElementById("back-to-menu");
   backBtn.addEventListener("click", () => {
     window.location.href = "index.html";
   });
 
-  // ---- 削除モーダルのボタン動作を設定
+  // --- 削除モーダル関連 ---
   const deleteModalOk = document.getElementById("delete-scenario-ok");
   const deleteModalCancel = document.getElementById("delete-scenario-cancel");
   deleteModalOk.addEventListener("click", onConfirmDeleteScenario);
   deleteModalCancel.addEventListener("click", onCancelDeleteScenario);
 
-  // ---- コピー用モーダルのボタン処理
+  // --- コピー用モーダル関連 ---
   const copyOkBtn = document.getElementById("copy-scenario-ok");
   const copyCancelBtn = document.getElementById("copy-scenario-cancel");
 
@@ -38,7 +36,6 @@ async function initBookshelfPage() {
     } finally {
       scenarioToCopy = null;
       closeCopyModal();
-      // ---- ここで再描画 ----
       refreshBookshelfView();
     }
   });
@@ -48,12 +45,7 @@ async function initBookshelfPage() {
     closeCopyModal();
   });
 
-  function closeCopyModal() {
-    const modal = document.getElementById("copy-scenario-modal");
-    modal.classList.remove("active");
-  }
-
-  // シナリオ一覧を取得 & 初回描画
+  // --- シナリオ一覧を取得して描画 ---
   let allScenarios = [];
   try {
     allScenarios = await listAllScenarios();
@@ -61,25 +53,19 @@ async function initBookshelfPage() {
     console.error("シナリオ一覧の取得失敗:", err);
     return;
   }
-  const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag === true);
+  const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
 
   renderBooksOnShelf(shelfScenarios);
   renderBookshelfList(shelfScenarios);
 }
 
-/**
- * 全体を再描画するヘルパー
- */
+/** 再描画 */
 async function refreshBookshelfView() {
   try {
-    // 1) 全シナリオを再取得
     const allScenarios = await listAllScenarios();
-    // 2) 本棚フラグ == true のものだけ
-    const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag === true);
+    const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
 
-    // 3) 本棚(横スクロール)を再描画
     renderBooksOnShelf(shelfScenarios);
-    // 4) 本一覧を再描画
     renderBookshelfList(shelfScenarios);
   } catch (err) {
     console.error("Error refreshing the bookshelf view:", err);
@@ -88,33 +74,64 @@ async function refreshBookshelfView() {
 
 /**
  * 本棚(横スクロール)
- *  - シナリオの「アクション数」を元に背表紙の厚みを変える
- *  - 「最後に追加された画像」をカバーに擬似利用
+ * - シナリオの actionCount で背表紙の厚みを変える
+ * - 最後の画像を背表紙 & 表紙に流用
+ * - 背表紙クリックで (1) focus, (2) scenario.bookFacingFront = true
  */
 async function renderBooksOnShelf(scenarios) {
   const shelfContainer = document.getElementById("bookshelf-container");
-  shelfContainer.innerHTML = "";
+shelfContainer.innerHTML = "";
 
+const bar = document.createElement("div");
+bar.className = "bookshelf-board";
+//shelfContainer.appendChild(ber);
+  // マージン
+  const bookLeftMargin = 0;
   for (const scenario of scenarios) {
+    // アクション数で背表紙の幅を決定
     const entries = await getSceneEntriesByScenarioId(scenario.scenarioId);
     const actionCount = entries.filter(e => e.type === "action").length;
     const spineWidth = 30 + actionCount;
 
-    const shortTitle = scenario.title?.substring(0, 15) || "(無題)";
-
+    const shortTitle = scenario.title?.substring(0, 15) || "●●●";
     const images = entries.filter(e => e.type === "image");
-    let coverImage = null;
-    if (images.length > 0) {
-      coverImage = images[images.length - 1];
+    const coverImage = images.length > 0 ? images[images.length - 1] : null;
+
+    // 3D ラッパ
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("book-wrapper");
+
+    if (scenario.bookFacingFront) {
+      wrapper.classList.add("facing-front");
+      wrapper.style.marginRight = (170 - spineWidth) + "px";
+      setTimeout(() => {
+        wrapper.style.marginLeft = bookLeftMargin + "px";
+        if (wrapper.classList.contains("facing-front")) {
+          wrapper.querySelector(".book-front").style.transform = `rotateY(90deg) translateZ(-${spineWidth}px)`;
+          wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
+        }
+      }, 500);
+
+    } else {
+      wrapper.style.marginLeft = bookLeftMargin + "px";
     }
 
+    // 3D 内部
+    const inner = document.createElement("div");
+    inner.classList.add("book-inner");
+    wrapper.appendChild(inner);
+
+    // ===== 背表紙 (.book) =====
     const bookSpine = document.createElement("div");
     bookSpine.className = "book";
+    // 下記は既存の背表紙スタイルをそのままJSに書いているだけ
     bookSpine.style.display = "inline-flex";
     bookSpine.style.verticalAlign = "bottom";
     bookSpine.style.height = "200px";
     bookSpine.style.width = spineWidth + "px";
-    bookSpine.style.margin = "0 0 0 3px";
+    //    bookSpine.style.margin = "0 0 0 " + bookLeftMargin + "px";
+    bookSpine.style.margin = "0";
+
     bookSpine.style.backgroundColor = "#774400";
     bookSpine.style.position = "relative";
     bookSpine.style.cursor = "pointer";
@@ -143,18 +160,71 @@ async function renderBooksOnShelf(scenarios) {
     titleEl.style.padding = "0 5px";
     bookSpine.appendChild(titleEl);
 
-    // クリックでリストの当該シナリオを強調スクロール
-    bookSpine.addEventListener("click", () => {
+    const noUpdateDateTimeFlag = true;
+    // ---------- ここが重要！ ----------
+    // 背表紙クリックで
+    //  1) リスト項目ハイライト
+    //  2) 正面を向く (bookFacingFront = true)
+    bookSpine.addEventListener("click", async () => {
+      // (1) リスト強調
       focusBookshelfListItem(scenario.scenarioId);
+      scenario.bookFacingFront = true;
+      await updateScenario(scenario, noUpdateDateTimeFlag);
+      wrapper.classList.add("facing-front");
+      wrapper.style.marginRight = (170 - spineWidth - bookLeftMargin + bookLeftMargin) + "px";
+      wrapper.style.marginLeft = bookLeftMargin + "px";
+      setTimeout(() => {
+        if (wrapper.classList.contains("facing-front")) {
+          wrapper.querySelector(".book-front").style.transform = `rotateY(90deg) translateZ(-${spineWidth}px)`;
+          wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
+        }
+      }, 500);
+      wrapper.style.zIndex = 1000;
     });
 
-    shelfContainer.appendChild(bookSpine);
+    // ===== 正面 (.book-front) =====
+    const bookFront = document.createElement("div");
+    bookFront.classList.add("book-front");
+    bookFront.style.left = spineWidth + "px";
+    bookFront.style.transformOrigin = "0 " + spineWidth + "px";
+    bookFront.style.transform = "translateZ(" + spineWidth + "px);";
+    if (coverImage) {
+      const frontImg = document.createElement("img");
+      frontImg.src = coverImage.dataUrl;
+      bookFront.appendChild(frontImg);
+    }
+
+    // 横書きタイトル
+    const frontTitle = document.createElement("div");
+    frontTitle.classList.add("book-front-title");
+    frontTitle.textContent = scenario.title || "(無題)";
+    bookFront.appendChild(frontTitle);
+
+    // 正面クリック → 背表紙に戻す
+    bookFront.addEventListener("click", async () => {
+      scenario.bookFacingFront = false;
+      await updateScenario(scenario, noUpdateDateTimeFlag);
+      wrapper.classList.remove("facing-front");
+      wrapper.querySelector(".book-front").style.transform = `rotateY(90deg)`;
+      wrapper.querySelector(".book-front").style.transformOrigin = "0 " + bookLeftMargin + "px";
+      wrapper.style.marginRight = 0;
+      wrapper.style.marginLeft = 0;
+      wrapper.style.zIndex = 0;
+      wrapper.style.marginLeft = bookLeftMargin + "px";
+
+    });
+
+    // 3D構造に背表紙 & 表紙を追加
+    inner.appendChild(bookSpine);
+    inner.appendChild(bookFront);
+
+    // shelfContainerに配置
+    shelfContainer.appendChild(wrapper);
   }
 }
 
 /**
- * リスト表示（本一覧）
- *  - 「続きへ」「コピーする」「削除」ボタンを追加
+ * リスト表示 (従来通り)
  */
 function renderBookshelfList(scenarios) {
   const listContainer = document.getElementById("bookshelf-list-container");
@@ -172,13 +242,11 @@ function renderBookshelfList(scenarios) {
     div.style.transition = "background-color 0.3s";
     div.setAttribute("data-scenario-id", sc.scenarioId);
 
-    // タイトルなどの情報
     const infoDiv = document.createElement("div");
     infoDiv.className = "info";
     infoDiv.textContent = `ID:${sc.scenarioId} / ${sc.title} (更新:${sc.updatedAt})`;
     div.appendChild(infoDiv);
 
-    // --- 「続きへ」ボタン ---
     const btnContinue = document.createElement("button");
     btnContinue.textContent = "続きへ";
     btnContinue.addEventListener("click", async () => {
@@ -189,22 +257,18 @@ function renderBookshelfList(scenarios) {
     });
     div.appendChild(btnContinue);
 
-    // --- 「コピーする」ボタン ---
     const btnCopy = document.createElement("button");
     btnCopy.textContent = "コピーする";
     btnCopy.addEventListener("click", () => {
-      // グローバル変数にコピー対象をセット
       scenarioToCopy = sc;
-      // モーダルを表示
       const copyModal = document.getElementById("copy-scenario-modal");
       copyModal.classList.add("active");
     });
     div.appendChild(btnCopy);
 
-    // --- 「削除」ボタン ---
     const btnDelete = document.createElement("button");
     btnDelete.textContent = "削除";
-    btnDelete.style.backgroundColor="rgb(244, 67, 54)";
+    btnDelete.style.backgroundColor = "rgb(244, 67, 54)";
     btnDelete.addEventListener("click", () => {
       scenarioToDelete = sc;
       const modal = document.getElementById("delete-scenario-modal");
@@ -217,20 +281,19 @@ function renderBookshelfList(scenarios) {
 }
 
 /**
- * 本棚の背表紙クリック → リストの該当箇所へスクロール＋軽くハイライト
+ * 背表紙クリック → リスト強調
  */
 function focusBookshelfListItem(scenarioId) {
   const listContainer = document.getElementById("bookshelf-list-container");
 
-  // 1) すでに付与されている selected を全て除去
+  // すでに付いてる selected を全て除去
   listContainer.querySelectorAll(".scenario-list.selected").forEach(el => {
     el.classList.remove("selected");
   });
 
-  // 2) 該当の item を探す
+  // 対象の item を探す
   const item = listContainer.querySelector(`[data-scenario-id="${scenarioId}"]`);
   if (item) {
-    // スクロール → selected を付与
     item.scrollIntoView({ behavior: "smooth", block: "center" });
     item.classList.add("selected");
     item.style.backgroundColor = "#444";
@@ -240,8 +303,7 @@ function focusBookshelfListItem(scenarioId) {
   }
 }
 
-
-/** シナリオをコピー（シナリオ本体＋シーン履歴） */
+/** シナリオコピー */
 async function copyScenario(originalScenarioId) {
   const original = await getScenarioById(originalScenarioId);
   if (!original) throw new Error("コピー元が見つかりません");
@@ -249,13 +311,12 @@ async function copyScenario(originalScenarioId) {
   const newTitle = original.title + " (copy)";
   const newScenarioId = await createNewScenario(original.wizardData, newTitle);
 
-  // コピー直後の新シナリオを本棚フラグONに
   const newScenario = await getScenarioById(newScenarioId);
   newScenario.bookShelfFlag = true;
   newScenario.hideFromHistoryFlag = true;
+  newScenario.bookFacingFront = false;
   await updateScenario(newScenario);
 
-  // 履歴を複製
   const entries = await getSceneEntriesByScenarioId(originalScenarioId);
   for (const e of entries) {
     const newEntry = {
@@ -271,7 +332,7 @@ async function copyScenario(originalScenarioId) {
   }
 }
 
-/** 削除モーダル: OKボタン */
+/** 削除モーダル: OK */
 async function onConfirmDeleteScenario() {
   if (!scenarioToDelete) {
     closeDeleteModal();
@@ -279,8 +340,7 @@ async function onConfirmDeleteScenario() {
   }
   try {
     await deleteScenarioById(scenarioToDelete.scenarioId);
-    // --- ここで再描画を呼び出す ---
-    await refreshBookshelfView();
+    refreshBookshelfView();
   } catch (e) {
     console.error(e);
     alert("削除に失敗しました。");
@@ -290,15 +350,18 @@ async function onConfirmDeleteScenario() {
   }
 }
 
-/** 削除モーダル: キャンセルボタン */
+/** 削除モーダル: キャンセル */
 function onCancelDeleteScenario() {
   scenarioToDelete = null;
   closeDeleteModal();
 }
 
-/** モーダル閉じる共通 */
 function closeDeleteModal() {
   const modal = document.getElementById("delete-scenario-modal");
+  modal.classList.remove("active");
+}
+function closeCopyModal() {
+  const modal = document.getElementById("copy-scenario-modal");
   modal.classList.remove("active");
 }
 

@@ -145,12 +145,14 @@ function createNewScenario(wizardData, title = "新シナリオ") {
 /**
  * シナリオを更新
  */
-function updateScenario(scenario) {
+function updateScenario(scenario, noUpdateDateTimeFlag) {
   return new Promise((resolve, reject) => {
     if (!db) {
       return reject("DB未初期化");
     }
-    scenario.updatedAt = new Date().toISOString();
+    if(!noUpdateDateTimeFlag) {
+      scenario.updatedAt = new Date().toISOString();
+    }
     // フラグが無い場合は false で補正
     if (typeof scenario.bookShelfFlag === "undefined") {
       scenario.bookShelfFlag = false;

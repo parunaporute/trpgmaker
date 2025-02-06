@@ -46,24 +46,22 @@
     <div style="display: flex; gap: 20px; flex-direction: column;">
       <!-- 
         1. 右スクロール可能な本棚
-        参照用に横に並べたイメージ要素
       -->
-      <div id="bookshelf-container" style="
-        flex: 1; 
-        overflow-x: auto; 
-        overflow-y: hidden; 
-        padding-top: 25px;
-        background-image: 
-          linear-gradient(90deg, #000000 0%, #ff910000 2%, #ff910000 98%, #00000085 100%),
-          linear-gradient(0deg, #ef8f4c94, #60380e94);
-        border-top: 15px solid;
-        border-bottom: 20px solid;
-        border-image-source: linear-gradient(to right bottom, rgb(219 183 111), rgb(194 134 73));
-        border-image-slice: 1;
-        border-image-width: 1;
-        border-image-outset: 0;
-        border-image-repeat: stretch;
+      <div style="
+        height: 250px;
+        box-sizing: border-box;
+        overflow: auto;
+        flex: 1;
+        padding-top: 45px;
+        padding-bottom: 25px;
+        overflow-x: auto;
+        background-image:
+        linear-gradient(180deg, #ffffff00 0%, #ffffff00 215px, rgb(0 0 0 / 0%) 237px, rgb(0 0 0 / 50%) 246px, rgb(255 173 105) 246px),
+        linear-gradient(180deg, #dd7f37 0%, rgb(233 168 104) 25px, rgb(0 0 0 / 62%) 25px, rgb(0 0 0 / 0%) 34px, rgb(194 113 73 / 0%) 20px),
+        linear-gradient(0, #b37417, #ffbb6f);
         white-space: nowrap;">
+        <div id="bookshelf-container" style="display: flex; flex-direction: row; gap:7.5px; padding-left:5px;">
+        </div>
       </div>
 
       <!-- 
