@@ -172,6 +172,8 @@ async function renderBooksOnShelf(scenarios) {
       bookSpine.style.backgroundSize = "cover";
       bookSpine.style.backgroundPosition = "center";
       bookSpine.style.backgroundBlendMode = "multiply";
+    } else {
+      bookSpine.style.backgroundImage = `linear-gradient(45deg, #004755, rgb(0 208 255))`;
     }
 
     // 縦書きタイトル
@@ -217,6 +219,8 @@ async function renderBooksOnShelf(scenarios) {
       const frontImg = document.createElement("img");
       frontImg.src = coverImage.dataUrl;
       bookFront.appendChild(frontImg);
+    } else {
+      bookFront.style.backgroundImage = `linear-gradient(45deg, #004755, rgb(0 208 255))`;
     }
 
     // 横書きタイトル
