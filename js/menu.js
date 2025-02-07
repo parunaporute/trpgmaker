@@ -5,6 +5,7 @@
 /** シナリオ一覧再描画用(※非表示チェックの状態を見てフィルタする) */
 async function renderScenarioList() {
   const container = document.getElementById("scenario-list-container");
+  // リスト増殖バグを防ぐため、描画前に必ずクリア
   container.innerHTML = "";
 
   try {
@@ -14,10 +15,10 @@ async function renderScenarioList() {
     const showHiddenCheckbox = document.getElementById("show-hidden-scenarios");
     const showHidden = showHiddenCheckbox ? showHiddenCheckbox.checked : false;
 
-    // hideFromHistoryFlag = true のものも表示するかどうか
+    // チェックが入っている場合は「非表示のもののみ」を抽出
+    // チェックなしの場合は「表示するもののみ」を抽出
     const filteredScenarios = scenarioList.filter((s) => {
-      if (showHidden) return true;
-      return s.hideFromHistoryFlag === false;
+      return showHidden ? s.hideFromHistoryFlag === true : s.hideFromHistoryFlag === false;
     });
 
     if (filteredScenarios.length === 0) {
@@ -38,69 +39,59 @@ async function renderScenarioList() {
       infoText.textContent = `ID:${scenario.scenarioId} / ${scenario.title} (更新:${scenario.updatedAt}) `;
       div.appendChild(infoText);
 
-      // 続きへ
-      const btnContinue = document.createElement("button");
-      btnContinue.textContent = "続きへ";
-      btnContinue.addEventListener("click", () => {
-        window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
-      });
-      div.appendChild(btnContinue);
+      // 「非表示を表示」チェックが**オフ**の場合のみ「続きへ」ボタンと「本棚へ」ボタンを表示
+      if (!showHidden) {
+        // 続きへボタン
+        const btnContinue = document.createElement("button");
+        btnContinue.type = "button"; // ← これを明示する
+        btnContinue.textContent = "続きへ";
+        btnContinue.addEventListener("click", () => {
+          window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
+        });
+        div.appendChild(btnContinue);
 
-      // コピー
-      const btnCopy = document.createElement("button");
-      btnCopy.textContent = "コピーする";
-      btnCopy.addEventListener("click", async () => {
-        try {
-          const newScenarioId = await copyScenarioById(scenario.scenarioId);
-          showToast(`シナリオ(ID:${scenario.scenarioId})をコピーしました。\n新ID: ${newScenarioId}`);
-          // コピー後に再描画
-          renderScenarioList();
-        } catch (err) {
-          console.error(err);
-          showToast("シナリオのコピーに失敗:\n" + err.message);
+        // 「本棚へ」/「収納済」をトグルにするボタン
+        const btnShelf = document.createElement("button");
+        btnShelf.type = "button";
+        if (!scenario.bookShelfFlag) {
+          // bookShelfFlag === false => 「本棚へ」
+          btnShelf.textContent = "本棚へ";
+          btnShelf.style.backgroundColor = "";
+        } else {
+          // bookShelfFlag === true => 「収納済」
+          btnShelf.textContent = "収納済";
+          btnShelf.style.backgroundColor = "gray";
         }
-      });
-      div.appendChild(btnCopy);
-
-      // 「本棚へ」/「収納済」をトグルにするボタン
-      const btnShelf = document.createElement("button");
-      if (!scenario.bookShelfFlag) {
-        // bookShelfFlag === false => 「本棚へ」
-        btnShelf.textContent = "本棚へ";
-        btnShelf.style.backgroundColor = "";
-      } else {
-        // bookShelfFlag === true => 「収納済」
-        btnShelf.textContent = "収納済";
-        btnShelf.style.backgroundColor = "gray";
+        btnShelf.addEventListener("click", async () => {
+          try {
+            scenario.bookShelfFlag = !scenario.bookShelfFlag;
+            scenario.updatedAt = new Date().toISOString();
+            await updateScenario(scenario);
+            renderScenarioList(); // 変更内容を再描画
+          } catch (err) {
+            console.error(err);
+            showToast("本棚フラグ切り替えに失敗:\n" + err.message);
+          }
+        });
+        div.appendChild(btnShelf);
       }
-      btnShelf.addEventListener("click", async () => {
-        try {
-          scenario.bookShelfFlag = !scenario.bookShelfFlag;
-          scenario.updatedAt = new Date().toISOString();
-          await updateScenario(scenario);
-          renderScenarioList(); // 変更内容を再描画
-        } catch (err) {
-          console.error(err);
-          showToast("本棚フラグ切り替えに失敗:\n" + err.message);
-        }
-      });
-      div.appendChild(btnShelf);
 
-      // 非表示フラグで「非表示」/「表示」ボタン切り替え
+      // 非表示フラグで「非表示にする」/「表示する」ボタン切り替え
       if (!scenario.hideFromHistoryFlag) {
-        // hideFromHistoryFlag === false => 「非表示」ボタン
+        // hideFromHistoryFlag === false => 「非表示にする」ボタン
         const btnHide = document.createElement("button");
+        btnHide.type = "button";
         btnHide.textContent = "非表示にする";
         btnHide.addEventListener("click", () => {
           showHideConfirmModal(scenario);
         });
         div.appendChild(btnHide);
       } else {
-        // hideFromHistoryFlag === true => 「表示」ボタン
+        // hideFromHistoryFlag === true => 「表示する」ボタン
         const btnShow = document.createElement("button");
-        btnShow.textContent = "非表示";
+        btnShow.type = "button";
+        btnShow.textContent = "表示する";
         btnShow.style.backgroundColor = "gray";
-
         btnShow.addEventListener("click", async () => {
           scenario.hideFromHistoryFlag = false;
           scenario.updatedAt = new Date().toISOString();
@@ -110,15 +101,18 @@ async function renderScenarioList() {
         div.appendChild(btnShow);
       }
 
-      // 削除
-      const btnDelete = document.createElement("button");
-      btnDelete.textContent = "削除";
-      btnDelete.style.backgroundColor = "#f44336";
-      btnDelete.addEventListener("click", () => {
-        scenarioIdToDelete = scenario.scenarioId;
-        showDeleteScenarioModal(true);
-      });
-      div.appendChild(btnDelete);
+      // 「非表示を表示」チェックが**オン**の場合のみ「削除」ボタンを表示
+      if (showHidden) {
+        const btnDelete = document.createElement("button");
+        btnDelete.type = "button";
+        btnDelete.textContent = "削除する";
+        btnDelete.style.backgroundColor = "#f44336";
+        btnDelete.addEventListener("click", () => {
+          scenarioIdToDelete = scenario.scenarioId;
+          showDeleteScenarioModal(true);
+        });
+        div.appendChild(btnDelete);
+      }
 
       container.appendChild(div);
     });
@@ -300,9 +294,14 @@ function setupMenuButtons() {
     window.location.href = "bookshelf.html";
   });
 
-  // 「非表示を表示する」チェックボックスの変更時イベント
+  // 「非表示を表示する」チェックボックスのイベント伝搬を防ぐ
   const showHiddenCheckbox = document.getElementById("show-hidden-scenarios");
   if (showHiddenCheckbox) {
+    // チェックボックスがクリックされたとき、アコーディオンへの伝搬を止める
+    showHiddenCheckbox.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    // 状態が変わったら再描画
     showHiddenCheckbox.addEventListener("change", () => {
       renderScenarioList();
     });
@@ -315,12 +314,22 @@ function initAccordion() {
   const content = document.getElementById("ongoing-scenarios-content");
   if (!header || !content) return;
 
+  // 前回の開閉状態を復元
   const savedState = localStorage.getItem("ongoingScenariosAccordionState");
   if (savedState === "open") {
     content.classList.add("open");
   }
 
-  header.addEventListener("click", () => {
+  // ヘッダをクリックした時のみアコーディオンを開閉
+  header.addEventListener("click", (e) => {
+    // チェックボックス または そのラベル( for="show-hidden-scenarios" )がクリックされた場合はアコーディオンを開閉しない
+    if (
+      e.target.closest("#show-hidden-scenarios") ||
+      e.target.closest("label[for='show-hidden-scenarios']")
+    ) {
+      return;
+    }
+    // 開閉トグル
     content.classList.toggle("open");
     if (content.classList.contains("open")) {
       localStorage.setItem("ongoingScenariosAccordionState", "open");
@@ -330,7 +339,8 @@ function initAccordion() {
   });
 }
 
-/** シナリオをコピー */
+/** シナリオをコピー (必要な場合) */
+/*
 async function copyScenarioById(originalScenarioId) {
   const scenario = await getScenarioById(originalScenarioId);
   if (!scenario) {
@@ -342,7 +352,6 @@ async function copyScenarioById(originalScenarioId) {
     wizardData: JSON.parse(JSON.stringify(scenario.wizardData || {})),
     createdAt: now,
     updatedAt: now,
-    // 以下フラグは初期値に
     bookShelfFlag: false,
     hideFromHistoryFlag: false,
   };
@@ -364,7 +373,7 @@ async function copyScenarioById(originalScenarioId) {
     await addSceneEntry(copy);
   }
 
-  // 反映
+  // 最終的に更新して保存
   const newScen = await getScenarioById(newScenarioId);
   newScen.title = scenario.title + "_copy";
   newScen.updatedAt = new Date().toISOString();
@@ -374,6 +383,7 @@ async function copyScenarioById(originalScenarioId) {
 
   return newScenarioId;
 }
+*/
 
 /** トースト簡易表示 */
 function showToast(message) {
