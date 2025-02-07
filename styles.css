@@ -1320,3 +1320,14 @@ button:hover {
 .book-wrapper.facing-front:last-child {
   padding-right: 140px;
 }
+
+/* ドラッグ中のドロップ候補用スタイル */
+.book-wrapper.drag-over {
+  box-sizing: border-box;
+  border-right: 15px solid transparent;
+  border-image-slice: 1;
+  border-image-width: 5px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-image-source: linear-gradient(to left, #fff 0px, #fff 20px, rgba(0, 0, 0, 0) 20px, rgba(0, 0, 0, 0) 100%);
+}
