@@ -134,6 +134,7 @@ async function renderBooksOnShelf(scenarios) {
       wrapper.style.paddingRight = (170 - spineWidth) + "px";
       setTimeout(() => {
         wrapper.style.marginLeft = bookLeftMargin + "px";
+        wrapper.style.zIndex = 1000;
         if (wrapper.classList.contains("facing-front")) {
           wrapper.querySelector(".book-front").style.transform = `rotateY(90deg) translateZ(-${spineWidth}px)`;
           wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
@@ -236,10 +237,11 @@ async function renderBooksOnShelf(scenarios) {
       wrapper.classList.remove("facing-front");
       wrapper.querySelector(".book-front").style.transform = `rotateY(90deg)`;
       wrapper.querySelector(".book-front").style.transformOrigin = "0 " + bookLeftMargin + "px";
-      wrapper.style.paddingRight = 0;
-      wrapper.style.marginLeft = 0;
-      wrapper.style.zIndex = 0;
       wrapper.style.marginLeft = bookLeftMargin + "px";
+      setTimeout(() => {
+        wrapper.style.paddingRight = 0;
+        wrapper.style.zIndex = 0;
+      }, 500);
     });
 
     // 3D構造に背表紙 & 表紙を追加
