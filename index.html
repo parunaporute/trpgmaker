@@ -109,11 +109,20 @@
     <div class="accordion">
       <!-- ヘッダー部分 -->
       <div class="accordion-header" id="ongoing-scenarios-header">
-        <div>進行中のシナリオ一覧</div><div><label style="display: flex; align-items: center; justify-content: left;"><input type="checkbox" id="show-hidden-scenarios" />非表示を表示</label></div>
+        <div>進行中のシナリオ一覧</div>
+        <div style="
+        position: absolute;
+        height: 100%;
+        right: 0;
+        top: 0;
+        box-sizing: border-box;">
+        <label for="show-hidden-scenarios" style="display: flex; align-items: center; justify-content: left;height: 100%; padding-right: 20px;">
+          <input type="checkbox" id="show-hidden-scenarios" />非表示を表示
+        </label>
+      </div>
       </div>
       <!-- コンテンツ部分 -->
       <div class="accordion-content" id="ongoing-scenarios-content">
-        <div id="active-scenarios-container"></div>
         <div id="scenario-list-container"></div>
       </div>
     </div>
