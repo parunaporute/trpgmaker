@@ -1294,8 +1294,11 @@ button:hover {
 
 .book-front-title {
   position: absolute;
-  top: 66px;
   text-wrap: auto;
+  background-color: #00000099;
+  margin: 10px auto;
+  padding: 7px;
+  top: 0;
 }
 
 .bookshelf-board {
