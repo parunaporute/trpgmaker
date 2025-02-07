@@ -150,7 +150,7 @@ function updateScenario(scenario, noUpdateDateTimeFlag) {
     if (!db) {
       return reject("DB未初期化");
     }
-    if(!noUpdateDateTimeFlag) {
+    if (!noUpdateDateTimeFlag) {
       scenario.updatedAt = new Date().toISOString();
     }
     // フラグが無い場合は false で補正
@@ -159,6 +159,10 @@ function updateScenario(scenario, noUpdateDateTimeFlag) {
     }
     if (typeof scenario.hideFromHistoryFlag === "undefined") {
       scenario.hideFromHistoryFlag = false;
+    }
+    // ★ もし本棚用として登録されていて shelfOrder が未設定なら、現在時刻を数値で設定
+    if (scenario.bookShelfFlag && typeof scenario.shelfOrder !== "number") {
+      scenario.shelfOrder = Date.now();
     }
 
     const tx = db.transaction("scenarios", "readwrite");
@@ -211,6 +215,7 @@ function listAllScenarios() {
         sc.bookShelfFlag = sc.bookShelfFlag || false;
         sc.hideFromHistoryFlag = sc.hideFromHistoryFlag || false;
       });
+      // ※ 本来は updatedAt でソートしているが、本棚ページでは独自の並び順で処理するためここではそのまま返す
       result.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
       resolve(result);
     };

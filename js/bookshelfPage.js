@@ -54,6 +54,15 @@ async function initBookshelfPage() {
     return;
   }
   const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
+  // ★ 新専用並び順: shelfOrder（未設定なら新規とみなしてInfinityとして扱い、降順にする）
+  shelfScenarios.sort((a, b) => {
+    const orderA = (typeof a.shelfOrder === "number") ? a.shelfOrder : Infinity;
+    const orderB = (typeof b.shelfOrder === "number") ? b.shelfOrder : Infinity;
+    if (orderA > orderB) return -1;
+    if (orderA < orderB) return 1;
+    // 同じ場合は作成日時で降順（新しいものが先頭）にする
+    return (b.createdAt || "").localeCompare(a.createdAt || "");
+  });
 
   renderBooksOnShelf(shelfScenarios);
   renderBookshelfList(shelfScenarios);
@@ -64,6 +73,14 @@ async function refreshBookshelfView() {
   try {
     const allScenarios = await listAllScenarios();
     const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
+    // ★ 再描画時も新専用並び順でソート
+    shelfScenarios.sort((a, b) => {
+      const orderA = (typeof a.shelfOrder === "number") ? a.shelfOrder : Infinity;
+      const orderB = (typeof b.shelfOrder === "number") ? b.shelfOrder : Infinity;
+      if (orderA > orderB) return -1;
+      if (orderA < orderB) return 1;
+      return (b.createdAt || "").localeCompare(a.createdAt || "");
+    });
 
     renderBooksOnShelf(shelfScenarios);
     renderBookshelfList(shelfScenarios);
@@ -80,11 +97,11 @@ async function refreshBookshelfView() {
  */
 async function renderBooksOnShelf(scenarios) {
   const shelfContainer = document.getElementById("bookshelf-container");
-shelfContainer.innerHTML = "";
+  shelfContainer.innerHTML = "";
 
-const bar = document.createElement("div");
-bar.className = "bookshelf-board";
-//shelfContainer.appendChild(ber);
+  const bar = document.createElement("div");
+  bar.className = "bookshelf-board";
+  //shelfContainer.appendChild(ber);
   // マージン
   const bookLeftMargin = 0;
   for (const scenario of scenarios) {
@@ -211,7 +228,6 @@ bar.className = "bookshelf-board";
       wrapper.style.marginLeft = 0;
       wrapper.style.zIndex = 0;
       wrapper.style.marginLeft = bookLeftMargin + "px";
-
     });
 
     // 3D構造に背表紙 & 表紙を追加
