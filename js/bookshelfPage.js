@@ -276,7 +276,7 @@ function renderBookshelfList(scenarios) {
     div.appendChild(infoDiv);
 
     const btnContinue = document.createElement("button");
-    btnContinue.textContent = "続きへ";
+    btnContinue.textContent = "読む";
     btnContinue.addEventListener("click", async () => {
       sc.bookShelfFlag = false;
       sc.hideFromHistoryFlag = false;

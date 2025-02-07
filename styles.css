@@ -277,6 +277,13 @@ button:hover {
   padding-bottom: 10px;
   min-height: 60px;
 }
+/* ▼ 0件時メッセージ */
+#no-scenarios-message {
+  display: none;
+  color: #ccc;
+  text-align: center;
+  margin-top: 20px;
+}
 
 /* ▼ モーダル（フェードイン／アウトで表示） */
 .modal {
@@ -816,6 +823,15 @@ button:hover {
   width: 100%;
   padding: 20px 10px;
   box-sizing: border-box;
+  border: 1px solid #876d51;
+}
+
+.accordion-content .scenario-list:first-child {
+  border-top: none;
+}
+
+.scenario-list + .scenario-list {
+  border-top: none;
 }
 
 .scenario-list.selected {
@@ -1176,6 +1192,7 @@ button:hover {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  position: relative;
   text-shadow: 1px 1px 4px #000;
   background-color: #5f4c38;
   color: #fff;

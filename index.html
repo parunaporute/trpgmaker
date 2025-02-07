@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>one and only</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <!-- 黒背景 + 白文字ベースのcssを読み込む（編集不要のstyles.css） -->
+  <!-- 黒背景 + 白文字ベースのCSS -->
   <link rel="stylesheet" href="styles.css" />
 
   <!-- DOMPurify(カード表示などで使用) -->
@@ -48,14 +48,7 @@
       </div>
     </h1>
 
-    <!-- 生成中モーダル -->
-    <div id="bg-generate-modal" class="modal">
-      <div class="modal-content">
-        <p>背景画像を生成中...</p>
-      </div>
-    </div>
-
-    <!-- ▼ ここから APIキー設定ボタン + モーダル -->
+    <!-- APIキー関連 -->
     <div class="api-key-section" style="margin-top:20px;">
       <!-- BGM停止/再生ボタン -->
       <button id="stop-bgm-button"></button>
@@ -65,7 +58,7 @@
       </button>
     </div>
 
-    <!-- APIキー設定用のモーダル -->
+    <!-- APIキー設定用モーダル -->
     <div id="api-key-modal" class="modal">
       <div class="modal-content" style="padding: 20px;">
         <h2>APIキー設定</h2>
@@ -76,20 +69,16 @@
         </div>
       </div>
     </div>
-    <!-- ▲ ここまで APIキー関連 -->
 
     <div class="element-section">
       <button id="character-create">ガチャ</button>
-      <!-- パーティ一覧ボタン -->
       <button id="party-list">パーティ</button>
-      <!-- 全エレメントクリアボタン -->
       <button id="clear-character-btn" style="background-color:#f44336;display: none;">全エレメントをクリア</button>
     </div>
     <div class="element-section">
       <button id="you-avatar-btn">あなたの分身</button>
     </div>
     <div class="element-section">
-      <!-- 倉庫確認ボタン -->
       <button id="show-warehouse-btn">倉庫</button>
     </div>
 
@@ -104,29 +93,30 @@
         新しいシナリオを始める
       </button>
     </div>
-    
-    <!-- ▼ アコーディオン構造に変更 -->
+
+    <!-- ▼ アコーディオン構造 -->
     <div class="accordion">
       <!-- ヘッダー部分 -->
       <div class="accordion-header" id="ongoing-scenarios-header">
         <div>進行中のシナリオ一覧</div>
-        <div style="
-        position: absolute;
-        height: 100%;
-        right: 0;
-        top: 0;
-        box-sizing: border-box;">
-        <label for="show-hidden-scenarios" style="display: flex; align-items: center; justify-content: left;height: 100%; padding-right: 20px;">
-          <input type="checkbox" id="show-hidden-scenarios" />非表示を表示
-        </label>
+        <div style="position: absolute; height: 100%; right: 0; top: 0; box-sizing: border-box;">
+          <label for="show-hidden-scenarios" style="display: flex; align-items: center; justify-content: left;height: 100%; padding-right: 20px;">
+            <input type="checkbox" id="show-hidden-scenarios" />
+            非表示を表示
+          </label>
+        </div>
       </div>
-      </div>
+
       <!-- コンテンツ部分 -->
       <div class="accordion-content" id="ongoing-scenarios-content">
+        <!-- リスト表示コンテナ -->
         <div id="scenario-list-container"></div>
+        <!-- 0件時メッセージ -->
+        <div id="no-scenarios-message" style="display:none;">
+          進行中のシナリオはありません。
+        </div>
       </div>
     </div>
-    
     <!-- ▲ アコーディオンここまで -->
   </div>
 
@@ -154,13 +144,23 @@
     <input type="file" id="import-images-file" accept=".zip" style="display:none;" />
   </div>
 
-  <!-- ▼ BGM関連（ここから） -->
+  <!-- BGM関連 -->
   <audio id="bgm" src="main-back.mp3" loop></audio>
 
-  <!-- ▼ スクリプト読み込み（編集不要ファイルはそのまま） -->
+  <!-- ▼ 各種スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
   <script src="js/avatar.js"></script>
+  <script src="js/menu.js"></script> <!-- ★ メニューJS: 差分更新ロジックなど -->
+  <script src="js/warehouse.js"></script>
+  <script src="js/avatar.js"></script>
+
+  <!-- exportImportMulti.js (ZIP入出力) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="js/exportImportMulti.js"></script>
+
   <script>
+    // ページ初期処理
     function fadeInPlay(audio) {
       audio.volume = 0;
       audio.play().then(() => {
@@ -171,8 +171,7 @@
             clearInterval(fadeInInterval);
           }
         }, 100);
-      }).catch(err => {
-      });
+      }).catch(err => {});
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
@@ -180,7 +179,7 @@
         await initIndexedDB(); 
         initAvatar(); 
         await initBackground("index");
-        initMenuPage();
+        initMenuPage(); // ← menu.js内の初期化
       } catch (e) {
         console.error("DB初期化エラー:", e);
       }
@@ -231,18 +230,5 @@
       });
     });
   </script>
-
-  <!-- menu.js -->
-  <script src="js/menu.js"></script>
-  <!-- warehouse.js -->
-  <script src="js/warehouse.js"></script>
-  <script src="js/avatar.js"></script>
-
-  <!-- exportImportMulti.js (ZIP入出力) -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-  <script src="js/exportImportMulti.js"></script>
-
 </body>
-
 </html>
