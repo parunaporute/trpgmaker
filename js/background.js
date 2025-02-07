@@ -34,6 +34,7 @@ async function initBackground(pageName = "index") {
           document.body.style.backgroundImage = `url(${img.dataUrl})`;
           document.body.style.backgroundSize = "cover";
           document.body.style.backgroundAttachment = "fixed";
+          document.body.style.backgroundPositionX = "center";
         }
       }
     }
@@ -123,6 +124,8 @@ async function generateNewBackground() {
     document.body.style.backgroundImage = `url(${dataUrl})`;
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundPositionX = "center";
+
 
     // 今ページ専用のキーに保存
     localStorage.setItem("selectedBgId_" + currentPageName, newId.toString());
@@ -169,6 +172,7 @@ async function openBgModal() {
       document.body.style.backgroundImage = `url(${img.dataUrl})`;
       document.body.style.backgroundSize = "cover";
       document.body.style.backgroundAttachment = "fixed";
+      document.body.style.backgroundPositionX = "center";
 
       // 今ページ用に保存
       localStorage.setItem("selectedBgId_" + currentPageName, img.id.toString());
