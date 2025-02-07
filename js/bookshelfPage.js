@@ -280,7 +280,6 @@ function renderBookshelfList(scenarios) {
     const btnContinue = document.createElement("button");
     btnContinue.textContent = "読む";
     btnContinue.addEventListener("click", async () => {
-      sc.bookShelfFlag = false;
       sc.hideFromHistoryFlag = false;
       await updateScenario(sc);
       window.location.href = `scenario.html?scenarioId=${sc.scenarioId}`;
