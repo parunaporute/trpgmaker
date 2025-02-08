@@ -1362,3 +1362,7 @@ button:hover {
   border-image-repeat: stretch;
   border-image-source: linear-gradient(to left, #fff 0px, #fff 20px, rgba(0, 0, 0, 0) 20px, rgba(0, 0, 0, 0) 100%);
 }
+
+#edit-scenario-covercolor1,#edit-scenario-covercolor2{
+  padding: 0;
+}
