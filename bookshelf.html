@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <title>本棚</title>
@@ -43,6 +42,17 @@
   <div class="container">
     <h1>本棚</h1>
     <p style="text-align:center;">本棚に収納されたシナリオが表示されます。</p>
+
+    <!-- ▼ 「アップロード」ボタン＆隠しファイル入力 -->
+    <div id="upload" style="display: flex; justify-content: right;align-items: end; width: 100%; margin: 10px auto;">
+      <button>アップロード</button>
+    </div>
+    <input
+      id="scenario-upload-input"
+      type="file"
+      accept=".zip"
+      style="display: none;"
+    />
 
     <!-- ▼ 棚とリストを左右に配置するラッパ -->
     <div style="display: flex; gap: 20px; flex-direction: column;">
@@ -114,7 +124,7 @@
     </div>
   </div>
 
-  <!-- ★ 新規追加: シナリオ取り込み確認用モーダル -->
+  <!-- ★ シナリオ取り込み確認用モーダル -->
   <div id="import-scenario-modal" class="modal">
     <div class="modal-content">
       <h3>シナリオを取り込みますか？</h3>
@@ -126,8 +136,22 @@
     </div>
   </div>
 
+  <!-- ★ 追加: ダウンロード時の確認モーダル -->
+  <div id="download-with-images-modal" class="modal">
+    <div class="modal-content">
+      <h3>ダウンロードの確認</h3>
+      <p>画像を含めるとサイズが大きくなる可能性があります。<br>
+         画像を含めたシナリオをダウンロードしますか？</p>
+      <div class="c-flexbox">
+        <button id="download-images-yes">画像付き</button>
+        <button id="download-images-no">画像なし</button>
+        <button id="download-images-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ▼ スクリプト読み込み -->
-  <!-- ★ JSZip（ZIP圧縮ライブラリ）を追加 -->
+  <!-- JSZip（ZIP圧縮ライブラリ） -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script src="js/indexedDB.js"></script>
@@ -136,9 +160,9 @@
     window.addEventListener("DOMContentLoaded", async () => {
       await initIndexedDB();
       await initBackground("bookshelf");
-      initBookshelfPage();
+      initBookshelfPage();      // 本棚ページ初期化
+      setupScenarioUpload();    // シナリオアップロード処理のセットアップ
     });
   </script>
 </body>
-
 </html>

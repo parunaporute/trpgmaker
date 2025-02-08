@@ -7,6 +7,12 @@
 let scenarioToDelete = null;
 let scenarioToCopy = null;
 
+/**
+ * 「ダウンロード」ボタン押下時に使用する
+ * どのシナリオをダウンロードするかを一時保持
+ */
+let scenarioToDownload = null;
+
 async function initBookshelfPage() {
   const backBtn = document.getElementById("back-to-menu");
   backBtn.addEventListener("click", () => {
@@ -46,6 +52,31 @@ async function initBookshelfPage() {
     closeCopyModal();
   });
 
+  // --- ダウンロード用モーダル関連 ---
+  const dlYesBtn = document.getElementById("download-images-yes");
+  const dlNoBtn = document.getElementById("download-images-no");
+  const dlCancelBtn = document.getElementById("download-images-cancel");
+
+  dlYesBtn.addEventListener("click", async () => {
+    closeDownloadModal();
+    if (scenarioToDownload) {
+      await exportScenarioAsZip(scenarioToDownload, true); // 画像含む
+      scenarioToDownload = null;
+    }
+  });
+  dlNoBtn.addEventListener("click", async () => {
+    closeDownloadModal();
+    if (scenarioToDownload) {
+      await exportScenarioAsZip(scenarioToDownload, false); // 画像除外
+      scenarioToDownload = null;
+    }
+  });
+  dlCancelBtn.addEventListener("click", () => {
+    // 何もせずに閉じる
+    closeDownloadModal();
+    scenarioToDownload = null;
+  });
+
   // --- シナリオ一覧を取得して描画 ---
   let allScenarios = [];
   try {
@@ -55,13 +86,11 @@ async function initBookshelfPage() {
     return;
   }
   const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
-  // ★ 新専用並び順: shelfOrder（未設定なら新規とみなして Infinity とし、降順にする）
   shelfScenarios.sort((a, b) => {
     const orderA = (typeof a.shelfOrder === "number") ? a.shelfOrder : Infinity;
     const orderB = (typeof b.shelfOrder === "number") ? b.shelfOrder : Infinity;
     if (orderA > orderB) return -1;
     if (orderA < orderB) return 1;
-    // 同じ場合は作成日時で降順（新しいものが先頭）にする
     return (b.createdAt || "").localeCompare(a.createdAt || "");
   });
 
@@ -74,7 +103,6 @@ async function refreshBookshelfView() {
   try {
     const allScenarios = await listAllScenarios();
     const shelfScenarios = allScenarios.filter(s => s.bookShelfFlag);
-    // ★ 再描画時も新専用並び順でソート
     shelfScenarios.sort((a, b) => {
       const orderA = (typeof a.shelfOrder === "number") ? a.shelfOrder : Infinity;
       const orderB = (typeof b.shelfOrder === "number") ? b.shelfOrder : Infinity;
@@ -92,10 +120,6 @@ async function refreshBookshelfView() {
 
 /**
  * 本棚(横スクロール) の描画
- * - シナリオの actionCount で背表紙の厚みを変える
- * - 最後の画像を背表紙 & 表紙に流用
- * - 背表紙クリックで (1) リスト項目をハイライト、(2) scenario.bookFacingFront = true で正面表示
- * - ★ ドラッグ・アンド・ドロップで並び替え可能に（各本のラッパに draggable 属性とイベントを設定）
  */
 async function renderBooksOnShelf(scenarios) {
   const shelfContainer = document.getElementById("bookshelf-container");
@@ -103,10 +127,9 @@ async function renderBooksOnShelf(scenarios) {
 
   const bar = document.createElement("div");
   bar.className = "bookshelf-board";
-  // マージン
   const bookLeftMargin = 0;
+
   for (const scenario of scenarios) {
-    // アクション数で背表紙の幅を決定
     const entries = await getSceneEntriesByScenarioId(scenario.scenarioId);
     const actionCount = entries.filter(e => e.type === "action").length;
     const spineWidth = 30 + actionCount;
@@ -118,14 +141,12 @@ async function renderBooksOnShelf(scenarios) {
     // 3D ラッパ
     const wrapper = document.createElement("div");
     wrapper.classList.add("book-wrapper");
-    // ★ ドラッグ＆ドロップ用：シナリオID を属性に設定し draggable にする
     wrapper.setAttribute("data-scenario-id", scenario.scenarioId);
     wrapper.setAttribute("draggable", "true");
     wrapper.addEventListener("dragstart", handleDragStart);
     wrapper.addEventListener("dragover", handleDragOver);
     wrapper.addEventListener("drop", handleDrop);
     wrapper.addEventListener("dragend", handleDragEnd);
-    // ★ 以下の2イベントで、内部の子要素に入ったときも drag-over クラスを維持する
     wrapper.addEventListener("dragenter", handleDragEnter);
     wrapper.addEventListener("dragleave", handleDragLeave);
 
@@ -140,12 +161,10 @@ async function renderBooksOnShelf(scenarios) {
           wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
         }
       }, 500);
-
     } else {
       wrapper.style.marginLeft = bookLeftMargin + "px";
     }
 
-    // 3D 内部
     const inner = document.createElement("div");
     inner.classList.add("book-inner");
     wrapper.appendChild(inner);
@@ -153,13 +172,11 @@ async function renderBooksOnShelf(scenarios) {
     // ===== 背表紙 (.book) =====
     const bookSpine = document.createElement("div");
     bookSpine.className = "book";
-    // 既存の背表紙スタイルを JS 側に記述
     bookSpine.style.display = "inline-flex";
     bookSpine.style.verticalAlign = "bottom";
     bookSpine.style.height = "200px";
     bookSpine.style.width = spineWidth + "px";
     bookSpine.style.margin = "0";
-
     bookSpine.style.backgroundColor = "#774400";
     bookSpine.style.position = "relative";
     bookSpine.style.cursor = "pointer";
@@ -177,7 +194,6 @@ async function renderBooksOnShelf(scenarios) {
       bookSpine.style.backgroundImage = `linear-gradient(45deg, #004755, rgb(0 208 255))`;
     }
 
-    // 縦書きタイトル
     const titleEl = document.createElement("div");
     titleEl.textContent = shortTitle;
     titleEl.style.position = "relative";
@@ -193,9 +209,7 @@ async function renderBooksOnShelf(scenarios) {
     const noUpdateDateTimeFlag = true;
     // ---------- 背表紙クリック ----------
     bookSpine.addEventListener("click", async () => {
-      // (1) リスト項目ハイライト
       focusBookshelfListItem(scenario.scenarioId);
-      // (2) 正面表示へ切替
       scenario.bookFacingFront = true;
       await updateScenario(scenario, noUpdateDateTimeFlag);
       wrapper.classList.add("facing-front");
@@ -216,6 +230,7 @@ async function renderBooksOnShelf(scenarios) {
     bookFront.style.left = spineWidth + "px";
     bookFront.style.transformOrigin = "0 " + spineWidth + "px";
     bookFront.style.transform = "translateZ(" + spineWidth + "px);";
+
     if (coverImage) {
       const frontImg = document.createElement("img");
       frontImg.src = coverImage.dataUrl;
@@ -224,13 +239,11 @@ async function renderBooksOnShelf(scenarios) {
       bookFront.style.backgroundImage = `linear-gradient(45deg, #004755, rgb(0 208 255))`;
     }
 
-    // 横書きタイトル
     const frontTitle = document.createElement("div");
     frontTitle.classList.add("book-front-title");
     frontTitle.textContent = scenario.title || "(無題)";
     bookFront.appendChild(frontTitle);
 
-    // 正面クリック → 背表紙に戻す
     bookFront.addEventListener("click", async () => {
       scenario.bookFacingFront = false;
       await updateScenario(scenario, noUpdateDateTimeFlag);
@@ -244,17 +257,14 @@ async function renderBooksOnShelf(scenarios) {
       }, 500);
     });
 
-    // 3D構造に背表紙 & 表紙を追加
     inner.appendChild(bookSpine);
     inner.appendChild(bookFront);
-
-    // shelfContainer に配置
     shelfContainer.appendChild(wrapper);
   }
 }
 
 /**
- * リスト表示 (従来通り)
+ * リスト表示
  */
 function renderBookshelfList(scenarios) {
   const listContainer = document.getElementById("bookshelf-list-container");
@@ -280,11 +290,18 @@ function renderBookshelfList(scenarios) {
     const buttonsDiv = document.createElement("div");
     buttonsDiv.className = "buttons";
 
+    // ▼ ダウンロードボタン
     const btnShare = document.createElement("button");
-    btnShare.textContent = "共有";
-    btnShare.className = "left-button";    
+    btnShare.textContent = "ダウンロード";
+    btnShare.className = "left-button";
+    btnShare.addEventListener("click", () => {
+      // ダウンロード用モーダルを表示するために対象シナリオを保持
+      scenarioToDownload = sc;
+      openDownloadModal();
+    });
     buttonsDiv.appendChild(btnShare);
 
+    // 読むボタン
     const btnContinue = document.createElement("button");
     btnContinue.textContent = "読む";
     btnContinue.addEventListener("click", async () => {
@@ -294,6 +311,7 @@ function renderBookshelfList(scenarios) {
     });
     buttonsDiv.appendChild(btnContinue);
 
+    // コピーするボタン
     const btnCopy = document.createElement("button");
     btnCopy.textContent = "コピーする";
     btnCopy.addEventListener("click", () => {
@@ -303,6 +321,7 @@ function renderBookshelfList(scenarios) {
     });
     buttonsDiv.appendChild(btnCopy);
 
+    // 削除ボタン
     const btnDelete = document.createElement("button");
     btnDelete.textContent = "削除";
     btnDelete.style.backgroundColor = "rgb(244, 67, 54)";
@@ -312,6 +331,7 @@ function renderBookshelfList(scenarios) {
       modal.classList.add("active");
     });
     buttonsDiv.appendChild(btnDelete);
+
     div.appendChild(buttonsDiv);
     listContainer.appendChild(div);
   }
@@ -322,13 +342,9 @@ function renderBookshelfList(scenarios) {
  */
 function focusBookshelfListItem(scenarioId) {
   const listContainer = document.getElementById("bookshelf-list-container");
-
-  // 既に selected クラスが付いているものを除去
   listContainer.querySelectorAll(".scenario-list.selected").forEach(el => {
     el.classList.remove("selected");
   });
-
-  // 対象の item を探す
   const item = listContainer.querySelector(`[data-scenario-id="${scenarioId}"]`);
   if (item) {
     item.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -386,13 +402,10 @@ async function onConfirmDeleteScenario() {
     closeDeleteModal();
   }
 }
-
-/** 削除モーダル: キャンセル */
 function onCancelDeleteScenario() {
   scenarioToDelete = null;
   closeDeleteModal();
 }
-
 function closeDeleteModal() {
   const modal = document.getElementById("delete-scenario-modal");
   modal.classList.remove("active");
@@ -402,41 +415,39 @@ function closeCopyModal() {
   modal.classList.remove("active");
 }
 
-/* ===== ドラッグ・アンド・ドロップ用 イベントハンドラ ===== */
+/* ======================
+   ダウンロード用モーダル
+ ====================== */
+function openDownloadModal() {
+  const modal = document.getElementById("download-with-images-modal");
+  if (!modal) return;
+  modal.classList.add("active");
+}
+function closeDownloadModal() {
+  const modal = document.getElementById("download-with-images-modal");
+  if (!modal) return;
+  modal.classList.remove("active");
+}
 
-/**
- * ドラッグ開始時
- */
+/* ======================
+   ドラッグ＆ドロップ
+ ====================== */
 function handleDragStart(event) {
-  // ドラッグ対象のシナリオIDを設定
   const scenarioId = event.currentTarget.getAttribute("data-scenario-id");
   event.dataTransfer.setData("text/plain", scenarioId);
   event.dataTransfer.effectAllowed = "move";
   event.currentTarget.classList.add("dragging");
 }
-
-/**
- * ドラッグ中（ドロップ許可のため）
- */
 function handleDragOver(event) {
-  event.preventDefault(); // ドロップを許可するため必須
+  event.preventDefault();
   event.dataTransfer.dropEffect = "move";
 }
-
-/**
- * ドラッグ対象の要素に入った時の処理
- * ※ dragenter/dragleave イベントは子要素間の移動でも発火するため、カウンターで管理
- */
 function handleDragEnter(event) {
   event.preventDefault();
   const target = event.currentTarget;
   target.dragCounter = (target.dragCounter || 0) + 1;
   target.classList.add("drag-over");
 }
-
-/**
- * ドラッグ対象の要素から離れた時の処理
- */
 function handleDragLeave(event) {
   const target = event.currentTarget;
   target.dragCounter = (target.dragCounter || 0) - 1;
@@ -445,15 +456,9 @@ function handleDragLeave(event) {
     target.dragCounter = 0;
   }
 }
-
-/**
- * ドロップ時の処理
- */
 function handleDrop(event) {
   event.preventDefault();
-  // ドロップ先からビジュアル用クラスを除去
   event.currentTarget.classList.remove("drag-over");
-  // ドロップ時にはカウンターをリセット
   event.currentTarget.dragCounter = 0;
 
   const draggedScenarioId = event.dataTransfer.getData("text/plain");
@@ -462,7 +467,6 @@ function handleDrop(event) {
   const dropTarget = event.currentTarget;
   if (!draggedEl || draggedEl === dropTarget) return;
 
-  // ドロップ先の要素の矩形を取得し、マウス位置に応じて前後に挿入
   const rect = dropTarget.getBoundingClientRect();
   const offsetX = event.clientX - rect.left;
   if (offsetX < rect.width / 2) {
@@ -470,13 +474,8 @@ function handleDrop(event) {
   } else {
     shelfContainer.insertBefore(draggedEl, dropTarget.nextSibling);
   }
-  // 並び替え後、各シナリオの shelfOrder を更新
   updateBookshelfOrder();
 }
-
-/**
- * ドラッグ終了時（見た目の解除とカウンターのリセット）
- */
 function handleDragEnd(event) {
   const target = event.currentTarget;
   target.classList.remove("dragging");
@@ -485,21 +484,18 @@ function handleDragEnd(event) {
 }
 
 /**
- * 現在の本棚上の並び順に基づき、各シナリオの shelfOrder を更新する
- * 左端（最上位）の本に最大値、右端（下位）の本に小さい値を設定する
+ * 並び順を更新
  */
 async function updateBookshelfOrder() {
   const shelfContainer = document.getElementById("bookshelf-container");
   const wrappers = Array.from(shelfContainer.children);
   const total = wrappers.length;
-  // 各本について新しい並び順を設定（左端が highest）
   for (let i = 0; i < total; i++) {
     const scenarioId = wrappers[i].getAttribute("data-scenario-id");
-    const newOrder = total - i; // 左端：total, 右端：1
+    const newOrder = total - i;
     try {
       const scenario = await getScenarioById(Number(scenarioId));
       scenario.shelfOrder = newOrder;
-      // 更新日時は変更しない（noUpdateDateTimeFlag=true）
       await updateScenario(scenario, true);
     } catch (err) {
       console.error("shelfOrder 更新エラー (scenarioId:", scenarioId, "):", err);
@@ -507,5 +503,103 @@ async function updateBookshelfOrder() {
   }
 }
 
-// 公開
+/* =========================================
+   ダウンロード処理本体
+ ========================================== */
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+/**
+ * 指定したシナリオについて ZIP を生成＆ダウンロード
+ * includeImages === true なら画像も含む
+ * false なら画像を除外
+ */
+async function exportScenarioAsZip(scenario, includeImages) {
+  const zip = new JSZip();
+
+  // シナリオ情報
+  const scenarioObj = { ...scenario };
+  // シーンエントリ
+  const entries = await getSceneEntriesByScenarioId(scenario.scenarioId);
+
+  let entriesToExport;
+  if (includeImages) {
+    entriesToExport = entries; // そのまま
+  } else {
+    // 画像(type==="image")を除外
+    entriesToExport = entries.filter(e => e.type !== "image");
+  }
+
+  zip.file("scenario.json", JSON.stringify(scenarioObj, null, 2));
+  zip.file("sceneEntries.json", JSON.stringify(entriesToExport, null, 2));
+
+  const blob = await zip.generateAsync({ type: "blob" });
+  const filename = (scenario.title || "scenario").replace(/[\\\/:*?"<>|]/g, "");
+  saveBlob(blob, filename + ".zip");
+}
+
+/* =========================================
+   アップロード処理
+ ========================================== */
+function setupScenarioUpload() {
+  const uploadButton = document.querySelector("#upload button");
+  const fileInput = document.getElementById("scenario-upload-input");
+  if (!uploadButton || !fileInput) return;
+
+  uploadButton.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async (evt) => {
+    const file = evt.target.files[0];
+    if (!file) return;
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const scenarioFile = zip.file("scenario.json");
+      const entriesFile = zip.file("sceneEntries.json");
+      if (!scenarioFile || !entriesFile) {
+        throw new Error("ZIPにscenario.jsonまたはsceneEntries.jsonがありません。");
+      }
+
+      const scenarioText = await scenarioFile.async("string");
+      const scenarioJson = JSON.parse(scenarioText);
+      const entriesText = await entriesFile.async("string");
+      const entriesJson = JSON.parse(entriesText);
+
+      const newScenarioId = await createNewScenario(
+        scenarioJson.wizardData || {},
+        scenarioJson.title || "無題"
+      );
+      const newScenario = await getScenarioById(newScenarioId);
+      newScenario.bookShelfFlag = true;
+      newScenario.updatedAt = new Date().toISOString();
+      await updateScenario(newScenario);
+
+      for (const entry of entriesJson) {
+        const newEntry = { ...entry };
+        delete newEntry.entryId;
+        newEntry.scenarioId = newScenarioId;
+        await addSceneEntry(newEntry);
+      }
+
+      alert("シナリオをアップロードしました。");
+      refreshBookshelfView();
+    } catch (err) {
+      console.error("シナリオのアップロードに失敗:", err);
+      alert("シナリオのアップロードに失敗しました: " + err.message);
+    } finally {
+      evt.target.value = "";
+    }
+  });
+}
+
 window.initBookshelfPage = initBookshelfPage;
