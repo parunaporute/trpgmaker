@@ -848,6 +848,21 @@ button:hover {
   width: 100%;
 }
 
+.scenario-list .buttons {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  gap:10px;
+  justify-content: right;
+  flex-wrap: wrap;
+}
+
+.scenario-list .buttons .left-button{
+  width: 100px;
+  margin-right: auto;
+}
+
 .scenario-wizard-section {
   margin-top: 40px;
   margin-bottom: 40px;

@@ -277,6 +277,14 @@ function renderBookshelfList(scenarios) {
     infoDiv.textContent = `ID:${sc.scenarioId} / ${sc.title} (更新:${sc.updatedAt})`;
     div.appendChild(infoDiv);
 
+    const buttonsDiv = document.createElement("div");
+    buttonsDiv.className = "buttons";
+
+    const btnShare = document.createElement("button");
+    btnShare.textContent = "共有";
+    btnShare.className = "left-button";    
+    buttonsDiv.appendChild(btnShare);
+
     const btnContinue = document.createElement("button");
     btnContinue.textContent = "読む";
     btnContinue.addEventListener("click", async () => {
@@ -284,7 +292,7 @@ function renderBookshelfList(scenarios) {
       await updateScenario(sc);
       window.location.href = `scenario.html?scenarioId=${sc.scenarioId}`;
     });
-    div.appendChild(btnContinue);
+    buttonsDiv.appendChild(btnContinue);
 
     const btnCopy = document.createElement("button");
     btnCopy.textContent = "コピーする";
@@ -293,7 +301,7 @@ function renderBookshelfList(scenarios) {
       const copyModal = document.getElementById("copy-scenario-modal");
       copyModal.classList.add("active");
     });
-    div.appendChild(btnCopy);
+    buttonsDiv.appendChild(btnCopy);
 
     const btnDelete = document.createElement("button");
     btnDelete.textContent = "削除";
@@ -303,8 +311,8 @@ function renderBookshelfList(scenarios) {
       const modal = document.getElementById("delete-scenario-modal");
       modal.classList.add("active");
     });
-    div.appendChild(btnDelete);
-
+    buttonsDiv.appendChild(btnDelete);
+    div.appendChild(buttonsDiv);
     listContainer.appendChild(div);
   }
 }
