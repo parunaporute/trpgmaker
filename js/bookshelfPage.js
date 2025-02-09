@@ -207,7 +207,7 @@ async function renderBooksOnShelf(scenarios) {
     bookSpine.style.cursor = "pointer";
     bookSpine.style.justifyContent = "center";
     bookSpine.style.alignItems = "center";
-    bookSpine.style.borderRadius = "4px";
+    bookSpine.style.borderRadius = "0px";
     bookSpine.style.boxShadow = "inset 0 0 5px rgba(0,0,0,0.3)";
 
     // 装丁色(未設定時はデフォルト)
@@ -234,7 +234,7 @@ async function renderBooksOnShelf(scenarios) {
     titleEl.style.writingMode = "vertical-rl";
     titleEl.style.textOrientation = "upright";
     titleEl.style.backgroundColor = "#00000080";
-    titleEl.style.padding = "0 5px";
+    titleEl.style.padding = "5px";
     bookSpine.appendChild(titleEl);
 
     const noUpdateDateTimeFlag = true;
@@ -680,22 +680,40 @@ async function openEditScenarioModal(scenarioId) {
     document.getElementById("edit-scenario-covercolor1").value = sc.coverColor1 || "#004755";
     document.getElementById("edit-scenario-covercolor2").value = sc.coverColor2 || "#00d0ff";
 
-    // useCoverImage 未定義ならデフォルト true
-    const coverImageFlag = (typeof sc.useCoverImage === "boolean") ? sc.useCoverImage : true;
-    const radios = document.getElementsByName("edit-scenario-coverimage");
-    if (coverImageFlag) {
-      // "装丁画像あり" をチェック
-      radios.forEach(r => { r.checked = (r.value === "on"); });
+    // ▼ 装丁画像チップを初期化
+    const coverImageChoice = document.getElementById("cover-image-choice");
+    const chipOn = coverImageChoice.querySelector('.chip[data-value="on"]');
+    const chipOff = coverImageChoice.querySelector('.chip[data-value="off"]');
+
+    // いったんselectedを外す
+    chipOn.classList.remove('selected');
+    chipOff.classList.remove('selected');  // useCoverImage が true なら "on" を selected に
+    // false なら "off" を selected に
+    if (sc.useCoverImage) {
+      chipOn.classList.add('selected');
     } else {
-      // "装丁画像なし" をチェック
-      radios.forEach(r => { r.checked = (r.value === "off"); });
+      chipOff.classList.add('selected');
     }
+
 
     document.getElementById("edit-scenario-modal").classList.add("active");
   } catch (err) {
     console.error(err);
     alert("編集情報の取得に失敗しました。");
   }
+}
+function setupChipEvents() {
+  const coverImageChoice = document.getElementById("cover-image-choice");
+  const chips = coverImageChoice.querySelectorAll(".chip");
+
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      // 全ての chip から selected を外す
+      chips.forEach((c) => c.classList.remove("selected"));
+      // クリックされた chip のみに selected を付与
+      chip.classList.add("selected");
+    });
+  });
 }
 
 function closeEditScenarioModal() {
@@ -717,13 +735,18 @@ async function onSaveEditScenario() {
     const newColor1 = document.getElementById("edit-scenario-covercolor1").value;
     const newColor2 = document.getElementById("edit-scenario-covercolor2").value;
 
-    let newUseCoverImage = true; // デフォルトを true に
-    const radios = document.getElementsByName("edit-scenario-coverimage");
-    for (const r of radios) {
-      if (r.checked && r.value === "off") {
-        newUseCoverImage = false;
-      }
+    // チップ選択の状態を読み取り
+    const coverImageChoice = document.getElementById("cover-image-choice");
+    const selectedChip = coverImageChoice.querySelector('.chip.selected');
+    let newUseCoverImage = true;
+    if (selectedChip && selectedChip.dataset.value === "on") {
+      newUseCoverImage = true;
     }
+
+    // scenarioToEdit オブジェクトを更新して保存
+    scenarioToEdit.useCoverImage = newUseCoverImage;
+    await updateScenario(scenarioToEdit);
+
 
     // シナリオオブジェクトを更新
     scenarioToEdit.title = newTitle;
@@ -739,5 +762,5 @@ async function onSaveEditScenario() {
     alert("シナリオの保存に失敗しました。");
   }
 }
-
+setupChipEvents();
 window.initBookshelfPage = initBookshelfPage;

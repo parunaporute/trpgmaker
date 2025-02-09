@@ -853,12 +853,12 @@ button:hover {
   display: flex;
   width: 100%;
   flex-direction: row;
-  gap:10px;
+  gap: 10px;
   justify-content: right;
   flex-wrap: wrap;
 }
 
-.scenario-list .buttons .left-button{
+.scenario-list .buttons .left-button {
   margin-right: auto;
 }
 
@@ -1363,6 +1363,68 @@ button:hover {
   border-image-source: linear-gradient(to left, #fff 0px, #fff 20px, rgba(0, 0, 0, 0) 20px, rgba(0, 0, 0, 0) 100%);
 }
 
-#edit-scenario-covercolor1,#edit-scenario-covercolor2{
+#edit-scenario-covercolor1,
+#edit-scenario-covercolor2 {
   padding: 0;
+}
+
+/* ================================
+   シナリオ編集モーダル用の調整
+================================ */
+
+/* モーダル全体のコンテンツ幅をやや狭く & 中央寄せ */
+.edit-scenario-modal-content {
+  margin: 0 auto;
+  text-align: left; /* 左寄せにすると入力欄が見やすい */
+}
+
+/* モーダルのタイトルと入力欄・ボタン間に余白 */
+.edit-scenario-modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* 各行ごとにラベルと入力欄を横並び */
+.edit-row {
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap; /* 狭い画面のとき折り返す */
+  justify-content: center;
+}
+
+/* ラベルの幅・右余白などを統一 */
+.edit-row label {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 1rem; /* お好みで */
+  width: 100%;
+}
+
+/* ラジオボタン群は同じ行に2つ並べるだけ */
+.radio-group label {
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* カラーピッカーにあまり余計なpaddingをつけない */
+#edit-scenario-covercolor1,
+#edit-scenario-covercolor2 {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+/* ボタンを横並び + 中央寄せに */
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
 }

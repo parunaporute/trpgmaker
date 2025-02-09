@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <title>本棚</title>
@@ -47,12 +48,7 @@
     <div id="upload" style="display: flex; justify-content: right;align-items: end; width: 100%; margin: 10px auto;">
       <button>アップロード</button>
     </div>
-    <input
-      id="scenario-upload-input"
-      type="file"
-      accept=".zip"
-      style="display: none;"
-    />
+    <input id="scenario-upload-input" type="file" accept=".zip" style="display: none;" />
 
     <!-- ▼ 棚とリストを左右に配置するラッパ -->
     <div style="display: flex; gap: 20px; flex-direction: column;">
@@ -141,7 +137,7 @@
     <div class="modal-content">
       <h3>ダウンロードの確認</h3>
       <p>画像を含めるとサイズが大きくなる可能性があります。<br>
-         画像を含めたシナリオをダウンロードしますか？</p>
+        画像を含めたシナリオをダウンロードしますか？</p>
       <div class="c-flexbox">
         <button id="download-images-yes">画像付き</button>
         <button id="download-images-no">画像なし</button>
@@ -150,37 +146,43 @@
     </div>
   </div>
 
-  <!-- ★ 追加: シナリオ編集モーダル -->
+  <!-- ★ シナリオ編集モーダル -->
   <div id="edit-scenario-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content edit-scenario-modal-content">
       <h3>シナリオ編集</h3>
-      <div style="margin-bottom: 10px;">
-        <label>
-          タイトル
-          <input type="text" id="edit-scenario-title" />
-        </label>
+
+      <!-- タイトル入力行 -->
+      <div class="edit-row">
+        <label for="edit-scenario-title">タイトル</label>
+        <input type="text" id="edit-scenario-title" />
       </div>
-      <div style="margin-bottom: 10px;">
-        <label>
-          装丁色1
-          <input type="color" id="edit-scenario-covercolor1" />
-        </label>
-        <label style="margin-left: 10px;">
-          装丁色2
-          <input type="color" id="edit-scenario-covercolor2" />
-        </label>
+
+      <!-- 装丁色入力行 -->
+      <div class="edit-row">
+        <div class="edit-row">
+        <label for="edit-scenario-covercolor1">装丁色1</label>
+        <input type="color" id="edit-scenario-covercolor1" />
       </div>
-      <div style="margin-bottom: 10px;">
-        <label>
-          <input type="radio" name="edit-scenario-coverimage" value="on" />
-          装丁画像あり
-        </label>
-        <label style="margin-left: 10px;">
-          <input type="radio" name="edit-scenario-coverimage" value="off" />
-          装丁画像なし
-        </label>
+      <div class="edit-row">
+        <label for="edit-scenario-covercolor2">装丁色2</label>
+        <input type="color" id="edit-scenario-covercolor2" />
       </div>
-      <div class="c-flexbox">
+    </div>
+
+      <!-- 例）シナリオ編集モーダル内 -->
+      <div class="edit-row">
+        <label>装丁画像</label>
+      </div>
+      <div class="edit-row">
+        <div class="chips-container" id="cover-image-choice">
+          <div class="chip chip-mini" data-value="on">あり</div>
+          <div class="chip chip-mini" data-value="off">なし</div>
+        </div>
+      </div>
+
+
+      <!-- ボタン -->
+      <div class="modal-buttons">
         <button id="edit-scenario-ok">OK</button>
         <button id="edit-scenario-cancel">キャンセル</button>
       </div>
@@ -202,4 +204,5 @@
     });
   </script>
 </body>
+
 </html>
