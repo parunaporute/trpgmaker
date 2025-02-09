@@ -71,7 +71,7 @@ body {
 .container {
   position: relative;
   box-sizing: border-box;
-  max-width: 90%;
+  max-width: calc(100% - 40px);
   margin: 80px auto 20px;
   padding: 20px;
   background-color: rgba(0, 0, 0, 0.7);
@@ -1324,12 +1324,13 @@ button:hover {
 }
 
 .book-front-title {
+  box-sizing: border-box;
   position: absolute;
   text-wrap: auto;
   background-color: #00000099;
-  margin: 10px auto;
-  padding: 7px;
-  top: 0;
+  width: 100%;
+  padding: 5px;
+  top: 10px;
 }
 
 .bookshelf-board {

@@ -202,13 +202,23 @@ async function renderBooksOnShelf(scenarios) {
     bookSpine.style.verticalAlign = "bottom";
     bookSpine.style.height = "200px";
     bookSpine.style.width = spineWidth + "px";
+    bookSpine.style.minWidth = "30px";
     bookSpine.style.margin = "0";
     bookSpine.style.position = "relative";
     bookSpine.style.cursor = "pointer";
-    bookSpine.style.justifyContent = "center";
-    bookSpine.style.alignItems = "center";
-    bookSpine.style.borderRadius = "0px";
+    if(spineWidth > 110){
+      bookSpine.style.paddingLeft = "10%";
+      bookSpine.style.justifyContent = "left";
+    } else {
+      bookSpine.style.justifyContent = "center";
+    }
+
+    bookSpine.style.alignItems = "left";
     bookSpine.style.boxShadow = "inset 0 0 5px rgba(0,0,0,0.3)";
+    bookSpine.style.borderRadius = "4px 0 0 4px";
+    bookSpine.style.paddingTop = "7px";
+    bookSpine.style.paddingBottom = "4px";
+    bookSpine.style.boxSizing = "border-box";
 
     // 装丁色(未設定時はデフォルト)
     const c1 = scenario.coverColor1 || "#004755";
@@ -260,11 +270,15 @@ async function renderBooksOnShelf(scenarios) {
     bookFront.classList.add("book-front");
     bookFront.style.left = spineWidth + "px";
     bookFront.style.transformOrigin = "0 " + spineWidth + "px";
+    bookFront.style.borderRadius = "0 4px 4px 0";
 
+    console.log("きてる？");
     if (scenario.useCoverImage && coverImage) {
       // 画像ありの場合
       const frontImg = document.createElement("img");
       frontImg.src = coverImage.dataUrl;
+      frontImg.style.borderRadius = "0 4px 4px 0";
+
       // 必要に応じてサイズ調整
       bookFront.appendChild(frontImg);
     } else {
