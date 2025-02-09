@@ -161,6 +161,7 @@ button:hover {
   margin-top: -20px;
 }
 
+#scenario-summary,
 .history-tile.summary {
   font-size: 0.8rem;
   font-family: serif;
@@ -196,6 +197,7 @@ button:hover {
 .history-tile:last-of-type {
   padding-bottom: 0;
 }
+
 .scene-text,
 .action-text,
 .scenario-text {
@@ -203,11 +205,14 @@ button:hover {
   font-family: serif;
   line-height: 1.8em;
   margin: 0;
-  padding: 5px;
+  padding: 0;
   font-size: 22px;
   letter-spacing: 0.1em;
   border: 1px dashed transparent;
   cursor: text;
+}
+.action-text {
+  font-family: initial;
 }
 
 .history-tile .scene-text,

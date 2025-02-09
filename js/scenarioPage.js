@@ -177,7 +177,9 @@ window.addEventListener("load", async () => {
 
 });
 
-/** 初期化用(シナリオ読み込み後に呼ばれる想定) */
+/**
+ * シナリオを読み込み＆表示用初期化
+ */
 async function loadScenarioData(scenarioId) {
   try {
     const sc = await getScenarioById(scenarioId);
@@ -233,7 +235,7 @@ async function loadScenarioData(scenarioId) {
   }
 }
 
-/** 「エンディング」ボタンを出すか、「クリアエンディング」ボタンを出すか */
+/** 「エンディング」ボタンと「クリアエンディング」ボタンの表示切替 */
 function refreshEndingButtons() {
   const endingBtn = document.getElementById("ending-button");
   const clearEndingBtn = document.getElementById("clear-ending-button");
@@ -243,11 +245,9 @@ function refreshEndingButtons() {
   const allCleared = areAllSectionsCleared();
 
   if (allCleared) {
-    // 全クリアなら「クリアエンディング」ボタンを表示
     endingBtn.style.display = "none";
     clearEndingBtn.style.display = "inline-block";
   } else {
-    // そうでなければ「エンディング」ボタンを表示
     endingBtn.style.display = "inline-block";
     clearEndingBtn.style.display = "none";
   }
@@ -260,8 +260,6 @@ function areAllSectionsCleared() {
 
 /** エンディングモーダルを表示 */
 async function showEndingModal(type) {
-  // "clear" or "bad"
-
   const scenarioId = window.currentScenario?.scenarioId;
   if (!scenarioId) {
     alert("シナリオ未選択");
@@ -269,13 +267,11 @@ async function showEndingModal(type) {
   }
   const existing = await getEnding(scenarioId, type);
   if (existing) {
-    // IndexedDBに既存があればそれを表示
     openEndingModal(type, existing.story);
   } else {
-    // 生成して保存
     const newStory = await generateEndingStory(type);
     if (!newStory) {
-      return; // 生成失敗時は何もしない
+      return;
     }
     await saveEnding(scenarioId, type, newStory);
     openEndingModal(type, newStory);
@@ -284,7 +280,6 @@ async function showEndingModal(type) {
 
 /** エンディングモーダルを再生成 */
 async function onClickRegenerateEnding() {
-  // タイトル部から type を判定する
   const titleEl = document.getElementById("ending-modal-title");
   const scenarioId = window.currentScenario?.scenarioId;
   if (!titleEl || !scenarioId) return;
@@ -301,7 +296,6 @@ async function onClickRegenerateEnding() {
   if (!newStory) return;
   await saveEnding(scenarioId, type, newStory);
 
-  // 再表示
   const storyEl = document.getElementById("ending-modal-story");
   if (storyEl) {
     storyEl.textContent = newStory;
@@ -337,13 +331,11 @@ async function generateEndingStory(type) {
   }
   const wd = scenario.wizardData || {};
   const isClear = (type === "clear");
-  // シナリオ概要
+
   const scenarioSummary = wd.scenarioSummary || "(シナリオ概要なし)";
-  // パーティ構成
   const party = wd.party || [];
 
-  // シーン履歴の文章をまとめる(なるべく簡潔にしすぎないよう指示)
-  // ここでは最後10シーン程度を拾ったり、要約を2～3行で抑えないよう指示
+  // 最新10シーン
   let sceneTexts = window.sceneHistory
     .filter(e => e.type === "scene")
     .map(e => e.content || "");
@@ -359,21 +351,15 @@ async function generateEndingStory(type) {
   });
   const joinedSections = sectionTextArr.join("\n");
 
-  // "ハッピーエンド" or "バッドエンド" 指示
   const endTypePrompt = isClear ? "ハッピーエンド" : "バッドエンド";
 
   let prompt = `
 以下の情報をもとに、
-${i = 1})シナリオ概要`;
-
-  if (party.length != 0) {
-    prompt += `
-  ${i += 1})パーティ構成`
-  }
-  prompt += `
-${i += 1})あらすじ
-${i += 1})セクション
-${i += 1})その後の話
+1)シナリオ概要
+2)パーティ構成
+3)あらすじ
+4)セクション
+5)その後の話
 
 この5部構成でエンディングストーリーを作ってください。結末は必ず「${endTypePrompt}」にしてください。
 あらすじ部分は、下記のシーン履歴をベースにしつつ、あまり簡潔になりすぎないように描写してください。
@@ -382,11 +368,10 @@ ${i += 1})その後の話
 ${scenarioSummary}
 
 `;
-  if (party.length != 0) {
-    prompt += `■パーティ構成
-${party.map(p => `- ${p.name}(${p.type || "?"})`).join("\n")}
 
-`;
+  if (party.length !== 0) {
+    prompt += `\n■パーティ構成\n`;
+    prompt += party.map(p => `- ${p.name}(${p.type || "?"})`).join("\n");
   }
 
   prompt += `■シーン履歴(最新～最大10シーン)
@@ -395,7 +380,7 @@ ${combinedScene}
 ■セクション情報
 ${joinedSections}
 `;
-  console.log(prompt);
+
 
   try {
     showLoadingModal(true);
@@ -438,7 +423,7 @@ ${joinedSections}
   }
 }
 
-/** セクション文字列の解凍 */
+/** 圧縮テキスト解凍 */
 function decompressCondition(zippedBase64) {
   if (!zippedBase64) return "(不明)";
   try {
@@ -488,8 +473,6 @@ async function onConfirmTokenAdjust() {
     // 英訳生成
     const tr = await generateEnglishTranslation(entry.content);
     entry.content_en = tr;
-
-    // DB更新
     const updated = {
       ...entry,
       content_en: tr
@@ -498,12 +481,10 @@ async function onConfirmTokenAdjust() {
   }
   prog.textContent = `${total}/${total}件完了`;
   alert("英語データ生成が完了しました。");
-
-  // モーダルを閉じる
   mod.classList.remove("active");
 }
 
-/** 英語翻訳用: content -> content_en */
+/** 日本語→英語翻訳 */
 async function generateEnglishTranslation(japaneseText) {
   if (!japaneseText.trim()) return "";
   const sys = "あなたは優秀な翻訳家です。";
@@ -533,7 +514,7 @@ async function generateEnglishTranslation(japaneseText) {
   }
 }
 
-/** 回答候補 */
+/** 回答候補を生成 */
 async function onGenerateActionCandidates() {
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -542,6 +523,21 @@ async function onGenerateActionCandidates() {
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   const lastSceneText = lastSceneEntry ? lastSceneEntry.content : "(シーン無し)";
 
+  // ▼ ここで wizardData から未クリアセクションの条件テキストを取得する
+  const wd = window.currentScenario?.wizardData;
+  let conditionText = "";
+  if (wd && wd.sections && wd.sections.length > 0) {
+    // セクションを番号順にソート
+    const sorted = wd.sections.slice().sort((a, b) => a.number - b.number);
+
+    // まだクリアしていない最初のセクションを探す
+    const firstUncleared = sorted.find(sec => !sec.cleared);
+    if (firstUncleared) {
+      // 圧縮されている条件テキストを解凍
+      conditionText = decompressCondition(firstUncleared.conditionZipped);
+      // これで `conditionText` に最新の未クリア条件が入る
+    }
+  }
   window.cancelRequested = false;
   showLoadingModal(true);
 
@@ -551,15 +547,25 @@ async function onGenerateActionCandidates() {
 
     const prompt = `
       あなたはTRPGのGMです。
-      下記シーンを踏まえ、プレイヤーが可能な行動案を5つ提案してください。
+      下記シーンとセクションクリア条件を踏まえ、プレイヤーが可能な行動案を4つ提案してください。
+      １：セクションのクリアに関係しそうなものを1つ
+      ２：妥当なものを2つ
+      ３：少し頭がおかしい行動案を1つ
+      合計４行構成にしてください。
+      順番はシャッフルしてください。
+      言葉の表現でどれがクリアに関係しそうなのかわからないようにしてください。
       ---
+      シーン：
       ${lastSceneText}
+      ---
+      クリア条件：
+      ${conditionText}
     `;
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
+        "Authorization": 'Bearer ' + window.apiKey
       },
       body: JSON.stringify({
         model: "gpt-4",
@@ -631,20 +637,6 @@ function showAllSectionsModal() {
   modal.classList.add("active");
 }
 
-/** ZIP解凍 */
-function decompressCondition(zippedBase64) {
-  if (!zippedBase64) return "(不明)";
-  try {
-    const bin = atob(zippedBase64);
-    const uint8 = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
-    const inf = pako.inflate(uint8);
-    return new TextDecoder().decode(inf);
-  } catch (e) {
-    console.error("decompress失敗:", e);
-    return "(解凍エラー)";
-  }
-}
-
 /** パーティ確認モーダル */
 function showPartyModal() {
   const modal = document.getElementById("party-modal");
@@ -653,7 +645,6 @@ function showPartyModal() {
   renderPartyCardsInModal();
 }
 
-// メイン関数：パーティカードを表示
 function renderPartyCardsInModal() {
   const container = document.getElementById("party-modal-card-container");
   if (!container) return;
@@ -665,14 +656,9 @@ function renderPartyCardsInModal() {
     return;
   }
 
-  // ① シナリオの wizardData.party
   const wizardPartyCards = scenario.wizardData.party;
-
-  // ② DB上の全カード
   const dbCards = window.characterData;
 
-  // ③ wizardPartyCards の各カードについて、同じ id を持つ DBカードがあれば
-  //    それで上書きする。無ければ wizardData のカードをそのまま使う
   const merged = wizardPartyCards.map(wCard => {
     const dbMatch = dbCards.find(dbC => dbC.id === wCard.id);
     if (!dbMatch) {
@@ -681,13 +667,10 @@ function renderPartyCardsInModal() {
     return {
       ...dbMatch,
       ...wCard,
-      // DB版に画像があればそちらを優先
       imageData: dbMatch.imageData || wCard.imageData
     };
   });
 
-  // ④ 最終的に merged.length は wizardPartyCards.length と同じ
-  //    → 4件なら4件だけ描画
   merged.forEach(card => {
     const cardEl = createPartyCardElement(card);
     container.appendChild(cardEl);
@@ -774,8 +757,8 @@ function createPartyCardElement(c) {
   return cardEl;
 }
 
+/** 最新シーンを要約しカード化に向けた情報を抽出 */
 async function getLastSceneSummary() {
-  // 一例として、最新のシーン文を要約
   const lastSceneEntry = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   if (!lastSceneEntry) return "シーンがありません。";
 
@@ -794,7 +777,7 @@ ${text}
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.apiKey}`
+        "Authorization": 'Bearer ' + window.apiKey
       },
       body: JSON.stringify({
         model: "gpt-4",
@@ -814,7 +797,7 @@ ${text}
   }
 }
 
-/** ローディング表示 */
+/** ローディングモーダル表示/非表示 */
 function showLoadingModal(show) {
   const m = document.getElementById("loading-modal");
   if (!m) return;
@@ -824,6 +807,7 @@ function showLoadingModal(show) {
     m.classList.remove("active");
   }
 }
+
 function onCancelFetch() {
   if (window.currentRequestController) {
     window.currentRequestController.abort();
@@ -831,9 +815,6 @@ function onCancelFetch() {
   showLoadingModal(false);
 }
 
-// --------------------------------------------------
-// 以下、本来は scene.js 等にある次のシーン生成などの関数がある想定。
-// ただし本ファイルでまとめる、あるいは scene.js を活用してもOK。
-// --------------------------------------------------
-window.loadScenarioData = loadScenarioData; // 外部から呼べるように
+// 外部から呼べるようにexport
+window.loadScenarioData = loadScenarioData;
 window.onCancelFetch = onCancelFetch;
