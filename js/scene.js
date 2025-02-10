@@ -483,6 +483,7 @@ function updateSceneHistory() {
     if (s.number < (firstUncleared?.number || Infinity)) {
       t.className = "history-tile summary";
       t.textContent = `${decompressCondition(s.conditionZipped)}(クリア済み)`;
+      refreshEndingButtons();
     } else if (s.number === firstUncleared?.number) {
       t.className = "history-tile summary";
       t.textContent = `セクション${s.number} (未クリア)`;
@@ -494,7 +495,7 @@ function updateSceneHistory() {
   his.appendChild(tile);
   
   // シナリオ概要  
-  const scenarioSummaryEl = document.createElement("div");//document.getElementById("scenario-summary");
+  const scenarioSummaryEl = document.createElement("div");
   scenarioSummaryEl.id = "scenario-summary";
   scenarioSummaryEl.innerHTML = wd.scenarioSummary || "";
   his.appendChild(scenarioSummaryEl);
@@ -836,7 +837,7 @@ YESかNOのみで答えてください。判断が難しい時はYESにしてく
       firstUncleared.cleared = true;
       window.currentScenario.wizardData.sections = wd.sections;
       await updateScenario(window.currentScenario);
-      alert(`セクション${firstUncleared.number}をクリアしました。`);
+      showToast(`セクション${firstUncleared.number}をクリアしました。`);
     } else {
       console.log("未達成と判定されました。");
     }
