@@ -492,7 +492,13 @@ function updateSceneHistory() {
   let tile = document.createElement("div");
   tile.className = "history-tile summary separator";
   his.appendChild(tile);
-
+  
+  // シナリオ概要  
+  const scenarioSummaryEl = document.createElement("div");//document.getElementById("scenario-summary");
+  scenarioSummaryEl.id = "scenario-summary";
+  scenarioSummaryEl.innerHTML = wd.scenarioSummary || "";
+  his.appendChild(scenarioSummaryEl);
+  
   // 最後のシーンは後で showLastScene() 側で表示するので履歴には表示しない
   const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
   const skipIds = [];
