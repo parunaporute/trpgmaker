@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>one and only</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+{% include "partials/inits.njk" %}
+</head>
+
+<body>
+{% set topFlag = true %}
+{% include "partials/top.njk" %}
+
+  <div class="container">
+    <h1 style="font-size:3rem;letter-spacing:-0.03rem;margin-bottom: 70px;margin-top: 80px;">one and only
+      <div style="font-size: 0.8rem;font-family: serif;">
+        <span style="letter-spacing:0.75rem;white-space: nowrap;">ー 選択の先に ー</span>
+      </div>
+    </h1>
+
+    <!-- APIキー関連 -->
+    <div class="api-key-section" style="margin-top:20px;">
+      <!-- BGM停止/再生ボタン -->
+      <button id="stop-bgm-button"></button>
+      <!-- すでにキーがあれば「キー設定済」、なければ「APIキー設定」を表示 -->
+      <button id="set-api-key-button" style="margin-bottom: 0;">
+        APIキー設定
+      </button>
+    </div>
+
+    <!-- APIキー設定用モーダル -->
+    <div id="api-key-modal" class="modal">
+      <div class="modal-content" style="padding: 20px;">
+        <h2>APIキー設定</h2>
+        <input type="text" id="api-key-input" placeholder="APIキーを入力" style="margin-bottom: 20px;width:80%;" />
+        <div style="display:flex;justify-content:center;gap:20px;">
+          <button id="api-key-ok-button">OK</button>
+          <button id="api-key-clear-button" style="background-color:#f44336;">クリア</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="element-section">
+      <button id="character-create">ガチャ</button>
+      <button id="party-list">パーティ</button>
+      <button id="clear-character-btn" style="background-color:#f44336;display: none;">全エレメントをクリア</button>
+    </div>
+    <div class="element-section">
+      <button id="you-avatar-btn">あなたの分身</button>
+    </div>
+    <div class="element-section">
+      <button id="show-warehouse-btn">倉庫</button>
+    </div>
+
+    <!-- 新たに本棚ボタン → bookshelf.htmlへ -->
+    <div class="element-section">
+      <button id="show-bookshelf-btn">本棚</button>
+    </div>
+
+    <!-- 新しいシナリオを始めるボタン -->
+    <div class="scenario-wizard-section">
+      <button id="start-new-scenario-button">
+        新しいシナリオを始める
+      </button>
+    </div>
+
+    <!-- ▼ アコーディオン構造 -->
+    <div class="accordion">
+      <!-- ヘッダー部分 -->
+      <div class="accordion-header" id="ongoing-scenarios-header">
+        <div>進行中のシナリオ一覧</div>
+        <div style="position: absolute; height: 100%; right: 0; top: 0; box-sizing: border-box;">
+          <label for="show-hidden-scenarios" style="display: flex; align-items: center; justify-content: left;height: 100%; padding-right: 20px;">
+            <input type="checkbox" id="show-hidden-scenarios" />
+            非表示シナリオ
+          </label>
+        </div>
+      </div>
+
+      <!-- コンテンツ部分 -->
+      <div class="accordion-content" id="ongoing-scenarios-content">
+        <!-- リスト表示コンテナ -->
+        <div id="scenario-list-container"></div>
+        <!-- 0件時メッセージ -->
+        <div id="no-scenarios-message" style="display:none;">
+          進行中のシナリオはありません。
+        </div>
+      </div>
+    </div>
+    <!-- ▲ アコーディオンここまで -->
+  </div>
+
+  <!-- シナリオ削除用の確認モーダル -->
+  <div id="delete-scenario-modal" class="modal">
+    <div class="modal-content">
+      <h3>シナリオ削除の確認</h3>
+      <p>このシナリオを削除します。よろしいですか？</p>
+      <div class="c-flexbox">
+        <button id="delete-scenario-ok">OK</button>
+        <button id="delete-scenario-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▼ エクスポート/インポート関連 -->
+  <div class="c-flexbox">
+    <button id="export-metadata-button">メタデータZIPエクスポート</button>
+    <button id="export-images-button" style="margin-left:30px;">画像ZIPエクスポート</button>
+  </div>
+  <div class="c-flexbox">
+    <button id="import-metadata-button">メタデータZIPインポート</button>
+    <input type="file" id="import-metadata-file" accept=".zip" style="display:none;" />
+    <button id="import-images-button" style="margin-left:30px;">画像ZIPインポート</button>
+    <input type="file" id="import-images-file" accept=".zip" style="display:none;" />
+  </div>
+
+  <!-- BGM関連 -->
+  <audio id="bgm" src="main-back.mp3" loop></audio>
+
+  <!-- ▼ 各種スクリプト読み込み -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/menu.js"></script> <!-- ★ メニューJS: 差分更新ロジックなど -->
+  <script src="js/warehouse.js"></script>
+
+  <!-- exportImportMulti.js (ZIP入出力) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="js/exportImportMulti.js"></script>
+
+  <script>
+    // ページ初期処理
+    function fadeInPlay(audio) {
+      audio.volume = 0;
+      audio.play().then(() => {
+        const fadeInInterval = setInterval(() => {
+          if (audio.volume < 1.0) {
+            audio.volume = Math.min(audio.volume + 0.01, 1);
+          } else {
+            clearInterval(fadeInInterval);
+          }
+        }, 100);
+      }).catch(err => {});
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await initIndexedDB(); 
+        initAvatar(); 
+        await initBackground("index");
+        initMenuPage(); // ← menu.js内の初期化
+      } catch (e) {
+        console.error("DB初期化エラー:", e);
+      }
+
+      const bgmAudio = document.getElementById("bgm");
+      const stopBgmButton = document.getElementById("stop-bgm-button");
+
+      if (!bgmAudio || !stopBgmButton) return;
+
+      const isBgmStopped = localStorage.getItem("bgmStopped") === "true";
+
+      if (!isBgmStopped) {
+        fadeInPlay(bgmAudio);
+
+        bgmAudio.addEventListener("playing", () => {
+          document.removeEventListener("click", handleUserGesture);
+        });
+
+        function handleUserGesture() {
+          if (bgmAudio.paused) {
+            fadeInPlay(bgmAudio);
+          }
+        }
+        document.addEventListener("click", handleUserGesture);
+      }
+
+      if (isBgmStopped) {
+        stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
+        stopBgmButton.style.backgroundColor = "rgb(255,115,68)";
+      } else {
+        stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
+        stopBgmButton.style.backgroundColor = "#4caf50";
+      }
+
+      stopBgmButton.addEventListener("click", () => {
+        if (bgmAudio.paused) {
+          fadeInPlay(bgmAudio);
+          localStorage.setItem("bgmStopped", "false");
+          stopBgmButton.style.backgroundColor = "#4caf50";
+          stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-high"></div>`;
+        } else {
+          bgmAudio.pause();
+          bgmAudio.currentTime = 0;
+          localStorage.setItem("bgmStopped", "true");
+          stopBgmButton.style.backgroundColor = "rgb(255,115,68)";
+          stopBgmButton.innerHTML = `<div class="iconmoon icon-volume-mute2"></div>`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

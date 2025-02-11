@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>パーティ一覧</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+{% include "partials/inits.njk" %}
+</head>
+
+<body>
+{% include "partials/top.njk"%}
+
+  <div class="container">
+    <h1>パーティ一覧</h1>
+    <p style="margin-bottom:20px;">
+      複数のパーティを作成して管理できます。<br>
+      「カレントのパーティ」に設定すると、<br>
+      以後の「パーティ編成」や「シナリオウィザード」画面でそれが使われます。
+    </p>
+
+    <div style="margin-bottom:20px;">
+      <label for="new-party-name">新しいパーティ名:</label>
+      <input type="text" id="new-party-name" placeholder="パーティ名..." />
+      <button id="create-party-button">作成</button>
+    </div>
+
+    <div id="party-list-container" style="margin-bottom:30px;text-align: right;"></div>
+  </div>
+
+  <script src="js/indexedDB.js"></script>
+  <script src="js/partyList.js"></script>
+
+  <script>
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      await initBackground("partyList");
+    });
+  </script>
+</body>
+
+</html>
