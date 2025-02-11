@@ -1000,9 +1000,11 @@ button:hover {
   border-color: #45a049;
 }
 
+#toggle-history-button,
 #change-bg-button {
   position: relative;
   z-index: 1;
+  font-size: 0.7rem;
 }
 
 #token-adjust-button {
@@ -1014,6 +1016,7 @@ button:hover {
   position: relative;
   z-index: 1;
   margin-right: auto;
+  font-size: 0.7rem;
 }
 
 #view-all-sections-button {
@@ -1442,6 +1445,7 @@ button:hover {
 .application-bar{
   position: fixed;
   display: flex;
+  gap:5px;
   top: 0;
   background-color: #00000054;
   width: 100%;

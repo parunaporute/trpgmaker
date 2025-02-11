@@ -1,7 +1,5 @@
-..\\index.html 
-..\\partyCreate.html 
-..\\partyList.html 
-..\\js\\menu.js 
-..\\js\\partyCreate.js 
-..\\js\\warehouse.js
+..\\scenario.html 
+..\\js\\indexedDB.js 
+..\\js\\scenarioPage.js 
+..\\js\\scene.js 
 ..\\styles.css 

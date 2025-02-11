@@ -175,6 +175,20 @@ window.addEventListener("load", async () => {
     endingModalRegen.addEventListener("click", onClickRegenerateEnding);
   }
 
+  // ▼ 「履歴」ボタンをアプリケーションバーに追加 (Javascriptで生成)
+  const applicationBar = document.querySelector(".application-bar");
+  if (applicationBar) {
+    const historyBtn = document.createElement("button");
+    historyBtn.id = "toggle-history-button";
+    historyBtn.innerHTML = '<div class="iconmoon icon-newspaper"></div> 履歴';
+
+    // ▼ 「change-bg-button」の左に挿入
+    const changeBgButton = document.getElementById("change-bg-button");
+    applicationBar.insertBefore(historyBtn, changeBgButton);
+
+    historyBtn.addEventListener("click", toggleHistory);
+  }
+
 });
 
 /**
@@ -227,6 +241,15 @@ async function loadScenarioData(scenarioId) {
       if (gcb) gcb.style.display = "inline-block";
     }
 
+    // ▼ 履歴の表示/非表示を復元 (なければ false 初期化)
+    if (typeof sc.showHistory === 'undefined') {
+      sc.showHistory = false;
+    }
+    const histDiv = document.getElementById("scene-history");
+    if (histDiv) {
+      histDiv.style.display = sc.showHistory ? "block" : "none";
+    }
+
     // セクション全クリアチェック
     refreshEndingButtons();
   } catch (err) {
@@ -234,6 +257,27 @@ async function loadScenarioData(scenarioId) {
     alert("読み込み失敗:" + err.message);
   }
 }
+
+/**
+ * 「履歴」ボタン押下時の処理
+ * - IndexedDB上のシナリオフラグを反転して保存
+ * - 表示/非表示を切り替え
+ */
+async function toggleHistory() {
+  if (!window.currentScenario) return;
+  const hist = document.getElementById("scene-history");
+  if (!hist) return;
+
+  // true/falseを反転
+  window.currentScenario.showHistory = !window.currentScenario.showHistory;
+
+  // 見た目を更新
+  hist.style.display = window.currentScenario.showHistory ? 'block' : 'none';
+
+  // IndexedDBに保存
+  await updateScenario(window.currentScenario);
+}
+
 
 /** 「エンディング」ボタンと「クリアエンディング」ボタンの表示切替 */
 function refreshEndingButtons() {
@@ -380,7 +424,6 @@ ${combinedScene}
 ■セクション情報
 ${joinedSections}
 `;
-
 
   try {
     showLoadingModal(true);
@@ -535,7 +578,6 @@ async function onGenerateActionCandidates() {
     if (firstUncleared) {
       // 圧縮されている条件テキストを解凍
       conditionText = decompressCondition(firstUncleared.conditionZipped);
-      // これで `conditionText` に最新の未クリア条件が入る
     }
   }
   window.cancelRequested = false;
