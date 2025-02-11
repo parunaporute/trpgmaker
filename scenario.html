@@ -3,15 +3,18 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>シンプルTRPG</title>
+  <title>新しいシナリオ作成ウィザード</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- 黒背景 + 白文字ベースのCSS -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- サニタイズ -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-
-  <!-- 背景管理スクリプト -->
+  <!-- 背景管理用 -->
   <script src="js/background.js"></script>
+  <!-- 雑多 -->
   <script src="js/common.js"></script>
+
 </head>
 
 <body>
@@ -19,9 +22,8 @@
   <button id="back-to-menu">メニューに戻る</button>
 
   <!-- 背景を変更するボタン -->
-  <button id="change-bg-button">
-    背景を変更する
-  </button>
+  <button id="change-bg-button">背景を変更する</button>
+
   <!-- ▼ 背景選択モーダル -->
   <div id="bg-modal" class="modal">
     <div class="modal-content bg-modal-content">
@@ -41,95 +43,138 @@
       <p>背景画像を生成中...</p>
     </div>
   </div>
-  <!-- ▼ トークン調整ボタン -->
-  <button id="token-adjust-button">
-    トークン調整
-  </button>
-  <!-- トークン調整モーダル -->
-  <div id="token-adjust-modal" class="modal">
-    <div class="modal-content" style="max-width:500px;">
-      <h2>英語データの生成</h2>
-      <p id="token-adjust-message"></p>
-      <button id="token-adjust-ok-button">OK</button>
-      <button id="token-adjust-cancel-button">キャンセル</button>
-      <p id="token-adjust-progress" style="margin-top:20px;white-space:pre;"></p>
-    </div>
-  </div>
 
-  <!-- ネタバレボタン（目的達成型のみ表示） -->
-  <!--button id="spoiler-button" style="display:none; background-color:#E91E63; margin-top:20px; float:right;">
-    ネタバレ
-  </button-->
-
-  <!-- ネタバレモーダル -->
-  <div id="spoiler-modal" class="modal">
-    <div class="modal-content">
-      <h2>クリア条件</h2>
-      <p id="clear-condition-text" style="white-space:pre-wrap;"></p>
-      <button id="close-spoiler-modal">閉じる</button>
-    </div>
-  </div>
 
   <div class="container">
-    <!-- シーン履歴 -->
-    <div id="scene-history" class="scene-history"></div>
+    <h1>シナリオ作成ウィザード</h1>
 
-    <!-- ゲーム画面セクション -->
-    <div class="game-section" style="display:none;">
-      <div id="story" style="margin-bottom:20px;"></div>
-      <div id="last-scene-images" style="margin-bottom:20px;"></div>
+    <!-- ▼ ステップ0：パーティ選択 -->
+    <!-- ステップ0：パーティ選択 -->
+    <div id="wizard-step0" style="display:block;">
+      <h2>ステップ0：パーティを選択してください</h2>
+      <p style="margin-bottom:1rem;">
+        以下のリストから一つだけ選択してください。カードが1枚以上入ったパーティのみが表示されます。<br>
+        パーティが不要な場合は「パーティなし」を選んでください。
+      </p>
 
-      <!-- 画像生成ボタン -->
-      <div class="r-flexbox">
-        <button id="image-auto-generate-button">挿絵生成</button>
-        <!--button id="image-prompt-modal-button">編集して生成(カスタム)</button-->
+      <!-- パーティ一覧を表示する領域 -->
+      <div id="wizard-party-list" style="margin-bottom:20px;"></div>
+
+      <!-- 次へボタン -->
+      <div class="l-flexbox">
+        <button id="go-wizard-step1-btn">次へ</button>
       </div>
-
-      <div id="player-action">プレイヤーの行動を入力してください</div>
-      <!-- 回答候補を生成ボタンとチェックボックス -->
-      <div style="margin-top:10px;display: flex;">
-        <button id="generate-action-candidates-button">回答候補を生成</button>
-        <label style="margin-left:10px;display: flex;">
-          <input type="checkbox" id="auto-generate-candidates-checkbox" />
-          <p style="width: 100%;">自動的に生成する</p>
-        </label>
-      </div>
-      <div id="action-candidates-container" style="margin-top:10px;"></div>
-
-      <div id="action-candidates-container" style="margin-top:10px;"></div>
-
-      <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
-
-      <div class="s-flexbox">
-        <button id="next-scene">次のシーン</button>
-
-        <!-- パーティーを確認ボタン -->
-        <button id="show-party-button">パーティーを確認</button>
-      </div>
-
-    </div>
-    <div class="c-flexbox">
-      <!-- ▼ エンディング関連ボタン&モーダル（追加） -->
-      <button id="ending-button" style="display:none;">エンディング</button>
-      <button id="clear-ending-button" style="display:none;">クリア・エンディング</button>
-
     </div>
 
-  </div>
+    <!-- ▲ ステップ0ここまで -->
 
-  <!-- 全セクションを閲覧するボタン -->
-  <button id="view-all-sections-button">全セクションを閲覧する</button>
+    <!-- ステップ1：ジャンル選択 -->
+    <div id="wizard-step1" style="display:none;">
+      <div class="l-flexbox">
+        <!-- ▼ 新しく追加する「戻る」ボタン -->
+        <button id="back-to-step0-button">ステップ0に戻る</button>
+      </div>
 
-  <!-- 全セクション表示モーダル -->
-  <div id="all-sections-modal" class="modal">
-    <div class="modal-content">
-      <h2>全セクション一覧</h2>
-      <div id="all-sections-content" style="white-space:pre-wrap; text-align:left;"></div>
-      <button id="close-all-sections-modal" style="margin-top:10px;">閉じる</button>
+      <h2>ステップ1：ジャンルを選択</h2>
+      <p style="font-size:0.9em; margin-bottom:10px;">
+        ジャンルの軸を選択しますか？それともジャンルを自由入力しますか？
+      </p>
+
+      <div class="chips-container" id="wiz-genre-choice" style="margin-bottom:20px;">
+        <div class="chip" id="choice-axis">選択して入力</div>
+        <div class="chip" id="choice-free">自由入力</div>
+      </div>
+
+      <!-- 軸入力UI -->
+      <div id="axis-input-group" style="opacity:0.5; pointer-events:none;">
+        <div style="margin-top:10px;">
+          <strong>舞台（複数選択可）</strong>
+          <div id="wiz-stage-chips-container" class="chips-container"></div>
+        </div>
+        <div style="margin-top:10px;">
+          <strong>テーマ（単一選択）</strong>
+          <div id="wiz-theme-chips-container" class="chips-container"></div>
+        </div>
+        <div style="margin-top:10px;">
+          <strong>雰囲気（単一選択）</strong>
+          <div id="wiz-mood-chips-container" class="chips-container"></div>
+        </div>
+        <div style="margin-top:30px;">
+          <p id="wiz-genre-result-text" style="border: 1px solid; padding: 10px; font-size: 1.2rem; background-color: #434343;"></p>
+        </div>
+      </div>
+
+      <!-- 自由入力UI -->
+      <div id="free-input-group" style="margin-top:10px; opacity:0.5; pointer-events:none;">
+        <input type="text" id="free-genre-input" placeholder="自由入力ジャンル..." style="width: 100%;">
+      </div>
+
+      <div class="l-flexbox">
+        <!-- 「次へ」ボタン -->
+        <button id="go-step2-btn">次へ</button>
+      </div>
+      <!-- ▲ ステップ1ここまで -->
     </div>
-  </div>
+    <!-- ステップ2：シナリオタイプ -->
+    <div id="wizard-step2" style="display:none;">
+      <div class="l-flexbox">
+        <button id="back-to-step1-button">ステップ1に戻る</button>
+      </div>
 
-  <!-- ローディングモーダル -->
+      <h2>ステップ2：シナリオタイプを選択</h2>
+
+      <!-- ▼ 追加: パーティ表示 -->
+      <p>
+        選択したパーティ：
+        <span id="selected-party-display" style="font-weight:bold; color:#2196F3;">(未選択)</span>
+      </p>
+
+      <p style="margin-bottom: 1rem;">
+        選択したジャンル：
+        <span id="selected-genre-display" style="font-weight:bold; color:#2196F3;">（未選択）</span>
+      </p>
+
+      <div class="l-flexbox">
+        <button id="type-objective-btn">目的達成型</button>
+        <button id="type-exploration-btn">探索型</button>
+      </div>
+
+      <p style="margin-top:10px;">
+        ※ 目的達成型では、<strong>クリア条件</strong>が密かに生成されます。<br />
+        ※ 探索型では、シーン中で<span style="text-decoration:underline;">カード(エレメント)取得</span>が可能になります。
+      </p>
+    </div>
+    <!-- ▲ ステップ2ここまで -->
+
+    <!-- シナリオ作成確認モーダル -->
+    <div id="confirm-scenario-modal" class="modal">
+      <div class="modal-content" style="max-width:500px;">
+        <h3>シナリオ生成の確認</h3>
+        <p id="confirm-party-text" style="white-space:pre-wrap;">パーティ: (未選択)</p>
+        <p id="confirm-genre-type-text" style="white-space:pre-wrap;"></p>
+        <p>この条件でシナリオを作成します。よろしいですか？</p>
+        <div class="c-flexbox">
+          <button id="confirm-scenario-ok">OK</button>
+          <button id="confirm-scenario-cancel">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ステップ3：最終確認(シナリオ要約表示) -->
+    <div id="wizard-step3" style="display:none;">
+      <h2>ステップ3：シナリオ要約</h2>
+      <div id="scenario-summary" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;"></div>
+
+      <div class="c-flexbox">
+        <button id="back-to-step2-button" style="margin-right:10px;">ステップ2に戻る</button>
+        <button id="start-scenario-button" style="background-color:#4CAF50;">このシナリオで始める</button>
+      </div>
+    </div>
+    <!-- ▲ ステップ3ここまで -->
+
+  </div><!-- /.container -->
+
+  <!-- ChatGPT応答待ちモーダル -->
   <div id="loading-modal" class="modal">
     <div class="modal-content">
       <p>応答を待っています...</p>
@@ -137,88 +182,49 @@
     </div>
   </div>
 
-  <!-- カスタム画像生成モーダル -->
-  <div id="image-prompt-modal" class="modal">
+  <!-- 「その他」登録用モーダル -->
+  <div id="wizard-other-input-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
-      <p>画像生成のプロンプトを編集してください</p>
-      <textarea id="image-custom-prompt" rows="5" style="width:100%;"></textarea>
+      <h2>「その他」を追加</h2>
+      <p id="wizard-other-input-modal-category" style="font-weight:bold;"></p>
+      <textarea id="wizard-other-input-text" rows="3" placeholder="新しく追加する候補"></textarea>
       <div style="margin-top:10px;">
-        <button id="image-custom-generate-button">生成</button>
-        <button id="image-custom-cancel-button">キャンセル</button>
+        <button id="wizard-other-generate-btn">生成</button>
+        <button id="wizard-other-ok-btn">OK</button>
+        <button id="wizard-other-cancel-btn">キャンセル</button>
       </div>
+      <p style="font-size:0.8em; color:#666; margin-top:10px;">
+        ※「生成」ボタンを押すと、現状の候補にない新しい案をChatGPTで生成し、<br>
+        その結果を上のテキストボックスに自動入力します。
+      </p>
     </div>
   </div>
 
-  <!-- カードプレビューモーダル -->
-  <div id="card-preview-modal" class="modal">
-    <div class="modal-content" style="max-width:400px;">
-      <h2>新しいカード</h2>
-      <div id="preview-card-container"></div>
-
-      <div style="margin-top:10px;">
-        <button id="add-to-gachabox-button">倉庫に追加</button>
-        <button id="cancel-card-preview-button">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- パーティ表示用モーダル -->
-  <div id="party-modal" class="modal">
+  <!-- 「削除」確認モーダル -->
+  <div id="wizard-delete-confirm-modal" class="modal">
     <div class="modal-content">
-      <h2>パーティ確認</h2>
-      <button id="close-party-modal">閉じる</button>
-      <div id="party-modal-card-container"></div>
+      <p>この選択肢を削除します。よろしいですか？</p>
+      <div class="c-flexbox">
+        <button id="wizard-delete-confirm-ok">OK</button>
+        <button id="wizard-delete-confirm-cancel">キャンセル</button>
+      </div>
     </div>
   </div>
 
-  <!-- 探索型の場合のみ表示される「カードを取得」ボタン -->
-  <button id="get-card-button" style="display:none;">
-    カードを取得する
-  </button>
-
-  <div id="ending-modal" class="modal">
-    <div class="modal-content" style="padding: 10vw;">
-      <h2 id="ending-modal-title"></h2>
-      <div id="ending-modal-story" style="white-space:pre-wrap; text-align:left; margin-top:10px;"></div>
-      <button id="ending-modal-close-button" style="margin-top:10px;">閉じる</button>
-      <button id="ending-modal-regenerate-button" style="margin-top:10px;">再生成</button>
-    </div>
-  </div>
-  <!-- ▲ エンディング関連ここまで -->
-
-  <!-- スクリプト群 -->
+  <!-- pako -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  <!-- IndexedDBなどの共通スクリプト -->
   <script src="js/indexedDB.js"></script>
-  <script src="js/scene.js"></script>
-  <script src="js/main.js"></script>
-  <script src="js/gachaCore.js"></script>
-  <script src="js/scenarioPage.js"></script>
+  <!-- シナリオウィザード用スクリプト -->
+  <script src="js/scenarioWizard.js"></script>
 
   <script>
+    document.getElementById("back-to-menu").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
     window.addEventListener("load", async () => {
-      await initIndexedDB();
-      await initBackground("scenario");
-    });
-
-    // ▼ 「編集して生成(カスタム)」ボタンをクリック → openImagePromptModal() 呼び出し
-    window.addEventListener("DOMContentLoaded", () => {
-      const customBtn = document.getElementById("image-prompt-modal-button");
-      if (customBtn) {
-        customBtn.addEventListener("click", () => {
-          openImagePromptModal();
-        });
-      }
-    });
-    window.addEventListener('DOMContentLoaded', () => {
-      const autoCbx = document.getElementById("auto-generate-candidates-checkbox");
-      if (autoCbx) {
-        // 初期状態読み込み
-        autoCbx.checked = (localStorage.getItem("autoGenerateCandidates") === "true");
-
-        // 変更時に保存
-        autoCbx.addEventListener("change", () => {
-          localStorage.setItem("autoGenerateCandidates", autoCbx.checked);
-        });
-      }
+      await initBackground("scenarioWizard");
     });
   </script>
 </body>
