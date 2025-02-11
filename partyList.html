@@ -18,33 +18,33 @@
 </head>
 
 <body>
+<div class="application-bar">
+  
 
-  <!-- メニューに戻るボタン -->
-  <button id="back-to-menu">メニューに戻る</button>
-
-  <!-- 背景を変更するボタン -->
-  <button id="change-bg-button">背景を変更する</button>
-
-  <!-- ▼ 背景選択モーダル -->
-  <div id="bg-modal" class="modal">
-    <div class="modal-content bg-modal-content">
-      <h2>背景選択</h2>
-      <div id="bg-stock-container" class="bg-stock-grid"></div>
-      <div class="c-flexbox">
-        <button id="bg-none-button" class="btn-secondary">背景無し</button>
-        <button id="bg-generate-button">生成する</button>
+    <!-- メニューに戻るボタン -->
+    <button id="back-to-menu"><div class="iconmoon icon-home3"></div></button>
+    <!-- 背景を変更するボタン -->
+    <button id="change-bg-button"><div class="iconmoon icon-picture"></div></button>
+    <!-- ▼ 背景選択モーダル -->
+    <div id="bg-modal" class="modal">
+      <div class="modal-content bg-modal-content">
+        <h2>背景選択</h2>
+        <div id="bg-stock-container" class="bg-stock-grid"></div>
+        <div class="c-flexbox">
+          <button id="bg-none-button" class="btn-secondary">背景無し</button>
+          <button id="bg-generate-button">生成する</button>
+        </div>
+        <div class="c-flexbox">
+          <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+        </div>
       </div>
-      <div class="c-flexbox">
-        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+    </div>
+    <div id="bg-generate-modal" class="modal">
+      <div class="modal-content">
+        <p>背景画像を生成中...</p>
       </div>
     </div>
   </div>
-  <div id="bg-generate-modal" class="modal">
-    <div class="modal-content">
-      <p>背景画像を生成中...</p>
-    </div>
-  </div>
-
 
   <div class="container">
     <h1>パーティ一覧</h1>

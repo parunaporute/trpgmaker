@@ -16,6 +16,14 @@
 }
 
 /**/
+/* 新聞のようなアイコン */
+.icon-newspaper:before {
+  content: "\e009";
+}
+/* 画像アイコン */
+.icon-picture:before {
+  content: "\e00f";
+}
 .icon-key:before {
   content: "\e02c";
 }
@@ -31,6 +39,7 @@
 .icon-target:before {
   content: "\e04e";
 }
+/* 家のアイコン */
 .icon-home3:before {
   content: "\e902";
 }
@@ -992,24 +1001,19 @@ button:hover {
 }
 
 #change-bg-button {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  top: 20px;
-  right: 20px;
 }
 
 #token-adjust-button {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  top: 20px;
-  right: 150px;
 }
 
 #back-to-menu {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  top: 20px;
-  left: 20px;
+  margin-right: auto;
 }
 
 #view-all-sections-button {
@@ -1433,4 +1437,21 @@ button:hover {
   justify-content: center;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.application-bar{
+  position: fixed;
+  display: flex;
+  top: 0;
+  background-color: #00000054;
+  width: 100%;
+  z-index: 100;
+  justify-content: right;
+  box-shadow: 0 0 8px #000;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.application-bar button {
+  min-width: 3rem;
 }
