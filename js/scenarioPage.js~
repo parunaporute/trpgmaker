@@ -177,18 +177,27 @@ window.addEventListener("load", async () => {
 
   // ▼ 「履歴」ボタンをアプリケーションバーに追加 (Javascriptで生成)
   const applicationBar = document.querySelector(".application-bar");
+  const changeBgButton = document.getElementById("change-bg-button");
   if (applicationBar) {
     const historyBtn = document.createElement("button");
     historyBtn.id = "toggle-history-button";
-    historyBtn.innerHTML = '<div class="iconmoon icon-newspaper"></div> 履歴';
+    historyBtn.innerHTML = '<div class="iconmoon icon-newspaper"></div>履歴';
 
     // ▼ 「change-bg-button」の左に挿入
-    const changeBgButton = document.getElementById("change-bg-button");
     applicationBar.insertBefore(historyBtn, changeBgButton);
 
     historyBtn.addEventListener("click", toggleHistory);
-  }
 
+    // 「パーティを確認」ボタンを作成
+    const partyButton = document.createElement("button");
+    partyButton.id = "show-party-button";
+    partyButton.innerHTML = '<div class="iconmoon icon-strategy"></div>PT';
+
+    applicationBar.insertBefore(partyButton, changeBgButton);
+
+    // クリックイベントを追加
+    partyButton.addEventListener("click", showPartyModal);
+  }
 });
 
 /**
@@ -856,6 +865,566 @@ function onCancelFetch() {
   }
   showLoadingModal(false);
 }
+
+// ====== 新規: 指定シーンから挿絵を生成する関数 ======
+async function generateImageForScene(sceneEntry) {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  if (!sceneEntry.prompt) {
+    alert("生成するためのプロンプトがありません。");
+    return;
+  }
+
+  const promptText =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓\n" +
+    sceneEntry.prompt;
+
+  try {
+    showLoadingModal(true);
+    window.cancelRequested = false;
+    window.currentRequestController = new AbortController();
+    const signal = window.currentRequestController.signal;
+
+    const resp = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: promptText,
+        n: 1,
+        size: "1792x1024",
+        response_format: "b64_json"
+      }),
+      signal
+    });
+    const data = await resp.json();
+    if (window.cancelRequested) {
+      return;
+    }
+    if (data.error) throw new Error(data.error.message);
+
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    // 新しい image entry
+    const newEntry = {
+      scenarioId: window.currentScenarioId || 0,
+      type: "image",
+      sceneId: sceneEntry.sceneId,
+      content: "",
+      content_en: "",
+      dataUrl,
+      prompt: sceneEntry.prompt
+    };
+    const newId = await addSceneEntry(newEntry);
+    window.sceneHistory.push({
+      ...newEntry,
+      entryId: newId
+    });
+
+    // UI更新
+    updateSceneHistory();
+    showLastScene();
+  } catch (err) {
+    if (err.name === "AbortError") {
+      console.warn("画像生成キャンセル");
+    } else {
+      console.error("画像生成失敗:", err);
+      alert("画像生成に失敗:\n" + err.message);
+    }
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+// ====== シーン履歴を表示 (改修: シーン削除/挿絵生成のUIをドロップダウンへ) ======
+function updateSceneHistory() {
+  const his = document.getElementById("scene-history");
+  if (!his) return;
+  his.innerHTML = "";
+
+  // セクション表示
+  const wd = window.currentScenario?.wizardData;
+  let sections = [];
+  if (wd && wd.sections) {
+    sections = wd.sections;
+  }
+  let sorted = [...sections].sort((a, b) => a.number - b.number);
+  const firstUncleared = sorted.find(s => !s.cleared);
+  sorted = sections;
+  if (!firstUncleared && sorted.length > 0) {
+    const tile = document.createElement("div");
+    tile.className = "history-tile summary title";
+    tile.textContent = "シナリオ達成!";
+    his.appendChild(tile);
+  }
+
+  for (const s of sorted) {
+    const t = document.createElement("div");
+    if (s.number < (firstUncleared?.number || Infinity)) {
+      t.className = "history-tile summary";
+      t.textContent = `${decompressCondition(s.conditionZipped)}(クリア済み)`;
+      refreshEndingButtons();
+    } else if (s.number === firstUncleared?.number) {
+      t.className = "history-tile summary";
+      t.textContent = `セクション${s.number} (未クリア)`;
+    }
+    his.appendChild(t);
+  }
+  let tile = document.createElement("div");
+  tile.className = "history-tile summary separator";
+  his.appendChild(tile);
+
+  // シナリオ概要
+  const scenarioSummaryEl = document.createElement("div");
+  scenarioSummaryEl.id = "scenario-summary";
+  scenarioSummaryEl.innerHTML = wd.scenarioSummary || "";
+  his.appendChild(scenarioSummaryEl);
+
+  // 最後のシーン + その画像は showLastScene() で扱うので、履歴には出さない
+  const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+  const skipIds = [];
+  if (lastScene) {
+    skipIds.push(lastScene.entryId);
+    window.sceneHistory.forEach(x => {
+      if (x.type === "image" && x.sceneId === lastScene.sceneId) {
+        skipIds.push(x.entryId);
+      }
+    });
+  }
+  const showEntries = window.sceneHistory
+    .filter(e => !skipIds.includes(e.entryId))
+    .sort((a, b) => a.entryId - b.entryId);
+
+  tile = document.createElement("div");
+  for (const [index, e] of showEntries.entries()) {
+    console.log("hoge", index);
+
+    const c = document.createElement("div");
+    c.className = "r-flexbox";
+
+    if (e.type === "action") {
+      tile = document.createElement("div");
+      tile.className = "history-tile";
+
+      const at = document.createElement("p");
+      at.className = "action-text";
+      at.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+      at.innerHTML = DOMPurify.sanitize(e.content);
+      at.addEventListener("blur", async () => {
+        await onSceneOrActionContentEdited(e, at.innerHTML.trim());
+      });
+
+      tile.appendChild(at);
+      his.appendChild(tile);
+    } else if (e.type === "scene") {
+      tile.className = "history-tile";
+      // ▼ シーン本文
+      const st = document.createElement("p");
+      st.className = "scene-text";
+      st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+      st.innerHTML = DOMPurify.sanitize(e.content);
+      st.addEventListener("blur", async () => {
+        await onSceneOrActionContentEdited(e, st.innerHTML.trim());
+      });
+      tile.appendChild(st);
+
+      //      tile.appendChild(c);
+      his.appendChild(tile);
+    } else if (e.type === "image") {
+      //画像だったとき。これのせいで面倒だ
+      tile.className = "history-tile";
+
+      const img = document.createElement("img");
+      img.src = e.dataUrl;
+      img.alt = "生成画像";
+      img.style.maxHeight = "350px";
+      img.style.alignSelf = "flex-end";
+      img.style.width = "100%";
+      img.style.objectFit = "contain";
+      img.style.marginBottom = "60px";
+      img.style.objectPosition = "right";
+
+      tile.appendChild(img);
+
+      const cc = document.createElement("div");
+      cc.className = "button-conteiner";
+      // 画像再生成ボタン
+      const reBtn = document.createElement("button");
+      reBtn.textContent = "再生成";
+/*      reBtn.style.width = "10rem";
+      reBtn.style.right = "calc(10rem + 4rem)";*/
+      reBtn.addEventListener("click", () => {
+        if (!window.apiKey) return;
+        const idx = window.sceneHistory.indexOf(e);
+        if (idx >= 0) {
+          openImagePromptModal(e.prompt, idx);
+        }
+      });
+      cc.appendChild(reBtn);
+
+      // 画像削除
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "画像削除";
+/*      delBtn.style.bottom = "70px";
+      delBtn.style.right = "20px";*/
+      delBtn.addEventListener("click", async () => {
+        await deleteSceneEntry(e.entryId);
+        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== e.entryId);
+        updateSceneHistory();
+        showLastScene();
+      });
+      cc.appendChild(delBtn);
+      tile.appendChild(cc);
+
+      his.appendChild(tile);
+    }
+
+    if (
+//      showEntries.length - 1 == index || // 最後
+      (e.type == "scene" && showEntries[index + 1].type == "action") || // シーンであり、次がアクション
+      e.type == "image"// イメージ
+    ) {
+      c.innerText = "";
+
+      // ▼ 置き換え: wandボタン + ドロップダウン
+      const wandBtn = document.createElement("button");
+      wandBtn.className = "scene-menu-button";
+      wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+      c.appendChild(wandBtn);
+
+      // ドロップダウン本体
+      const dropdown = document.createElement("div");
+      dropdown.className = "scene-dropdown-menu";
+      dropdown.style.display = "none"; // 初期は非表示
+      dropdown.innerHTML = `
+        <button class="dropdown-item scene-delete">
+          <div class="iconmoon icon-bin"></div>シーンを削除
+        </button>
+        <button class="dropdown-item scene-illustration">
+          <div class="iconmoon icon-picture"></div>挿絵を生成
+        </button>
+      `;
+      c.appendChild(dropdown);
+
+      // ボタン押下でメニュー開閉
+      wandBtn.addEventListener("click", () => {
+        dropdown.style.display = (dropdown.style.display === "none") ? "block" : "none";
+      });
+
+      // 「シーンを削除」クリック
+      const delBtn = dropdown.querySelector(".scene-delete");
+      if (delBtn) {
+        delBtn.addEventListener("click", async () => {
+          dropdown.style.display = "none";
+          await deleteSceneAndPreviousAction(e);
+        });
+      }
+      // 「挿絵を生成」クリック
+      const illustBtn = dropdown.querySelector(".scene-illustration");
+      if (illustBtn) {
+        illustBtn.addEventListener("click", async () => {
+          dropdown.style.display = "none";
+          await generateImageForScene(e);
+        });
+      }
+      his.appendChild(c);
+    }
+
+  }
+
+  his.scrollTop = his.scrollHeight;
+}
+
+
+// ====== シーン削除 + 直前アクション削除 → 再描画 ======
+async function deleteSceneAndPreviousAction(sceneEntry) {
+  // このシーンと同じ sceneId の画像をまとめて削除
+  const removeIds = [sceneEntry.entryId];
+  window.sceneHistory.forEach(x => {
+    if (x.type === "image" && x.sceneId === sceneEntry.sceneId) {
+      removeIds.push(x.entryId);
+    }
+  });
+
+  // さらに「直前のアクション」を探して削除
+  const idx = window.sceneHistory.findIndex(e => e.entryId === sceneEntry.entryId);
+  if (idx > 0) {
+    for (let i = idx - 1; i >= 0; i--) {
+      if (window.sceneHistory[i].type === "action") {
+        removeIds.push(window.sceneHistory[i].entryId);
+        break;
+      }
+    }
+  }
+/*
+  // DB削除
+  for (const rid of removeIds) {
+    await deleteSceneEntry(rid);
+  }
+  // メモリ上から削除
+  window.sceneHistory = window.sceneHistory.filter(x => !removeIds.includes(x.entryId));
+*/
+
+  // 要約再計算 & 再描画
+  await handleSceneSummaries();
+  updateSceneHistory();
+  showLastScene();
+}
+
+
+/** シーン or 行動を編集したら英訳を作り直す */
+async function onSceneOrActionContentEdited(entry, newText) {
+  if (!window.apiKey) {
+    return;
+  }
+  if (newText.trim() === entry.content.trim()) {
+    return;
+  }
+  // 翻訳を作り直す
+  // モーダルを一時的に表示
+  showLoadingModal(true);
+  try {
+    const en = await generateEnglishTranslation(newText);
+    entry.content = newText;
+    entry.content_en = en;
+    const up = {
+      ...entry,
+      content: newText,
+      content_en: en
+    };
+    await updateSceneEntry(up);
+  } catch (err) {
+    console.error("再翻訳失敗:", err);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+
+/** 行動数に応じて要約を作成/削除する */
+async function handleSceneSummaries() {
+  const actionCount = window.sceneHistory.filter(e => e.type === "action").length;
+  // 新規要約作成チェック
+  if (actionCount >= 15) {
+    const chunkIndex = Math.floor((actionCount - 15) / 10);
+    if (chunkIndex >= 0) {
+      if (!window.sceneSummaries[chunkIndex]) {
+        const startAction = chunkIndex * 10 + 1;
+        const endAction = (chunkIndex + 1) * 10;
+        let gathered = [];
+        let actionCounter = 0;
+        for (const e of window.sceneHistory) {
+          if (e.type === "action") {
+            actionCounter++;
+          }
+          if (actionCounter >= startAction && actionCounter <= endAction) {
+            gathered.push(e);
+          }
+        }
+        const textForSummary = gathered.map(x => x.type === "action" ? `A:${x.content}` : `S:${x.content}`).join("\n");
+
+        const enSummary = await generateSummaryWithLimit(textForSummary, 5, "en");
+        const jaSummary = await generateSummaryWithLimit(textForSummary, 5, "ja");
+
+        const sumRec = {
+          chunkIndex,
+          content_en: enSummary,
+          content_ja: jaSummary
+        };
+        await addSceneSummaryRecord(sumRec);
+        window.sceneSummaries[chunkIndex] = {
+          en: enSummary,
+          ja: jaSummary
+        };
+      }
+    }
+  }
+
+  // 削除チェック
+  const checks = [15, 25, 35, 45, 55, 65, 75];
+  for (let i = 0; i < checks.length; i++) {
+    const boundary = checks[i];
+    if (actionCount <= boundary) {
+      await deleteSceneSummaryByChunkIndex(i);
+      window.sceneSummaries[i] = null;
+    }
+  }
+}
+
+
+/** 指定テキストを (英/日) で N行程度に要約 */
+async function generateSummaryWithLimit(text, lines = 5, lang = "en") {
+  if (!text.trim()) return "";
+  let sys = "You are a talented summarizer. The final language must be English.";
+  let user = `
+Summarize the following text in ${lines} lines of English:
+${text}
+`;
+  if (lang === "ja") {
+    sys = "あなたは優秀な要約者です。必ず日本語で。";
+    user = `
+以下のテキストを${lines}行程度で簡潔にまとめてください:
+${text}
+`;
+  }
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user }
+        ],
+        temperature: 0.5
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("要約失敗:", err);
+    return "";
+  }
+}
+
+
+/** 最新シーンを表示 (改修: ドロップダウン化) */
+function showLastScene() {
+  const storyDiv = document.getElementById("story");
+  const lastSceneImagesDiv = document.getElementById("last-scene-images");
+  if (!storyDiv || !lastSceneImagesDiv) return;
+
+  const nextSceneBtn = document.getElementById("next-scene");
+  const playerInput = document.getElementById("player-input");
+  const playerActionLabel = document.getElementById("player-action");
+
+  const lastScene = [...window.sceneHistory].reverse().find(e => e.type === "scene");
+
+  if (lastScene) {
+    storyDiv.innerHTML = "";
+    // ▼ シーン本文
+    const st = document.createElement("p");
+    st.className = "scene-text";
+    st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
+    st.innerHTML = DOMPurify.sanitize(lastScene.content, DOMPURIFY_CONFIG);
+    st.addEventListener("blur", async () => {
+      await onSceneOrActionContentEdited(lastScene, st.innerHTML.trim());
+    });
+    storyDiv.appendChild(st);
+
+    // ▼ 画像エリア
+    lastSceneImagesDiv.innerHTML = "";
+    const images = window.sceneHistory.filter(x => x.type === "image" && x.sceneId === lastScene.sceneId);
+    images.forEach(imgEntry => {
+      const c = document.createElement("div");
+      c.className = "image-container";
+
+      const i = document.createElement("img");
+      i.src = imgEntry.dataUrl;
+      i.alt = "シーン画像";
+      c.appendChild(i);
+
+      const cc = document.createElement("div");
+      cc.className = "button-conteiner";
+      const reBtn = document.createElement("button");
+      reBtn.textContent = "再生成";
+      reBtn.addEventListener("click", () => {
+        if (!window.apiKey) return;
+        const idx = window.sceneHistory.indexOf(imgEntry);
+        if (idx >= 0) {
+          openImagePromptModal(imgEntry.prompt, idx);
+        }
+      });
+      cc.appendChild(reBtn);
+
+      const dBtn = document.createElement("button");
+      dBtn.textContent = "画像削除";
+      dBtn.addEventListener("click", async () => {
+        await deleteSceneEntry(imgEntry.entryId);
+        window.sceneHistory = window.sceneHistory.filter(x => x.entryId !== imgEntry.entryId);
+        showLastScene();
+        updateSceneHistory();
+      });
+      cc.appendChild(dBtn);
+      c.appendChild(cc);
+      lastSceneImagesDiv.appendChild(c);
+    });
+
+    // ▼ 新しい wand ボタン + ドロップダウン
+    const c = document.createElement("div");
+    c.className = "r-flexbox";
+
+    const wandBtn = document.createElement("button");
+    wandBtn.className = "scene-menu-button";
+    wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+    c.appendChild(wandBtn);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "scene-dropdown-menu";
+    dropdown.style.display = "none";
+    dropdown.innerHTML = `
+      <button class="dropdown-item last-scene-delete"><div class="iconmoon icon-bin"></div>シーンを削除</button>
+      <button class="dropdown-item last-scene-illustration"><div class="iconmoon icon-picture"></div>挿絵を生成</button>
+    `;
+    c.appendChild(dropdown);
+
+    wandBtn.addEventListener("click", () => {
+      dropdown.style.display = (dropdown.style.display === "none") ? "block" : "none";
+    });
+
+    // 「シーンを削除」
+    dropdown.querySelector(".last-scene-delete").addEventListener("click", async () => {
+      dropdown.style.display = "none";
+      await deleteSceneAndPreviousAction(lastScene);
+    });
+
+    // 「挿絵を生成」
+    dropdown.querySelector(".last-scene-illustration").addEventListener("click", async () => {
+      dropdown.style.display = "none";
+      await generateImageForScene(lastScene);
+    });
+    storyDiv.appendChild(c);
+
+    if (window.apiKey) {
+      nextSceneBtn.style.display = "inline-block";
+      playerInput.style.display = "inline-block";
+      playerActionLabel.textContent = "プレイヤーはどんな行動をしますか？";
+    } else {
+      nextSceneBtn.style.display = "none";
+      playerInput.style.display = "none";
+      playerActionLabel.textContent = "";
+    }
+  } else {
+    // シーンが無い
+    storyDiv.innerHTML = "";
+    lastSceneImagesDiv.innerHTML = "";
+
+    if (window.apiKey) {
+      nextSceneBtn.style.display = "inline-block";
+      playerInput.style.display = "block";
+      playerActionLabel.textContent = "最初のシーンを作るため行動を入力してください。";
+    } else {
+      nextSceneBtn.style.display = "none";
+      playerInput.style.display = "none";
+      playerActionLabel.textContent = "";
+    }
+  }
+}
+
 
 // 外部から呼べるようにexport
 window.loadScenarioData = loadScenarioData;

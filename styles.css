@@ -1,3 +1,5 @@
+/* styles.css */
+
 @font-face {
   font-family: "icomoon";
   src: url("fonts/icomoon.eot?1r4kr6");
@@ -13,61 +15,143 @@
 
 .iconmoon {
   font-family: "icomoon" !important;
+  font-size: 1.2rem;
 }
 
-/**/
-/* 新聞のようなアイコン */
 .icon-newspaper:before {
   content: "\e009";
+  /* 新聞のアイコン（ニュース、記事など） */
 }
-/* 画像アイコン */
+
 .icon-picture:before {
   content: "\e00f";
+  /* 画像や写真のアイコン */
 }
+
 .icon-key:before {
   content: "\e02c";
+  /* 鍵のアイコン（セキュリティ、アクセス管理） */
 }
+
 .icon-strategy:before {
   content: "\e03b";
+  /* 戦略のアイコン（チェスの駒などの可能性） */
 }
+
 .icon-beaker:before {
   content: "\e03c";
+  /* フラスコやビーカーのアイコン（実験、科学） */
 }
+
 .icon-profile-male:before {
   content: "\e040";
+  /* 男性のプロフィールアイコン */
 }
+
+.icon-profile-female:before {
+  content: "\e041";
+  /* 女性のプロフィールアイコン */
+}
+
 .icon-target:before {
   content: "\e04e";
+  /* 的（ターゲット）のアイコン（目標や目的を示す） */
 }
-/* 家のアイコン */
+
 .icon-home3:before {
   content: "\e902";
+  /* 家のアイコン（ホーム画面、トップページなど） */
 }
+
+.icon-book:before {
+  content: "\e91f";
+  /* 本のアイコン（読書、文書関連） */
+}
+
+.icon-books:before {
+  content: "\e920";
+  /* 複数の本のアイコン（図書、ライブラリ） */
+}
+
+.icon-library:before {
+  content: "\e921";
+  /* 図書館のアイコン（蔵書、知識） */
+}
+
+.icon-file-picture:before {
+  content: "\e927";
+  /* 画像ファイルのアイコン（写真、イメージ） */
+}
+
+.icon-folder-download:before {
+  content: "\e933";
+  /* フォルダのダウンロードアイコン（ファイル保存） */
+}
+
+.icon-folder-upload:before {
+  content: "\e934";
+  /* フォルダのアップロードアイコン（ファイル送信） */
+}
+
+.icon-user:before {
+  content: "\e971";
+  /* 一般的なユーザーのアイコン（アカウント、プロフィール） */
+}
+
+.icon-magic-wand:before {
+  content: "\e997";
+  /* 魔法の杖のアイコン（エフェクト、編集ツールなど） */
+}
+
 .icon-gift:before {
   content: "\e99f";
+  /* ギフトのアイコン（プレゼント、報酬） */
 }
+
+.icon-star-full:before {
+  content: "\e9d9";
+  /* 星（評価、ランク、お気に入り） */
+}
+
+.icon-heart:before {
+  content: "\e9da";
+  /* ハート（お気に入り、いいね） */
+}
+
 .icon-volume-high:before {
   content: "\ea26";
+  /* 音量大のアイコン（スピーカー） */
 }
 
 .icon-volume-mute2:before {
   content: "\ea2a";
+  /* ミュートのアイコン（音量オフ） */
 }
+
 .icon-sort-alpha-asc:before {
   content: "\ea48";
+  /* アルファベット順（昇順）のアイコン */
 }
+
 .icon-sort-alpha-desc:before {
   content: "\ea49";
+  /* アルファベット順（降順）のアイコン */
 }
 
-.icA:before {
-  content: "\ea26";
-}
-.icB:before {
-  content: "\ea2a";
+.icon-sort-amount-asc:before {
+  content: "\ea4c";
+  /* 数値ソート（小さい順） */
 }
 
-/* styles.css */
+.icon-sort-amount-desc:before {
+  content: "\ea4d";
+  /* 数値ソート（大きい順） */
+}
+
+.icon-bin:before {
+  content: "\e9ac";
+  /* ゴミ箱 */
+}
 
 /* ベース */
 body {
@@ -94,6 +178,7 @@ body {
   gap: 20px;
   justify-content: center;
 }
+
 #warehouse-card-container {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -178,6 +263,7 @@ button:hover {
   padding: 10px 20px;
   align-items: flex-start;
 }
+
 .history-tile.summary.separator {
   padding: 0;
   border-bottom: 1px dashed #666;
@@ -203,6 +289,7 @@ button:hover {
 .history-tile:nth-child(odd) {
   background-color: #00000059;
 }
+
 .history-tile:last-of-type {
   padding-bottom: 0;
 }
@@ -220,6 +307,7 @@ button:hover {
   border: 1px dashed transparent;
   cursor: text;
 }
+
 .action-text {
   font-family: initial;
 }
@@ -229,6 +317,7 @@ button:hover {
 .history-tile .scenario-text {
   font-size: 0.8rem;
 }
+
 .history-tile .action-text {
   font-size: 1rem;
 }
@@ -236,28 +325,21 @@ button:hover {
 .history-tile:last-child .action-text {
   font-size: 1.4rem;
 }
-
-.history-tile button {
-  position: absolute;
-  bottom: 20px;
+.scene-menu-button {
+  position: relative;
+  min-width: initial;
+  right: 0;
   margin-bottom: 0px;
-  max-width: 10rem;
   background-color: transparent;
   border: 1px dashed #bbb;
   color: #bbb;
-  width: 100%;
-  border-radius: 20px;
+  width: initial !important;
+  border-radius: 0px;
   min-height: initial;
   max-height: initial;
   text-shadow: none;
   box-shadow: none;
   background-image: none;
-}
-
-.history-tile button:hover {
-  background-color: #aaaaaa73;
-  color: #000;
-  border-color: #000;
 }
 
 .delete-scene {
@@ -279,6 +361,7 @@ button:hover {
   color: #000;
   border-color: #000;
 }
+
 .scene-text[contenteditable]:focus,
 .action-text[contenteditable]:focus,
 .scenario-text[contenteditable]:focus {
@@ -291,6 +374,7 @@ button:hover {
   padding-bottom: 10px;
   min-height: 60px;
 }
+
 /* ▼ 0件時メッセージ */
 #no-scenarios-message {
   display: none;
@@ -620,9 +704,11 @@ button:hover {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -633,10 +719,12 @@ button:hover {
     filter: brightness(1);
     background-position: 0% 50%;
   }
+
   50% {
     filter: brightness(1.2);
     background-position: 100% 50%;
   }
+
   100% {
     filter: brightness(1);
     background-position: 0% 50%;
@@ -913,6 +1001,7 @@ button:hover {
 .warehouse-left {
   justify-content: left;
 }
+
 .warehouse-right {
   justify-content: right;
 }
@@ -922,9 +1011,11 @@ button:hover {
     flex-wrap: wrap;
     justify-content: center;
   }
+
   .warehouse-tab {
     min-width: 5rem;
   }
+
   .warehouse-header-bar {
     flex-direction: column;
     width: 100%;
@@ -949,6 +1040,7 @@ button:hover {
   font-size: 0.9rem;
   cursor: pointer;
 }
+
 #warehouse-sort-dropdown:focus {
   outline: 2px solid #4caf50;
 }
@@ -964,12 +1056,15 @@ button:hover {
   cursor: pointer;
   transition: background-color 0.2s;
 }
+
 #warehouse-sort-direction-btn:hover {
   background-color: #444;
 }
+
 #stop-bgm-button {
   margin: 0;
 }
+
 .close-warehouse-btn {
   margin: 0;
   display: flex;
@@ -988,7 +1083,7 @@ button:hover {
   max-height: initial;
 }
 
-#start-new-scenario-button {
+button.important {
   background-color: #2196f3;
   font-size: 1.4rem;
   padding: 20px 35px;
@@ -1090,9 +1185,7 @@ button:hover {
 #player-input {
   margin-bottom: 20px;
 }
-#next-scene {
-  width: 10rem;
-}
+
 /* ----- ステップ0のパーティ選択用クラス ----- */
 
 /* 1行ぶんの枠 */
@@ -1123,8 +1216,10 @@ button:hover {
   display: flex;
   align-items: center;
   cursor: pointer;
-  width: 100%; /* 行全体をラベルにする */
-  padding: 10px 15px; /* 余白を少し広めに */
+  width: 100%;
+  /* 行全体をラベルにする */
+  padding: 10px 15px;
+  /* 余白を少し広めに */
   box-sizing: border-box;
 }
 
@@ -1147,7 +1242,8 @@ button:hover {
 
 /* 選択状態: input[type="radio"]:checked + .wizard-party-label::before で円を塗りつぶす */
 .wizard-party-row input[type="radio"]:checked + .wizard-party-label::before {
-  background-color: #019a39; /* 選択時の色 (例: 緑) */
+  background-color: #019a39;
+  /* 選択時の色 (例: 緑) */
   border-color: #00d14c;
 }
 
@@ -1158,7 +1254,8 @@ button:hover {
   object-fit: cover;
   margin-right: 10px;
   border-radius: 4px;
-  border: 1px solid #222; /* ほんの少し枠をつける */
+  border: 1px solid #222;
+  /* ほんの少し枠をつける */
   background-color: #161616;
 }
 
@@ -1183,6 +1280,7 @@ button:hover {
   margin: 0;
   margin-bottom: 10px;
 }
+
 #you-avatar-btn {
   width: 10rem;
 }
@@ -1194,6 +1292,7 @@ button:hover {
   flex-direction: column;
   align-items: center;
 }
+
 #avatar-form-container {
   display: flex;
   width: 100%;
@@ -1263,6 +1362,7 @@ button:hover {
   display: flex;
   z-index: 1000;
 }
+
 /*
 悩み中…
 .book::after{
@@ -1294,6 +1394,7 @@ button:hover {
   vertical-align: bottom;
   position: relative;
 }
+
 .book-inner {
   transform-style: preserve-3d;
   transition: transform 0.7s ease;
@@ -1308,14 +1409,17 @@ button:hover {
   left: 0;
   top: 0;
 }
+
 .book-front {
-  transform: rotateY(90deg); /* ← 重要 */
+  transform: rotateY(90deg);
+  /* ← 重要 */
   transform-origin: 0 0;
   backface-visibility: hidden;
   position: absolute;
   left: 0px;
   top: 0;
-  height: 200px; /* 7:5比率で */
+  height: 200px;
+  /* 7:5比率で */
   width: 170px;
   transition: all 1s ease;
 }
@@ -1332,7 +1436,8 @@ button:hover {
 }
 
 .book-wrapper.facing-front .book-inner {
-  transform: rotateY(-90deg); /* 背表紙 0 + (-90) = -90, 表紙 90 + (-90) = 0 */
+  transform: rotateY(-90deg);
+  /* 背表紙 0 + (-90) = -90, 表紙 90 + (-90) = 0 */
 }
 
 .book-front-title {
@@ -1388,7 +1493,8 @@ button:hover {
 /* モーダル全体のコンテンツ幅をやや狭く & 中央寄せ */
 .edit-scenario-modal-content {
   margin: 0 auto;
-  text-align: left; /* 左寄せにすると入力欄が見やすい */
+  text-align: left;
+  /* 左寄せにすると入力欄が見やすい */
 }
 
 /* モーダルのタイトルと入力欄・ボタン間に余白 */
@@ -1403,7 +1509,8 @@ button:hover {
   align-items: center;
   max-width: 400px;
   margin-bottom: 1rem;
-  flex-wrap: wrap; /* 狭い画面のとき折り返す */
+  flex-wrap: wrap;
+  /* 狭い画面のとき折り返す */
   justify-content: center;
 }
 
@@ -1411,7 +1518,8 @@ button:hover {
 .edit-row label {
   margin: 0;
   white-space: nowrap;
-  font-size: 1rem; /* お好みで */
+  font-size: 1rem;
+  /* お好みで */
   width: 100%;
 }
 
@@ -1442,10 +1550,10 @@ button:hover {
   margin-top: 1rem;
 }
 
-.application-bar{
+.application-bar {
   position: fixed;
   display: flex;
-  gap:5px;
+  gap: 5px;
   top: 0;
   background-color: #00000054;
   width: 100%;
@@ -1457,5 +1565,20 @@ button:hover {
 }
 
 .application-bar button {
+  line-height: 1.5rem;
   min-width: 3rem;
+}
+
+#last-scene-images img {
+  max-height: 50vh;
+  object-fit: contain;
+}
+
+.image-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  object-fit: contain;
 }

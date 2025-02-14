@@ -32,8 +32,7 @@ window.onload = async () => {
 
     // scene.js 側の「loadScenarioData」でシナリオ＆履歴を取得して表示
     await loadScenarioData(window.currentScenarioId);
-    updateSceneHistory();
-    showLastScene();
+    //updateSceneHistory();
   }
 
   // ---------- ネタバレ（目的達成型）関連 ----------

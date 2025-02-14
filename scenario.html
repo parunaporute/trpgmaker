@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="styles.css" />
   <!-- サニタイズ -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+  <!-- zip -->
+  <script src="https://cdn.jsdelivr.net/npm/pako/dist/pako.min.js"></script>
   <!-- 背景管理用 -->
   <script src="js/background.js"></script>
   <!-- 雑多 -->
@@ -80,12 +82,14 @@
     <div class="game-section" style="display:none;">
       <div id="story" style="margin-bottom:20px;"></div>
       <div id="last-scene-images" style="margin-bottom:20px;"></div>
+      <div id="last-scene-added" class="r-flexbox"></div>
 
       <!-- 画像生成ボタン -->
-      <div class="r-flexbox">
-        <button id="image-auto-generate-button">挿絵生成</button>
-        <!--button id="image-prompt-modal-button">編集して生成(カスタム)</button-->
-      </div>
+      <!--
+          ここにあった:
+          <button id="image-auto-generate-button"><div class="iconmoon icon-magic-wand"></div>挿絵を生成</button>
+          は削除しました
+      -->
 
       <div id="player-action">プレイヤーの行動を入力してください</div>
       <!-- 回答候補を生成ボタンとチェックボックス -->
@@ -102,11 +106,8 @@
 
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
 
-      <div class="s-flexbox">
-        <button id="next-scene">次のシーン</button>
-
-        <!-- パーティーを確認ボタン -->
-        <button id="show-party-button">パーティーを確認</button>
+      <div class="c-flexbox">
+        <button id="next-scene" class="important">次のシーン</button>
       </div>
 
     </div>
@@ -193,7 +194,7 @@
   <script src="js/scene.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
-  <script src="js/scenarioPage.js"></script>
+  <script src="js/scenario.js"></script>
 
   <script>
     window.addEventListener("load", async () => {

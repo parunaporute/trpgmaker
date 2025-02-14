@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="styles.css" />
   <!-- サニタイズ -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+  <!-- zip -->
+  <script src="https://cdn.jsdelivr.net/npm/pako/dist/pako.min.js"></script>
   <!-- 背景管理用 -->
   <script src="js/background.js"></script>
   <!-- 雑多 -->
@@ -92,7 +94,7 @@
 
     <!-- 新しいシナリオを始めるボタン -->
     <div class="scenario-wizard-section">
-      <button id="start-new-scenario-button">
+      <button id="start-new-scenario-button" class="important">
         新しいシナリオを始める
       </button>
     </div>
