@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css" />
 {% include "partials/inits.njk" %}
 </head>
 
@@ -58,7 +57,7 @@
       <div id="player-action">プレイヤーの行動を入力してください</div>
       <!-- 回答候補を生成ボタンとチェックボックス -->
       <div style="margin-top:10px;display: flex;">
-        <button id="generate-action-candidates-button">回答候補を生成</button>
+        <button id="generate-action-candidates-button">候補を生成</button>
         <label style="margin-left:10px;display: flex;">
           <input type="checkbox" id="auto-generate-candidates-checkbox" />
           <p style="width: 100%;">自動的に生成する</p>
@@ -66,27 +65,23 @@
       </div>
       <div id="action-candidates-container" style="margin-top:10px;"></div>
 
-      <div id="action-candidates-container" style="margin-top:10px;"></div>
-
       <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
 
       <div class="c-flexbox">
-        <button id="next-scene" class="important">次のシーン</button>
+        <button id="next-scene" class="important" style="display:none;">次のシーン</button>
       </div>
 
     </div>
+
     <div class="c-flexbox">
       <!-- ▼ エンディング関連ボタン&モーダル（追加） -->
       <button id="ending-button" style="display:none;">エンディング</button>
       <button id="clear-ending-button" style="display:none;">クリア・エンディング</button>
-
     </div>
-
   </div>
 
   <!-- 全セクションを閲覧するボタン -->
   <button id="view-all-sections-button">全セクションを閲覧する</button>
-
   <!-- 全セクション表示モーダル -->
   <div id="all-sections-modal" class="modal">
     <div class="modal-content">
@@ -100,7 +95,7 @@
   <div id="loading-modal" class="modal">
     <div class="modal-content">
       <p>応答を待っています...</p>
-      <button id="cancel-request-button">キャンセル</button>
+      <button id="cancel-request-button" onclick="onCancelFetch()">キャンセル</button>
     </div>
   </div>
 
@@ -143,6 +138,7 @@
     カードを取得する
   </button>
 
+  <!-- エンディングモーダル -->
   <div id="ending-modal" class="modal">
     <div class="modal-content" style="padding: 10vw;">
       <h2 id="ending-modal-title"></h2>
@@ -151,31 +147,60 @@
       <button id="ending-modal-regenerate-button" style="margin-top:10px;">再生成</button>
     </div>
   </div>
-  <!-- ▲ エンディング関連ここまで -->
+
+  <!-- ▼ 情報モーダル (アイテム/登場人物) -->
+  <div id="info-modal" class="modal">
+    <div class="modal-content" style="text-align:left;">
+      <div style="margin-bottom:10px;">
+        <button id="entity-update-button">シナリオから取得</button>
+        <button id="entity-generate-button" style="display: none;">追加</button>
+      </div>
+      <!-- 生成候補の表示場所 -->
+      <div id="entity-candidate-list" style="margin-bottom:20px; padding:5px;"></div>
+      <!-- 既存一覧の表示場所 -->
+      <div id="entity-list-container" style="margin-bottom:20px; padding:5px;"></div>
+      <div style="text-align:center;">
+        <button id="info-close-button">閉じる</button>
+      </div>
+    </div>
+  </div>
 
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
-  <script src="js/scenario.js"></script>
 
   <script>
     window.addEventListener("load", async () => {
       await initIndexedDB();
       await initBackground("scenario");
-    });
 
-    // ▼ 「編集して生成(カスタム)」ボタンをクリック → openImagePromptModal() 呼び出し
-    window.addEventListener("DOMContentLoaded", () => {
-      const customBtn = document.getElementById("image-prompt-modal-button");
-      if (customBtn) {
-        customBtn.addEventListener("click", () => {
-          openImagePromptModal();
+      // イベント付与
+      const entityUpdateBtn = document.getElementById("entity-update-button");
+      if (entityUpdateBtn) {
+        entityUpdateBtn.addEventListener("click", () => {
+          onUpdateEntitiesFromAllScenes();
         });
       }
+      const infoCloseBtn = document.getElementById("info-close-button");
+      if (infoCloseBtn) {
+        infoCloseBtn.addEventListener("click", () => {
+          const infoModal = document.getElementById("info-modal");
+          if (infoModal) infoModal.classList.remove("active");
+        });
+      }
+      const imageCustomGenBtn = document.getElementById("image-custom-generate-button");
+      if (imageCustomGenBtn) {
+        imageCustomGenBtn.addEventListener("click", onCustomImageGenerate);
+      }
+      const imageCustomCancelBtn = document.getElementById("image-custom-cancel-button");
+      if (imageCustomCancelBtn) {
+        imageCustomCancelBtn.addEventListener("click", closeImagePromptModal);
+      }
     });
-    window.addEventListener('DOMContentLoaded', () => {
+
+    window.addEventListener("DOMContentLoaded", () => {
       const autoCbx = document.getElementById("auto-generate-candidates-checkbox");
       if (autoCbx) {
         // 初期状態読み込み
@@ -184,6 +209,22 @@
         // 変更時に保存
         autoCbx.addEventListener("change", () => {
           localStorage.setItem("autoGenerateCandidates", autoCbx.checked);
+        });
+      }
+
+      // シーン生成ボタン
+      const nextSceneBtn = document.getElementById("next-scene");
+      if (nextSceneBtn) {
+        nextSceneBtn.addEventListener("click", () => {
+          getNextScene();
+        });
+      }
+
+      // 戻るボタン（暫定でhistory.back()）
+      const backToMenuBtn = document.getElementById("back-to-menu");
+      if (backToMenuBtn) {
+        backToMenuBtn.addEventListener("click", () => {
+          history.back();
         });
       }
     });

@@ -2,6 +2,7 @@
  * scene.js (統合版/改修版)
  *  - シーンとアクションを1:1対応に変更
  *  - 画像は type='image' で別レコードとして管理
+ *  - アイテム/登場人物を管理する "entities" ストアを利用
  ********************************/
 
 // --------------------------------------------------
@@ -52,6 +53,7 @@ const DOMPURIFY_CONFIG = {
 window.addEventListener("load", async () => {
   // IndexedDB初期化 & キャラクターデータ読み込み
   await initIndexedDB();
+  // 旧キャラクター倉庫は使わないが、ロードだけはしておく
   const storedChars = await loadCharacterDataFromIndexedDB();
   window.characterData = storedChars || [];
 
@@ -228,6 +230,17 @@ window.addEventListener("load", async () => {
     applicationBar.insertBefore(partyButton, changeBgButton);
     partyButton.addEventListener("click", showPartyModal);
   }
+
+  // ▼ 情報ボタン追加
+  if (applicationBar) {
+    const infoButton = document.createElement("button");
+    infoButton.id = "info-button";
+    infoButton.innerHTML = '情報';
+    applicationBar.insertBefore(infoButton, changeBgButton);
+    infoButton.addEventListener("click", () => {
+      openEntitiesModal();
+    });
+  }
 });
 
 // --------------------------------------------------
@@ -339,10 +352,6 @@ async function loadAllScenesForScenario(scenarioId) {
 // --------------------------------------------------
 // ▼ シーン生成＆次のシーン取得
 // --------------------------------------------------
-/**
- * プレイヤー入力をもとに次のシーンを生成する
- * 導入シーン後(2回目以降)は action が必ず入力される想定
- */
 async function getNextScene() {
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -350,7 +359,7 @@ async function getNextScene() {
   }
 
   // 現在のシーン数
-  const hasIntro = window.scenes.length > 0; 
+  const hasIntro = window.scenes.length > 0;
   // 最初のシーン(導入)が無ければ、actionは空文字でOK
   let pinput = "";
   if (hasIntro) {
@@ -418,7 +427,7 @@ async function getNextScene() {
       }
     }
 
-    // 3) 過去のシーン＆アクションを ChatGPT へ渡す (要約済みの部分はまとめて)
+    // 3) 過去のシーン＆アクションを ChatGPT へ渡す
     const actionCount = window.scenes.filter(s => s.action && s.action.content.trim() !== "").length;
     // (A) 先に要約を push
     const chunkEnd = Math.floor((actionCount - 15) / 10);
@@ -435,21 +444,14 @@ async function getNextScene() {
     // (B) 要約に含まれない分だけ raw を push
     const skipCount = (chunkEnd + 1) * 10;
     let aCnt = 0;
-    // シーン順に
     for (const scn of window.scenes) {
-      // アクション
       if (scn.action && scn.action.content.trim() !== "") {
         aCnt++;
-        if (aCnt <= skipCount) {
-          continue;
-        }
+        if (aCnt <= skipCount) continue;
         const actText = scn.action.content_en?.trim() ? scn.action.content_en : scn.action.content;
         msgs.push({ role: "user", content: "player action:" + actText });
       }
-      // シーン本文
-      if (aCnt <= skipCount) {
-        continue;
-      }
+      if (aCnt <= skipCount) continue;
       const scText = scn.content_en?.trim() ? scn.content_en : scn.content;
       msgs.push({ role: "assistant", content: scText });
     }
@@ -463,7 +465,6 @@ async function getNextScene() {
     window.currentRequestController = new AbortController();
     const signal = window.currentRequestController.signal;
     let chatModel = "gpt-4";
-    // 例えばモデルを切り替えたい場合はここを調整
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -489,16 +490,13 @@ async function getNextScene() {
     let finalSceneJa = rawScene;
     let finalSceneEn = "";
     if (!containsJapanese(rawScene)) {
-      // 英語っぽい
       finalSceneJa = await generateJapaneseTranslation(rawScene);
       finalSceneEn = rawScene;
     } else {
-      // 日本語 → 英語バージョン
       finalSceneEn = await generateEnglishTranslation(rawScene);
     }
 
-    // 6) 新しいシーンをDBに保存: (actionContent, sceneContent)
-    // sceneIdを生成
+    // 6) 新しいシーンをDBに保存
     const sid = "scene_" + Date.now();
     const sRec = {
       scenarioId: window.currentScenarioId || 0,
@@ -506,11 +504,10 @@ async function getNextScene() {
       sceneId: sid,
       content: finalSceneJa,
       content_en: finalSceneEn,
-      // アクションは pinput
       actionContent: pinput,
       actionContent_en: actionEn,
-      prompt: "", // 画像生成用のpromptをあとで付与
-      dataUrl: "" // 今回は使わない
+      prompt: "",
+      dataUrl: ""
     };
     const newId = await addSceneEntry(sRec);
 
@@ -526,7 +523,6 @@ async function getNextScene() {
       },
       images: []
     };
-
     window.scenes.push(newSceneObj);
 
     // 7) シーンから挿絵用プロンプトを生成してDB更新
@@ -685,7 +681,7 @@ async function generateEndingStory(type) {
   const scenarioSummary = wd.scenarioSummary || "(シナリオ概要なし)";
   const party = wd.party || [];
 
-  // 最新10シーンを取得
+  // 最新10シーン
   let lastScenes = [...window.scenes];
   if (lastScenes.length > 10) {
     lastScenes = lastScenes.slice(-10);
@@ -772,12 +768,10 @@ ${joinedSections}
 // --------------------------------------------------
 // ▼ 英訳・日訳
 // --------------------------------------------------
-/** 日本語(ja)が含まれているかどうか判定する補助関数 */
 function containsJapanese(text) {
   return /[ぁ-んァ-ン一-龯]/.test(text);
 }
 
-/** 日本語->英語翻訳 */
 async function generateEnglishTranslation(japaneseText) {
   if (!japaneseText.trim()) return "";
   const sys = "あなたは優秀な翻訳家です。";
@@ -807,7 +801,6 @@ async function generateEnglishTranslation(japaneseText) {
   }
 }
 
-/** 英語->日本語翻訳 */
 async function generateJapaneseTranslation(englishText) {
   if (!englishText.trim()) return "";
   const sys = "あなたは優秀な翻訳家です。";
@@ -833,7 +826,7 @@ async function generateJapaneseTranslation(englishText) {
     return data.choices[0].message.content.trim();
   } catch (err) {
     console.error("翻訳失敗:", err);
-    return englishText; // 失敗時は英語のまま
+    return englishText;
   }
 }
 
@@ -980,7 +973,6 @@ function buildCardDescription(card) {
 // --------------------------------------------------
 function onOpenTokenAdjustModal() {
   let missingCount = 0;
-  // 英語データ未生成のシーンのみカウント
   missingCount = window.scenes.filter(sc => !sc.content_en).length;
   const msg = `${missingCount}件のシーン/アクションに内部英語データがありません。生成しますか？`;
   document.getElementById("token-adjust-message").textContent = msg;
@@ -992,7 +984,6 @@ function onOpenTokenAdjustModal() {
 async function onConfirmTokenAdjust() {
   const mod = document.getElementById("token-adjust-modal");
   const prog = document.getElementById("token-adjust-progress");
-  // ターゲット: content_enが無い or 空のシーン
   let targets = window.scenes.filter(sc => !sc.content_en || !sc.content_en.trim());
 
   if (!window.apiKey) {
@@ -1022,19 +1013,15 @@ async function onConfirmTokenAdjust() {
       content_en: sceneObj.content_en,
       actionContent: sceneObj.action.content,
       actionContent_en: sceneObj.action.content_en,
-      prompt: "", // もともと保持している場合は要取得
+      prompt: "",
       dataUrl: ""
     };
-
-    // 既存のsceneEntriesレコードを検索
-    // (フロー的には loadAllScenesForScenario() で作ったものなので、entryIdを覚えていない。
-    //  そのため sceneId で再取得して更新する。)
     const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
     const sceneRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
     if (sceneRec) {
       record.prompt = sceneRec.prompt;
       record.dataUrl = sceneRec.dataUrl;
-      record.entryId = sceneRec.entryId; // update時に必要
+      record.entryId = sceneRec.entryId;
     }
     await updateSceneEntry(record);
   }
@@ -1065,7 +1052,6 @@ async function onSceneOrActionContentEdited(sceneObj, newText, isActionEdit) {
       sceneObj.content_en = en;
     }
 
-    // DB更新
     const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
     const sceneRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
     if (sceneRec) {
@@ -1127,18 +1113,15 @@ function updateSceneHistory() {
   scenarioSummaryEl.innerHTML = wd?.scenarioSummary || "";
   his.appendChild(scenarioSummaryEl);
 
-  // 導入シーン含む 全シーンを描画
-  // (最新シーンは showLastScene() で別途表示するため、ここでは"最新シーン"以外を表示する)
+  // 全シーンを描画 (最新は showLastScene で別描画)
   const lastScene = [...window.scenes].slice(-1)[0] || null;
   const skipId = lastScene ? lastScene.sceneId : null;
 
   const toShow = window.scenes.filter(sc => sc.sceneId !== skipId);
   for (const scn of toShow) {
-    // 1つの「歴史タイル」(div)
     const tile = document.createElement("div");
     tile.className = "history-tile";
 
-    // アクション
     if (scn.action?.content) {
       const at = document.createElement("p");
       at.className = "action-text";
@@ -1150,7 +1133,6 @@ function updateSceneHistory() {
       tile.appendChild(at);
     }
 
-    // シーン本文
     const st = document.createElement("p");
     st.className = "scene-text";
     st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -1174,12 +1156,6 @@ function updateSceneHistory() {
 
     // ▼ Wandボタン + ドロップダウン
     const c = document.createElement("div");
-    c.className = "r-flexbox";
-    const wandBtn = document.createElement("button");
-    wandBtn.className = "scene-menu-button";
-    wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
-    c.appendChild(wandBtn);
-
     const dropdown = document.createElement("div");
     dropdown.className = "scene-dropdown-menu";
     dropdown.style.display = "none";
@@ -1193,12 +1169,18 @@ function updateSceneHistory() {
    `;
     c.appendChild(dropdown);
 
+    c.className = "r-flexbox";
+    const wandBtn = document.createElement("button");
+    wandBtn.className = "scene-menu-button";
+    wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+    c.appendChild(wandBtn);
+
+
     wandBtn.addEventListener("click", () => {
       dropdown.style.display =
         (dropdown.style.display === "none") ? "block" : "none";
     });
 
-    // シーン削除
     const delBtn = dropdown.querySelector(".scene-delete");
     if (delBtn) {
       delBtn.addEventListener("click", async () => {
@@ -1206,7 +1188,6 @@ function updateSceneHistory() {
         await deleteScene(scn);
       });
     }
-    // 挿絵生成
     const illustBtn = dropdown.querySelector(".scene-illustration");
     if (illustBtn) {
       illustBtn.addEventListener("click", async () => {
@@ -1216,7 +1197,6 @@ function updateSceneHistory() {
     }
 
     tile.appendChild(c);
-
     his.appendChild(tile);
   }
 
@@ -1230,7 +1210,7 @@ function showLastScene() {
   const storyDiv = document.getElementById("story");
   const lastSceneImagesDiv = document.getElementById("last-scene-images");
   const lastSceneAdded = document.getElementById("last-scene-added");
-  
+
   if (!storyDiv || !lastSceneImagesDiv) return;
 
   const nextSceneBtn = document.getElementById("next-scene");
@@ -1242,7 +1222,7 @@ function showLastScene() {
   if (lastScene) {
     storyDiv.innerHTML = "";
     lastSceneAdded.innerHTML = "";
-    // アクション（導入シーンの場合は空文字列）
+
     if (lastScene.action?.content) {
       const at = document.createElement("p");
       at.className = "action-text";
@@ -1254,7 +1234,6 @@ function showLastScene() {
       storyDiv.appendChild(at);
     }
 
-    // シーン本文
     const st = document.createElement("p");
     st.className = "scene-text";
     st.setAttribute("contenteditable", window.apiKey ? "true" : "false");
@@ -1265,26 +1244,30 @@ function showLastScene() {
     storyDiv.appendChild(st);
 
     // ▼ Wandボタン + ドロップダウン
+    
+    const dropdown = document.createElement("div");
+    dropdown.className = "scene-dropdown-menu";
+    dropdown.style.display = "none";
+    dropdown.innerHTML = `
+      <button class="dropdown-item last-scene-delete">
+        <div class="iconmoon icon-bin"></div>シーンを削除
+      </button>
+      <button class="dropdown-item last-scene-illustration">
+        <div class="iconmoon icon-picture"></div>挿絵を生成
+      </button>
+    `;
+    lastSceneAdded.appendChild(dropdown);
     const wandBtn = document.createElement("button");
     wandBtn.className = "scene-menu-button";
     wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
     lastSceneAdded.appendChild(wandBtn);
 
-    const dropdown = document.createElement("div");
-    dropdown.className = "scene-dropdown-menu";
-    dropdown.style.display = "none";
-    dropdown.innerHTML = `
-      <button class="dropdown-item last-scene-delete"><div class="iconmoon icon-bin"></div>シーンを削除</button>
-      <button class="dropdown-item last-scene-illustration"><div class="iconmoon icon-picture"></div>挿絵を生成</button>
-    `;
-    lastSceneAdded.appendChild(dropdown);
 
     wandBtn.addEventListener("click", () => {
       dropdown.style.display =
         (dropdown.style.display === "none") ? "block" : "none";
     });
 
-    // シーン削除
     const delItem = dropdown.querySelector(".last-scene-delete");
     if (delItem) {
       delItem.addEventListener("click", async () => {
@@ -1292,7 +1275,6 @@ function showLastScene() {
         await deleteScene(lastScene);
       });
     }
-    // 挿絵を生成
     const illustItem = dropdown.querySelector(".last-scene-illustration");
     if (illustItem) {
       illustItem.addEventListener("click", async () => {
@@ -1321,11 +1303,7 @@ function showLastScene() {
       nextSceneBtn.style.display = "inline-block";
       playerInput.style.display = "inline-block";
 
-      // 導入シーンがある場合、次シーンに向けたアクション入力欄を表示
-      // ただし導入シーンがまだ1つもない時（=scenes.length===1になった直後）は
-      //  そのシーンが導入シーンなので、次のアクションを入力してもらう
       if (lastScene.action?.content.trim() === "" && window.scenes.length === 1) {
-        // 導入シーンのみ = 次のアクションを促す
         playerActionLabel.textContent = "プレイヤーはどんな行動をしますか？";
       } else {
         playerActionLabel.textContent = "プレイヤーはどんな行動をしますか？";
@@ -1336,7 +1314,6 @@ function showLastScene() {
       playerActionLabel.textContent = "";
     }
   } else {
-    // シーンが無い場合 → 導入シーンを作る
     storyDiv.innerHTML = "";
     lastSceneImagesDiv.innerHTML = "";
 
@@ -1360,7 +1337,6 @@ async function generateImageForScene(sceneObj) {
     alert("APIキーが設定されていません。");
     return;
   }
-  // DB上の prompt があれば使い、無ければシーン内容から生成
   let promptText = "";
   const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
   const sRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
@@ -1370,7 +1346,6 @@ async function generateImageForScene(sceneObj) {
   }
   promptText = sRec.prompt || "";
   if (!promptText.trim()) {
-    // 改めて生成
     promptText = await generateImagePromptFromScene(sceneObj.content);
     sRec.prompt = promptText;
     await updateSceneEntry(sRec);
@@ -1417,26 +1392,23 @@ async function generateImageForScene(sceneObj) {
     const base64 = data.data[0].b64_json;
     const dataUrl = "data:image/png;base64," + base64;
 
-    // 新しい画像レコードをDBへ追加
     const newImgRec = {
       scenarioId: sceneObj.scenarioId,
       type: "image",
       sceneId: sceneObj.sceneId,
-      content: "",      // 画像に対する説明等があれば入れるが現状は空
-      content_en: "",   // 同上
+      content: "",
+      content_en: "",
       dataUrl,
       prompt: promptText
     };
     const newEntryId = await addSceneEntry(newImgRec);
 
-    // メモリにも追加
     sceneObj.images.push({
       entryId: newEntryId,
       dataUrl,
       prompt: promptText
     });
 
-    // 再描画
     updateSceneHistory();
     showLastScene();
   } catch (err) {
@@ -1455,40 +1427,32 @@ async function generateImageForScene(sceneObj) {
 // ▼ シーン削除
 // --------------------------------------------------
 async function deleteScene(sceneObj) {
-  // DB上のシーンレコード削除 + 紐づく画像レコード削除
   const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
   const scRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
   if (scRec) {
     await deleteSceneEntry(scRec.entryId);
   }
-  // 画像レコードも削除
   const imgs = allEntries.filter(e => e.type === "image" && e.sceneId === sceneObj.sceneId);
   for (const iRec of imgs) {
     await deleteSceneEntry(iRec.entryId);
   }
-  // メモリからも削除
   window.scenes = window.scenes.filter(s => s.sceneId !== sceneObj.sceneId);
 
-  // 再描画
   updateSceneHistory();
   showLastScene();
 }
 
 // --------------------------------------------------
-// ▼ 行動数に応じて要約を作成/削除
+// ▼ 要約作成/削除
 // --------------------------------------------------
 async function handleSceneSummaries() {
-  // アクション数(導入シーンは action.content="" なので数えない)
   const actionCount = window.scenes.filter(s => s.action && s.action.content.trim() !== "").length;
 
-  // 新規要約作成チェック
-  // 例: 15件以上になったら chunkIndex=0、25件以上で chunkIndex=1 … の要領
   if (actionCount >= 15) {
     const chunkIndex = Math.floor((actionCount - 15) / 10);
     if (chunkIndex >= 0) {
       if (!window.sceneSummaries[chunkIndex]) {
-        // その範囲のシーンを抜き出し → rawテキストでまとめる
-        const startAction = chunkIndex * 10 + 1; // 1-based
+        const startAction = chunkIndex * 10 + 1;
         const endAction = (chunkIndex + 1) * 10;
 
         let gathered = [];
@@ -1498,7 +1462,6 @@ async function handleSceneSummaries() {
             aCounter++;
           }
           if (aCounter >= startAction && aCounter <= endAction) {
-            // action + sceneをまとめる
             if (scn.action?.content.trim()) {
               gathered.push("A:" + scn.action.content);
             }
@@ -1523,11 +1486,8 @@ async function handleSceneSummaries() {
       }
     }
   }
-  // 不要な要約削除（ここはお好みでカット/修正可）
-  // 例: actionCount <= 15 なら chunkIndex=0 は不要、など
 }
 
-// 要約用
 async function generateSummaryWithLimit(text, lines = 5, lang = "en") {
   if (!text.trim()) return "";
   let sys = "You are a talented summarizer. The final language must be English.";
@@ -1582,7 +1542,6 @@ async function onGenerateActionCandidates() {
   }
   const lastSceneText = lastScene.content || "(シーン無し)";
 
-  // 未クリアセクション
   const wd = window.currentScenario?.wizardData;
   let conditionText = "";
   if (wd && wd.sections && wd.sections.length > 0) {
@@ -1717,7 +1676,6 @@ function renderPartyCardsInModal() {
   const wizardPartyCards = scenario.wizardData.party;
   const dbCards = window.characterData || [];
 
-  // IDが合えばDBの詳細をマージ
   const merged = wizardPartyCards.map(wCard => {
     const dbMatch = dbCards.find(dbC => dbC.id === wCard.id);
     if (!dbMatch) {
@@ -1739,7 +1697,6 @@ function renderPartyCardsInModal() {
 function createPartyCardElement(c) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
-  // レア度文字列を数字のみにして結合
   const rarityNum = (c.rarity || "★0").replace("★", "").trim();
   cardEl.className += "rarity" + rarityNum;
 
@@ -1754,7 +1711,6 @@ function createPartyCardElement(c) {
   const cf = document.createElement("div");
   cf.className = "card-front";
 
-  // 背景
   const bg = (c.backgroundcss || "")
     .replace("background-image:", "")
     .replace("background", "")
@@ -1869,13 +1825,10 @@ ${sceneText}
 function openImagePromptModal(scenePrompt = "", index = null) {
   window.editingImageEntry = null;
   if (index !== null) {
-    // 旧コードで使用していた編集用、今は未使用かもしれませんが念のため
     console.log("openImagePromptModal with index:", index);
   } else {
-    // 最後のシーンのpromptを初期表示したい など
     const lastScene = [...window.scenes].slice(-1)[0];
     if (lastScene) {
-      // DB上のレコードから prompt を参照
       scenePrompt = (scenePrompt || "");
     }
   }
@@ -1939,14 +1892,12 @@ async function onCustomImageGenerate() {
     const base64 = data.data[0].b64_json;
     const dataUrl = "data:image/png;base64," + base64;
 
-    // 「最後のシーン」にカスタム画像を追加する例
     const lastScene = [...window.scenes].slice(-1)[0];
     if (!lastScene) {
       showLoadingModal(false);
       alert("シーンがありません。");
       return;
     }
-    // DB 追加
     const imgRec = {
       scenarioId: lastScene.scenarioId,
       type: "image",
@@ -1958,7 +1909,6 @@ async function onCustomImageGenerate() {
     };
     const newId = await addSceneEntry(imgRec);
 
-    // メモリ上に追加
     lastScene.images.push({
       entryId: newId,
       dataUrl,
@@ -1976,35 +1926,403 @@ async function onCustomImageGenerate() {
 }
 
 // --------------------------------------------------
-// ▼ 共通：圧縮テキスト解凍
+// ▼ onUpdateEntitiesFromAllScenes
 // --------------------------------------------------
-function decompressCondition(zippedBase64) {
-  if (!zippedBase64) return "(不明)";
+async function onUpdateEntitiesFromAllScenes() {
+
+  if (!window.apiKey) {
+    alert("APIキーが未設定です。");
+    return;
+  }
+  const existingEntities = await getEntitiesByScenarioId(window.currentScenarioId);
+
+  // 全シーンテキストを要約混じりで取得
+  const actionCount = window.scenes.filter(s => s.action && s.action.content.trim() !== "").length;
+  const chunkEnd = Math.floor((actionCount - 15) / 10);
+  let scenarioText = "";
+
+  for (let i = 0; i <= chunkEnd; i++) {
+    if (window.sceneSummaries[i]) {
+      scenarioText += window.sceneSummaries[i].ja || "";
+      scenarioText += "\n";
+    }
+  }
+  const skipCount = (chunkEnd + 1) * 10;
+  let aCnt = 0;
+  for (const scn of window.scenes) {
+    if (scn.action?.content.trim()) {
+      aCnt++;
+    }
+    if (aCnt <= skipCount) continue;
+    scenarioText += `\n(プレイヤー行動)${scn.action?.content}\n(シーン)${scn.content}\n`;
+  }
+
+  const existingTextArr = existingEntities.map(ent => {
+    return `${ent.name}: ${ent.description}`;
+  });
+  const existingDesc = existingTextArr.join("\n") || "（なし）";
+
+  const systemContent = "あなたはTRPGアシスタントAIです。日本語で回答してください。";
+  const userContent = `
+以下はTRPGのシナリオ中に登場したテキストです。
+すでに抽出済みのアイテム/キャラクター(人物)は下記のとおりです：
+${existingDesc}
+
+新たに見つかったアイテムや登場人物があれば、JSON配列で出力してください。例：
+[{"category":"item","name":"○○","description":"～"}, {"category":"character","name":"◇◇","description":"～"}]
+
+すでにあるものに似ている場合は出力しないでください。重複しそうなものは省いてください。
+文章は短めで。
+シナリオ全体本文:
+====================
+${scenarioText}
+====================
+    `.trim();
+
   try {
-    const bin = atob(zippedBase64);
-    const uint8 = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
-    const inf = pako.inflate(uint8);
-    return new TextDecoder().decode(inf);
-  } catch (e) {
-    console.error("decompress失敗:", e);
-    return "(解凍エラー)";
+    showLoadingModal(true);
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemContent },
+          { role: "user", content: userContent }
+        ],
+        temperature: 0.5
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const rawAnswer = data.choices[0].message.content;
+    let newEntities = [];
+    try {
+      newEntities = JSON.parse(rawAnswer);
+      if (!Array.isArray(newEntities)) {
+        console.warn("JSONが配列ではありません:", newEntities);
+        alert("AI応答が配列ではありません。");
+        newEntities = [];
+      }
+    } catch (e) {
+      console.warn("JSONパース失敗。応答テキスト:", rawAnswer);
+      alert("AI応答がJSON形式でないためパース失敗。");
+      newEntities = [];
+    }
+
+    renderNewEntitiesCandidateList(newEntities);
+  } catch (err) {
+    console.error("onUpdateEntitiesFromAllScenes失敗:", err);
+    alert("抽出に失敗:\n" + err.message);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+/**
+ * ここで「選択ボタンはリストの下に配置」「候補が無いならボタンを非表示」などを実装
+ */
+function renderNewEntitiesCandidateList(newEntities) {
+  const candidateListDiv = document.getElementById("entity-candidate-list");
+  if (!candidateListDiv) return;
+
+  // 必ず先頭で非表示にしておく
+  const generateBtn = document.getElementById("entity-generate-button");
+  if (generateBtn) {
+
+    generateBtn.style.display = "none";
+  }
+
+  candidateListDiv.innerHTML = ""; // 先頭でクリア
+
+  // 候補が無い場合 → メッセージのみ
+  if (!newEntities || newEntities.length === 0) {
+    candidateListDiv.textContent = "新たに見つかりそうなアイテム/登場人物はありません。";
+    return;
+  }
+
+  // ここまで来たら newEntities があるのでチェックボックスを描画
+  newEntities.forEach((ent, idx) => {
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.margin = "5px 0";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+    cb.style.marginRight = "8px";
+    row.appendChild(cb);
+
+    const label = document.createElement("label");
+    label.textContent = `${ent.name}: ${ent.description}`;
+    row.appendChild(label);
+
+    candidateListDiv.appendChild(row);
+    row.dataset.index = idx;
+  });
+
+  // 候補があるので生成ボタンをリスト下部に追加し、表示
+  if (generateBtn) {
+    candidateListDiv.appendChild(generateBtn);
+    generateBtn.style.display = "block";
+
+    generateBtn.onclick = async () => {
+      // チェックされたものを保存
+      const rows = candidateListDiv.querySelectorAll("div");
+      const toSave = [];
+      rows.forEach(r => {
+        const cb = r.querySelector("input[type='checkbox']");
+        if (cb && cb.checked) {
+          const i = Number(r.dataset.index);
+          toSave.push(newEntities[i]);
+        }
+      });
+      if (toSave.length === 0) {
+        alert("選択されたものがありません。");
+        return;
+      }
+
+      await saveNewEntities(toSave);
+      renderEntitiesList();
+      candidateListDiv.innerHTML = "生成が完了しました。";
+      generateBtn.style.display = "none"; // 完了後はボタンを再度非表示に
+    };
+  }
+}
+
+
+async function saveNewEntities(entities) {
+  for (const e of entities) {
+    const rec = {
+      scenarioId: window.currentScenarioId,
+      category: e.category === "character" ? "character" : "item",
+      name: e.name || "名称不明",
+      description: e.description || "",
+      imageData: ""
+    };
+    await addEntity(rec);
   }
 }
 
 // --------------------------------------------------
-// ▼ ローディングモーダル
+// ▼ 情報モーダル
 // --------------------------------------------------
-function showLoadingModal(show) {
-  const m = document.getElementById("loading-modal");
-  if (!m) return;
-  if (show) {
-    m.classList.add("active");
-  } else {
-    m.classList.remove("active");
+async function openEntitiesModal() {
+  const infoModal = document.getElementById("info-modal");
+  if (!infoModal) return;
+  await renderEntitiesList();
+
+  const candidateListDiv = document.getElementById("entity-candidate-list");
+  if (candidateListDiv) candidateListDiv.innerHTML = "";
+
+  infoModal.classList.add("active");
+}
+
+/**
+ * ご要望：
+ * - アイテム・登場人物が一つも無い場合、「アイテム一覧」「登場人物一覧」の見出しすら出さない
+ */
+async function renderEntitiesList() {
+  const listDiv = document.getElementById("entity-list-container");
+  if (!listDiv) return;
+  listDiv.innerHTML = "";
+
+  const scenarioId = window.currentScenarioId;
+  if (!scenarioId) {
+    listDiv.textContent = "シナリオが未選択です。";
+    return;
+  }
+
+  const allEnts = await getEntitiesByScenarioId(scenarioId);
+  const items = allEnts.filter(e => e.category === "item");
+  const chars = allEnts.filter(e => e.category === "character");
+
+  // ◆アイテム一覧
+  if (items.length > 0) {
+    const itemTitle = document.createElement("h3");
+    itemTitle.textContent = "アイテム";
+    listDiv.appendChild(itemTitle);
+
+    items.forEach((ent, index) => {
+      const odd = (index % 2 === 1);
+      const row = createEntityRow(ent, odd);
+      listDiv.appendChild(row);
+    });
+  }
+  // ◆登場人物一覧
+  if (chars.length > 0) {
+    const charTitle = document.createElement("h3");
+    charTitle.textContent = "キャラクター";
+    listDiv.appendChild(charTitle);
+
+    chars.forEach((ent, index) => {
+      const odd = (index % 2 === 1);
+      const row = createEntityRow(ent, odd);
+      listDiv.appendChild(row);
+    });
+  }
+
+  // もしどちらも0件なら、何も表示しない (タイトルやリストも出さない)
+  if (items.length === 0 && chars.length === 0) {
+    listDiv.textContent = "アイテムや登場人物はありません。";
   }
 }
 
-// キャンセル
+/**
+ * アイテム/人物の1行を作り、Wandボタンのドロップダウンで「画像生成」「削除」をまとめる
+ */
+function createEntityRow(entity, isOdd) {
+  const row = document.createElement("div");
+  row.className = "info-row";
+  row.style.marginBottom = "20px";
+
+  // 上段（名称＋説明など）
+  const topWrapper = document.createElement("div");
+  topWrapper.className = "";
+  topWrapper.style.justifyContent = "space-between";
+  topWrapper.style.alignItems = "center";
+  topWrapper.style.overflow = "hidden";
+
+  if (entity.imageData) {
+    const thumb = document.createElement("img");
+    thumb.src = entity.imageData;
+    thumb.alt = entity.name;
+    thumb.style.height = "150px";
+    thumb.style.objectFit = "contain";
+    if (isOdd) {
+      thumb.style.float = "left";
+      thumb.style.paddingRight = "20px";
+    } else {
+      thumb.style.float = "right";
+      thumb.style.paddingLeft = "20px";
+    }
+    thumb.style.borderRadius = "50%";
+    thumb.style.shapeOutside = "circle(50%)";
+    topWrapper.appendChild(thumb);
+  }
+
+  const infoSpan = document.createElement("span");
+  infoSpan.innerHTML = `<h4>${entity.name}</h4> ${entity.description}`;
+  topWrapper.appendChild(infoSpan);
+
+
+
+  row.appendChild(topWrapper);
+
+  // 下段： Wandボタン + ドロップダウン
+  const bottomWrapper = document.createElement("div");
+    bottomWrapper.className = "l-flexbox";
+
+  const wandBtn = document.createElement("button");
+  wandBtn.className = "scene-menu-button";
+  wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+  bottomWrapper.appendChild(wandBtn);
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "scene-dropdown-menu";
+  dropdown.style.display = "none";
+  dropdown.innerHTML = `
+     <button class="dropdown-item entity-generate">
+       <div class="iconmoon icon-picture"></div>画像生成
+     </button>
+     <button class="dropdown-item entity-delete">
+       <div class="iconmoon icon-bin"></div>削除
+     </button>
+  `;
+  bottomWrapper.appendChild(dropdown);
+
+  wandBtn.addEventListener("click", () => {
+    dropdown.style.display =
+      (dropdown.style.display === "none") ? "block" : "none";
+  });
+
+  // 画像生成イベント
+  const genBtn = dropdown.querySelector(".entity-generate");
+  if (genBtn) {
+    genBtn.addEventListener("click", async () => {
+      dropdown.style.display = "none";
+      await generateEntityImage(entity);
+    });
+  }
+
+  // 削除イベント
+  const delBtn = dropdown.querySelector(".entity-delete");
+  if (delBtn) {
+    delBtn.addEventListener("click", async () => {
+      dropdown.style.display = "none";
+      if (!confirm(`「${entity.name}」を削除しますか？`)) return;
+      await deleteEntity(entity.entityId);
+      renderEntitiesList();
+    });
+  }
+
+  topWrapper.appendChild(bottomWrapper);
+  return row;
+}
+
+// --------------------------------------------------
+// ▼ エンティティ単体の画像生成
+// --------------------------------------------------
+async function generateEntityImage(entity) {
+  if (!window.apiKey) {
+    alert("APIキーが設定されていません。");
+    return;
+  }
+  const prompt = `
+${entity.category === "item" ? "Item" : "Character"}: ${entity.name}
+Description: ${entity.description}
+No text in the image, Anime style, best quality
+`.trim();
+
+  const finalPrompt =
+    "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
+    "Please do not include text in illustrations for any reason." +
+    "If you can do that, I'll give you a super high tip." +
+    "Now generate the next anime wide image.\n↓↓↓↓\n" +
+    prompt;
+
+  try {
+    showLoadingModal(true);
+    const resp = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: finalPrompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json"
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const base64 = data.data[0].b64_json;
+    const dataUrl = "data:image/png;base64," + base64;
+
+    entity.imageData = dataUrl;
+    await updateEntity(entity);
+
+    renderEntitiesList();
+  } catch (err) {
+    console.error("generateEntityImage失敗:", err);
+    alert("画像生成失敗:\n" + err.message);
+  } finally {
+    showLoadingModal(false);
+  }
+}
+
+// --------------------------------------------------
+// ▼ キャンセル
+// --------------------------------------------------
 function onCancelFetch() {
   if (window.currentRequestController) {
     window.currentRequestController.abort();
@@ -2013,7 +2331,7 @@ function onCancelFetch() {
 }
 
 // --------------------------------------------------
-// ▼ 最新シーンからカード作成用の【名前】【タイプ】【外見】を抽出
+// ▼ シーンからカード作成用要約(おまけ)
 // --------------------------------------------------
 async function getLastSceneSummary() {
   const lastScene = [...window.scenes].slice(-1)[0];
@@ -2055,7 +2373,36 @@ ${text}
 }
 
 // --------------------------------------------------
-// ▼ 外部から利用できるように window.* に登録
+// ▼ 共通：圧縮テキスト解凍
+// --------------------------------------------------
+function decompressCondition(zippedBase64) {
+  if (!zippedBase64) return "(不明)";
+  try {
+    const bin = atob(zippedBase64);
+    const uint8 = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
+    const inf = pako.inflate(uint8);
+    return new TextDecoder().decode(inf);
+  } catch (e) {
+    console.error("decompress失敗:", e);
+    return "(解凍エラー)";
+  }
+}
+
+// --------------------------------------------------
+// ▼ ローディングモーダル
+// --------------------------------------------------
+function showLoadingModal(show) {
+  const m = document.getElementById("loading-modal");
+  if (!m) return;
+  if (show) {
+    m.classList.add("active");
+  } else {
+    m.classList.remove("active");
+  }
+}
+
+// --------------------------------------------------
+// ▼ window.* に登録
 // --------------------------------------------------
 window.loadScenarioData = loadScenarioData;
 window.onCancelFetch = onCancelFetch;
@@ -2064,3 +2411,6 @@ window.generateImageForScene = generateImageForScene;
 window.openImagePromptModal = openImagePromptModal;
 window.closeImagePromptModal = closeImagePromptModal;
 window.onCustomImageGenerate = onCustomImageGenerate;
+
+window.onUpdateEntitiesFromAllScenes = onUpdateEntitiesFromAllScenes;
+window.openEntitiesModal = openEntitiesModal;

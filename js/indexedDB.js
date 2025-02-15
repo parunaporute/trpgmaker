@@ -7,13 +7,14 @@ let db = null;
 
 /**
  * DB初期化
- * バージョン12:
- *  - scenariosストアに "bookShelfFlag" と "hideFromHistoryFlag" を追加扱い
+ * バージョン13:
+ *   - scenariosストアに "bookShelfFlag" と "hideFromHistoryFlag" を追加扱い
+ *   - entitiesストアを追加
  */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    // バージョンを 12 に上げる
-    const request = indexedDB.open("trpgDB", 12);
+    // バージョンを 13 に上げる（※変更）
+    const request = indexedDB.open("trpgDB", 13);
 
     request.onupgradeneeded = (event) => {
       db = event.target.result;
@@ -31,10 +32,7 @@ function initIndexedDB() {
         });
         scenarioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       } else {
-        // 既に "scenarios" ストアがある場合、
-        // 実際には "hideFromHistoryFlag" フィールドを後付けするが
-        // IndexedDB はスキーマとしてのフィールド定義は行わないため
-        // onupgradeneeded の中で特別な操作は不要
+        // 既に "scenarios" ストアがある場合
       }
 
       // sceneEntries
@@ -96,6 +94,16 @@ function initIndexedDB() {
       // avatarData
       if (!db.objectStoreNames.contains("avatarData")) {
         db.createObjectStore("avatarData", { keyPath: "id" });
+      }
+
+      // ===== ここから追加 =====
+      // entitiesストア（アイテムやキャラクターを管理）
+      if (!db.objectStoreNames.contains("entities")) {
+        const entStore = db.createObjectStore("entities", {
+          keyPath: "entityId",
+          autoIncrement: true
+        });
+        entStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
     };
 
@@ -210,12 +218,10 @@ function listAllScenarios() {
     const req = store.getAll();
     req.onsuccess = (evt) => {
       const result = evt.target.result || [];
-      // 既存データにフラグがない場合は false に補正
       result.forEach(sc => {
         sc.bookShelfFlag = sc.bookShelfFlag || false;
         sc.hideFromHistoryFlag = sc.hideFromHistoryFlag || false;
       });
-      // ※ 本来は updatedAt でソートしているが、本棚ページでは独自の並び順で処理するためここではそのまま返す
       result.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
       resolve(result);
     };
@@ -510,7 +516,6 @@ window.loadWizardDataFromIndexedDB = function() {
   });
 };
 
-/* パーティ関係 */
 window.createParty = function (name) {
   return new Promise((resolve, reject) => {
     if (!db) {
@@ -644,5 +649,62 @@ window.deleteEnding = function (scenarioId, type) {
     const delReq = store.delete([scenarioId, type]);
     delReq.onsuccess = () => resolve();
     delReq.onerror = (err) => reject(err);
+  });
+};
+
+// ============ Entitiesストア関連 ============
+window.addEntity = function(entity) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("entities", "readwrite");
+    const store = tx.objectStore("entities");
+    const req = store.add(entity);
+    req.onsuccess = evt => {
+      resolve(evt.target.result);
+    };
+    req.onerror = err => reject(err);
+  });
+};
+
+window.updateEntity = function(entity) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("entities", "readwrite");
+    const store = tx.objectStore("entities");
+    const req = store.put(entity);
+    req.onsuccess = () => resolve();
+    req.onerror = err => reject(err);
+  });
+};
+
+window.getEntitiesByScenarioId = function(scenarioId) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("entities", "readonly");
+    const store = tx.objectStore("entities");
+    const idx = store.index("scenarioId");
+    const range = IDBKeyRange.only(scenarioId);
+    const results = [];
+    idx.openCursor(range).onsuccess = evt => {
+      const cursor = evt.target.result;
+      if (cursor) {
+        results.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    idx.openCursor(range).onerror = err => reject(err);
+  });
+};
+
+window.deleteEntity = function(entityId) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB未初期化");
+    const tx = db.transaction("entities", "readwrite");
+    const store = tx.objectStore("entities");
+    const req = store.delete(entityId);
+    req.onsuccess = () => resolve();
+    req.onerror = err => reject(err);
   });
 };

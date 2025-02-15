@@ -276,7 +276,7 @@ button:hover {
 .history-tile {
   position: relative;
   box-sizing: border-box;
-  padding: 20px 20px 60px 20px;
+  padding: 20px;
   background-color: transparent;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 0 auto;
@@ -288,10 +288,6 @@ button:hover {
 
 .history-tile:nth-child(odd) {
   background-color: #00000059;
-}
-
-.history-tile:last-of-type {
-  padding-bottom: 0;
 }
 
 .scene-text,
@@ -340,6 +336,7 @@ button:hover {
   text-shadow: none;
   box-shadow: none;
   background-image: none;
+  margin: 15px 0;
 }
 
 .delete-scene {
@@ -1141,7 +1138,6 @@ button.important {
   gap: 10px;
   align-items: center;
   justify-content: right;
-  margin-bottom: 20px;
 }
 
 .l-flexbox {
@@ -1150,7 +1146,6 @@ button.important {
   gap: 10px;
   align-items: center;
   justify-content: left;
-  margin-bottom: 20px;
 }
 
 @media (max-width: 600px) {
@@ -1571,6 +1566,7 @@ button.important {
 
 #last-scene-images img {
   max-height: 50vh;
+  max-width: 100%;
   object-fit: contain;
 }
 
@@ -1581,4 +1577,36 @@ button.important {
   align-items: center;
   gap: 10px;
   object-fit: contain;
+}
+
+#entity-list-container {
+  font-family: serif;
+}
+#entity-list-container h3 {
+  font-family: initial;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  font-weight: normal;
+  border-bottom: 1px solid;
+}
+
+#entity-list-container h4 {
+  font-family: initial;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: normal;
+}
+#entity-generate-button {
+  margin: 0 auto;
+}
+
+.info-row {
+  padding: 10px;
+}
+#entity-list-container .info-row {
+  padding: 20px;
+}
+#entity-list-container .info-row:nth-child(odd) {
+  background-color: #2d2d2d96;
 }
