@@ -4,6 +4,36 @@
  * - 複数シナリオ対応
  ********************************/
 
+
+window.addEventListener("DOMContentLoaded", () => {
+  const autoCbx = document.getElementById("auto-generate-candidates-checkbox");
+  if (autoCbx) {
+    // 初期状態読み込み
+    autoCbx.checked = (localStorage.getItem("autoGenerateCandidates") === "true");
+
+    // 変更時に保存
+    autoCbx.addEventListener("change", () => {
+      localStorage.setItem("autoGenerateCandidates", autoCbx.checked);
+    });
+  }
+
+  // シーン生成ボタン
+  const nextSceneBtn = document.getElementById("next-scene");
+  if (nextSceneBtn) {
+    nextSceneBtn.addEventListener("click", () => {
+      getNextScene();
+    });
+  }
+
+  // 戻るボタン（暫定でhistory.back()）
+  const backToMenuBtn = document.getElementById("back-to-menu");
+  if (backToMenuBtn) {
+    backToMenuBtn.addEventListener("click", () => {
+      history.back();
+    });
+  }
+});
+
 window.onload = async () => {
   // 1) IndexedDB初期化
   await initIndexedDB();
@@ -56,14 +86,6 @@ window.onload = async () => {
     // ※ 実際の処理は scenarioPage.js で定義
   }
 
-  // ---------- シーン遷移ボタン ----------
-  const nextSceneBtn = document.getElementById('next-scene');
-  if (nextSceneBtn) {
-    nextSceneBtn.addEventListener('click', () => {
-      getNextScene();
-    });
-  }
-
   // 画像生成 (自動)
   const autoGenBtn = document.getElementById('image-auto-generate-button');
   if (autoGenBtn) {
@@ -109,4 +131,22 @@ window.onload = async () => {
       window.location.href = "index.html";
     });
   }
+
+  await initBackground("scenario");
+
+  // イベント付与
+  const entityUpdateBtn = document.getElementById("entity-update-button");
+  if (entityUpdateBtn) {
+    entityUpdateBtn.addEventListener("click", () => {
+      onUpdateEntitiesFromAllScenes();
+    });
+  }
+  const infoCloseBtn = document.getElementById("info-close-button");
+  if (infoCloseBtn) {
+    infoCloseBtn.addEventListener("click", () => {
+      const infoModal = document.getElementById("info-modal");
+      if (infoModal) infoModal.classList.remove("active");
+    });
+  }
+  
 };

@@ -206,65 +206,6 @@
   <script src="js/scene.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gachaCore.js"></script>
-
-  <script>
-    window.addEventListener("load", async () => {
-      await initIndexedDB();
-      await initBackground("scenario");
-
-      // イベント付与
-      const entityUpdateBtn = document.getElementById("entity-update-button");
-      if (entityUpdateBtn) {
-        entityUpdateBtn.addEventListener("click", () => {
-          onUpdateEntitiesFromAllScenes();
-        });
-      }
-      const infoCloseBtn = document.getElementById("info-close-button");
-      if (infoCloseBtn) {
-        infoCloseBtn.addEventListener("click", () => {
-          const infoModal = document.getElementById("info-modal");
-          if (infoModal) infoModal.classList.remove("active");
-        });
-      }
-      const imageCustomGenBtn = document.getElementById("image-custom-generate-button");
-      if (imageCustomGenBtn) {
-        imageCustomGenBtn.addEventListener("click", onCustomImageGenerate);
-      }
-      const imageCustomCancelBtn = document.getElementById("image-custom-cancel-button");
-      if (imageCustomCancelBtn) {
-        imageCustomCancelBtn.addEventListener("click", closeImagePromptModal);
-      }
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const autoCbx = document.getElementById("auto-generate-candidates-checkbox");
-      if (autoCbx) {
-        // 初期状態読み込み
-        autoCbx.checked = (localStorage.getItem("autoGenerateCandidates") === "true");
-
-        // 変更時に保存
-        autoCbx.addEventListener("change", () => {
-          localStorage.setItem("autoGenerateCandidates", autoCbx.checked);
-        });
-      }
-
-      // シーン生成ボタン
-      const nextSceneBtn = document.getElementById("next-scene");
-      if (nextSceneBtn) {
-        nextSceneBtn.addEventListener("click", () => {
-          getNextScene();
-        });
-      }
-
-      // 戻るボタン（暫定でhistory.back()）
-      const backToMenuBtn = document.getElementById("back-to-menu");
-      if (backToMenuBtn) {
-        backToMenuBtn.addEventListener("click", () => {
-          history.back();
-        });
-      }
-    });
-  </script>
 </body>
 
 </html>

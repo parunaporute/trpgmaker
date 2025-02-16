@@ -53,7 +53,6 @@ const DOMPURIFY_CONFIG = {
 window.addEventListener("load", async () => {
   // IndexedDB初期化 & キャラクターデータ読み込み
   await initIndexedDB();
-  // 旧キャラクター倉庫は使わないが、ロードだけはしておく
   const storedChars = await loadCharacterDataFromIndexedDB();
   window.characterData = storedChars || [];
 
@@ -353,6 +352,22 @@ async function loadAllScenesForScenario(scenarioId) {
 // ▼ シーン生成＆次のシーン取得
 // --------------------------------------------------
 async function getNextScene() {
+  /*
+  // デバッグ用のDB確認関数
+  async function debugAllRecordsFromStore(storeName) {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const allData = await store.getAll(); // 全件取得
+    console.log(`--- ${storeName} の全データ ---`);
+    console.log(allData);
+    await tx.done;
+  }*/
+/* console.log("3秒待ってください...");
+  setTimeout(() => {
+    debugAllRecordsFromStore('sceneEntries');
+  }, 3000); // 3,000ミリ秒（秒）
+ */
+
   if (!window.apiKey) {
     alert("APIキー未設定");
     return;
@@ -429,9 +444,12 @@ async function getNextScene() {
 
     // 3) 過去のシーンを ChatGPT へ渡す
     const actionCount = window.scenes.length;
+    console.log("actionCount", actionCount);
+
     // (A) 先に要約を push
     const chunkEnd = Math.floor((actionCount - 15) / 10);
     for (let i = 0; i <= chunkEnd; i++) {
+      console.log("要約はあるようだ");
       if (i < 0) continue;
       if (window.sceneSummaries[i]) {
         const sumObj = window.sceneSummaries[i];
@@ -441,6 +459,9 @@ async function getNextScene() {
         });
       }
     }
+    console.log("要約組み立て終了");
+    console.log("window.scenesの状態", window.scenes);
+
     // (B) 要約に含まれない分だけ raw を push
     const skipCount = (chunkEnd + 1) * 10;
     let aCnt = 0;
@@ -460,6 +481,8 @@ async function getNextScene() {
     if (pinput) {
       msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
     }
+    console.log("メッセージ組み立て終了");
+    console.log("window.scenesの状態", window.scenes);
 
     // 4) ChatGPT呼び出し
     window.currentRequestController = new AbortController();
@@ -484,6 +507,8 @@ async function getNextScene() {
     }
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
+    console.log("レスポンス取得");
+    console.log("window.scenesの状態", window.scenes);
 
     // 5) ChatGPTの返答が英語か日本語かを判定 → 日本語へ統一
     const rawScene = data.choices[0].message.content || "";
@@ -496,6 +521,7 @@ async function getNextScene() {
       finalSceneEn = await generateEnglishTranslation(rawScene);
     }
 
+    console.log("翻訳");
     // 6) 新しいシーンをDBに保存
     const sid = "scene_" + Date.now();
     const sRec = {
@@ -509,7 +535,9 @@ async function getNextScene() {
       prompt: "",
       dataUrl: ""
     };
+    console.log("DBへの格納データ", window.scenes);
     const newId = await addSceneEntry(sRec);
+    sRec.entryId = newId;
 
     // メモリにも追加
     const newSceneObj = {
@@ -523,7 +551,15 @@ async function getNextScene() {
       },
       images: []
     };
+
+    console.log("メモリ用オブジェクト", newSceneObj);
+    console.log("window.scenesの状態前", window.scenes);
     window.scenes.push(newSceneObj);
+    console.log("-----");
+    console.log("window.scenesの状態後", window.scenes);
+    console.log("-----");
+
+    // debugAllRecordsFromStore('sceneEntries');
 
     // 7) シーンから挿絵用プロンプトを生成してDB更新
     const imagePromptText = await generateImagePromptFromScene(finalSceneJa);
@@ -539,23 +575,29 @@ async function getNextScene() {
         updatedAt: new Date().toISOString()
       });
     }
-
+    console.log("window.scenesの状態後1", window.scenes);
     // 9) セクション達成チェック
     await checkSectionClearViaChatGPT(pinput, finalSceneJa);
+    console.log("window.scenesの状態後2", window.scenes);
 
     // 10) 要約処理 (10アクション単位)
     await handleSceneSummaries();
+    console.log("window.scenesの状態後3", window.scenes);
 
     // 11) 画面再描画
     document.getElementById("player-input").value = "";
     updateSceneHistory();
     showLastScene();
+    console.log("表示修正");
+    console.log("window.scenesの状態後4", window.scenes);
 
     // 12) 回答候補コンテナクリア＆自動生成
     const candidatesContainer = document.getElementById("action-candidates-container");
     if (candidatesContainer) {
       candidatesContainer.innerHTML = "";
     }
+    console.log("window.scenesの状態後5", window.scenes);
+
     const autoGenCheckbox = document.getElementById("auto-generate-candidates-checkbox");
     if (autoGenCheckbox && autoGenCheckbox.checked) {
       onGenerateActionCandidates();
@@ -1946,47 +1988,42 @@ async function onUpdateEntitiesFromAllScenes() {
     chunkEnd = 0;
   }
 
-  // シナリオテキストを貯める変数
   let scenarioText = "";
 
-  // --- 1) 古い部分(要約で補う) ---
-  // 要約は英語があれば英語(.en)を優先し、無い場合は日本語(.ja)を使用
+  // 1) 古い部分(要約)
   for (let i = 0; i < chunkEnd; i++) {
     const sumObj = window.sceneSummaries[i];
     if (sumObj && (sumObj.en || sumObj.ja)) {
-      // .en が存在すればそれを使う、無い場合に .ja を使う
       scenarioText += sumObj.en || sumObj.ja;
       scenarioText += "\n";
     }
   }
 
-  // --- 2) 要約対象としてスキップするアクション数 ---
+  // 2) スキップ数
   const skipCount = chunkEnd * 10;
 
-  // --- 3) 直近(要約していない)部分は生テキスト(英語優先)を追加 ---
-  let aCnt = 0; // アクションカウンタ
+  // 3) 直近は生テキスト(英語優先)
+  let aCnt = 0;
   for (const scn of window.scenes) {
-    aCnt++;
-
-    // skipCount 以下のアクションは、すでに要約で対応済みなのでスキップ
+    if (scn.action?.content.trim()) {
+      aCnt++;
+    }
     if (aCnt <= skipCount && aCnt != 0) continue;
 
-    // プレイヤー行動 (英語があれば英語、なければ日本語)
     if (scn.action?.content.trim()) {
-      const actionText = scn.action.content_en && scn.action.content_en.trim()
+      const actionText = scn.action.content_en?.trim()
         ? scn.action.content_en
         : scn.action.content;
       scenarioText += `\n(プレイヤー行動)${actionText}\n`;
     }
 
-    // シーン本文 (英語があれば英語、なければ日本語)
-    const sceneText = scn.content_en && scn.content_en.trim()
+    const sceneText = scn.content_en?.trim()
       ? scn.content_en
       : scn.content;
     scenarioText += `(シーン)${sceneText}\n`;
   }
 
-  // すでに抽出済みのエンティティを列挙
+  // 既存エンティティのテキスト
   const existingTextArr = existingEntities.map(ent => {
     return `${ent.name}: ${ent.description}`;
   });
@@ -1995,9 +2032,6 @@ async function onUpdateEntitiesFromAllScenes() {
   // ChatGPTへ指定する「システムメッセージ」は日本語でOK
   // （最終的な回答を日本語で求めるため。ただし英語にしても構いません）
   const systemContent = "あなたはTRPGアシスタントAIです。日本語で回答してください。";
-
-  // ユーザープロンプト
-  // ここでは説明部分が長いときはさらに省略するなど工夫可能
   const userContent = `
 以下はTRPGのシナリオ中に登場したテキストです。
 すでに抽出済みのアイテム/キャラクター(人物)は下記のとおりです：
@@ -2052,7 +2086,6 @@ ${scenarioText}
       newEntities = [];
     }
 
-    // 結果を画面に表示
     renderNewEntitiesCandidateList(newEntities);
   } catch (err) {
     console.error("onUpdateEntitiesFromAllScenes失敗:", err);
@@ -2062,30 +2095,22 @@ ${scenarioText}
   }
 }
 
-
-/**
- * ここで「選択ボタンはリストの下に配置」「候補が無いならボタンを非表示」などを実装
- */
 function renderNewEntitiesCandidateList(newEntities) {
   const candidateListDiv = document.getElementById("entity-candidate-list");
   if (!candidateListDiv) return;
 
-  // 必ず先頭で非表示にしておく
   const generateBtn = document.getElementById("entity-generate-button");
   if (generateBtn) {
-
     generateBtn.style.display = "none";
   }
 
-  candidateListDiv.innerHTML = ""; // 先頭でクリア
+  candidateListDiv.innerHTML = "";
 
-  // 候補が無い場合 → メッセージのみ
   if (!newEntities || newEntities.length === 0) {
     candidateListDiv.textContent = "新たに見つかりそうなアイテム/登場人物はありません。";
     return;
   }
 
-  // ここまで来たら newEntities があるのでチェックボックスを描画
   newEntities.forEach((ent, idx) => {
     const row = document.createElement("div");
     row.style.display = "flex";
@@ -2106,13 +2131,11 @@ function renderNewEntitiesCandidateList(newEntities) {
     row.dataset.index = idx;
   });
 
-  // 候補があるので生成ボタンをリスト下部に追加し、表示
   if (generateBtn) {
     candidateListDiv.appendChild(generateBtn);
     generateBtn.style.display = "block";
 
     generateBtn.onclick = async () => {
-      // チェックされたものを保存
       const rows = candidateListDiv.querySelectorAll("div");
       const toSave = [];
       rows.forEach(r => {
@@ -2130,11 +2153,10 @@ function renderNewEntitiesCandidateList(newEntities) {
       await saveNewEntities(toSave);
       renderEntitiesList();
       candidateListDiv.innerHTML = "生成が完了しました。";
-      generateBtn.style.display = "none"; // 完了後はボタンを再度非表示に
+      generateBtn.style.display = "none";
     };
   }
 }
-
 
 async function saveNewEntities(entities) {
   for (const e of entities) {
@@ -2163,10 +2185,6 @@ async function openEntitiesModal() {
   infoModal.classList.add("active");
 }
 
-/**
- * ご要望：
- * - アイテム・登場人物が一つも無い場合、「アイテム一覧」「登場人物一覧」の見出しすら出さない
- */
 async function renderEntitiesList() {
   const listDiv = document.getElementById("entity-list-container");
   if (!listDiv) return;
@@ -2182,7 +2200,6 @@ async function renderEntitiesList() {
   const items = allEnts.filter(e => e.category === "item");
   const chars = allEnts.filter(e => e.category === "character");
 
-  // ◆アイテム一覧
   if (items.length > 0) {
     const itemTitle = document.createElement("h3");
     itemTitle.textContent = "アイテム";
@@ -2194,7 +2211,7 @@ async function renderEntitiesList() {
       listDiv.appendChild(row);
     });
   }
-  // ◆登場人物一覧
+
   if (chars.length > 0) {
     const charTitle = document.createElement("h3");
     charTitle.textContent = "キャラクター";
@@ -2207,23 +2224,17 @@ async function renderEntitiesList() {
     });
   }
 
-  // もしどちらも0件なら、何も表示しない (タイトルやリストも出さない)
   if (items.length === 0 && chars.length === 0) {
     listDiv.textContent = "アイテムや登場人物はありません。";
   }
 }
 
-/**
- * アイテム/人物の1行を作り、Wandボタンのドロップダウンで「画像生成」「削除」をまとめる
- */
 function createEntityRow(entity, isOdd) {
   const row = document.createElement("div");
   row.className = "info-row";
   row.style.marginBottom = "20px";
 
-  // 上段（名称＋説明など）
   const topWrapper = document.createElement("div");
-  topWrapper.className = "";
   topWrapper.style.justifyContent = "space-between";
   topWrapper.style.alignItems = "center";
   topWrapper.style.overflow = "hidden";
@@ -2249,8 +2260,6 @@ function createEntityRow(entity, isOdd) {
   const infoSpan = document.createElement("span");
   infoSpan.innerHTML = `<h4>${entity.name}</h4> ${entity.description}`;
   topWrapper.appendChild(infoSpan);
-
-
 
   row.appendChild(topWrapper);
 
@@ -2281,7 +2290,6 @@ function createEntityRow(entity, isOdd) {
       (dropdown.style.display === "none") ? "block" : "none";
   });
 
-  // 画像生成イベント
   const genBtn = dropdown.querySelector(".entity-generate");
   if (genBtn) {
     genBtn.addEventListener("click", async () => {
@@ -2290,7 +2298,6 @@ function createEntityRow(entity, isOdd) {
     });
   }
 
-  // 削除イベント
   const delBtn = dropdown.querySelector(".entity-delete");
   if (delBtn) {
     delBtn.addEventListener("click", async () => {
