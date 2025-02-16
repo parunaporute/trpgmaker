@@ -386,17 +386,17 @@ async function getNextScene() {
     const sections = wd.sections || [];
     let systemText =
       `あなたは経験豊かなやさしいTRPGのゲームマスターです。
-以下を守ってください。
-・背景黒が前提の装飾のタグを使う
-・<<<< 絶対に出力は日本語で。Please answer in Japanese!!!! >>>>
-・決して一つ前のレスポンスと同じ言い回しで終わらない
-・メタな表現をしない(ゲームマスター視点の内容を書かない)
-・シナリオ内の設定と整合性が取れるように
-・同じことを言ってループしない
-・ユーザーが困っている場合はヒントを与える
-・時々パーティを会話させる
-・次の行動を促すようなシーンを作り、行動の多様性を妨げない
-`;
+  以下を守ってください。
+  ・背景黒が前提の装飾のタグを使う
+  ・<<<< 絶対に出力は日本語で。Please answer in Japanese!!!! >>>>
+  ・決して一つ前のレスポンスと同じ言い回しで終わらない
+  ・メタな表現をしない(ゲームマスター視点の内容を書かない)
+  ・シナリオ内の設定と整合性が取れるように
+  ・同じことを言ってループしない
+  ・ユーザーが困っている場合はヒントを与える
+  ・時々パーティを会話させる
+  ・次の行動を促すようなシーンを作り、行動の多様性を妨げない
+  `;
 
     // セクション情報を付与
     if (sections.length > 0) {
@@ -427,8 +427,8 @@ async function getNextScene() {
       }
     }
 
-    // 3) 過去のシーン＆アクションを ChatGPT へ渡す
-    const actionCount = window.scenes.filter(s => s.action && s.action.content.trim() !== "").length;
+    // 3) 過去のシーンを ChatGPT へ渡す
+    const actionCount = window.scenes.length;
     // (A) 先に要約を push
     const chunkEnd = Math.floor((actionCount - 15) / 10);
     for (let i = 0; i <= chunkEnd; i++) {
@@ -1244,7 +1244,6 @@ function showLastScene() {
     storyDiv.appendChild(st);
 
     // ▼ Wandボタン + ドロップダウン
-    
     const dropdown = document.createElement("div");
     dropdown.className = "scene-dropdown-menu";
     dropdown.style.display = "none";
@@ -1926,7 +1925,7 @@ async function onCustomImageGenerate() {
 }
 
 // --------------------------------------------------
-// ▼ onUpdateEntitiesFromAllScenes
+// ▼ シナリオから取得ボタン
 // --------------------------------------------------
 async function onUpdateEntitiesFromAllScenes() {
 
@@ -1934,50 +1933,88 @@ async function onUpdateEntitiesFromAllScenes() {
     alert("APIキーが未設定です。");
     return;
   }
+
+  // すでにDB登録済みのエンティティ(アイテム/キャラ)情報を取得
   const existingEntities = await getEntitiesByScenarioId(window.currentScenarioId);
 
-  // 全シーンテキストを要約混じりで取得
-  const actionCount = window.scenes.filter(s => s.action && s.action.content.trim() !== "").length;
-  const chunkEnd = Math.floor((actionCount - 15) / 10);
+  // アクション数を数え、古い部分は要約を使う
+  const actionCount = window.scenes.length;
+  // 「直近15アクションは生のテキスト」より前の部分は 10 アクション単位で要約
+  let chunkEnd = Math.floor((actionCount - 15) / 10);
+  // アクション数が 15 未満で chunkEnd が負になる場合は 0 に補正
+  if (chunkEnd < 0) {
+    chunkEnd = 0;
+  }
+
+  // シナリオテキストを貯める変数
   let scenarioText = "";
 
-  for (let i = 0; i <= chunkEnd; i++) {
-    if (window.sceneSummaries[i]) {
-      scenarioText += window.sceneSummaries[i].ja || "";
+  // --- 1) 古い部分(要約で補う) ---
+  // 要約は英語があれば英語(.en)を優先し、無い場合は日本語(.ja)を使用
+  for (let i = 0; i < chunkEnd; i++) {
+    const sumObj = window.sceneSummaries[i];
+    if (sumObj && (sumObj.en || sumObj.ja)) {
+      // .en が存在すればそれを使う、無い場合に .ja を使う
+      scenarioText += sumObj.en || sumObj.ja;
       scenarioText += "\n";
     }
   }
-  const skipCount = (chunkEnd + 1) * 10;
-  let aCnt = 0;
+
+  // --- 2) 要約対象としてスキップするアクション数 ---
+  const skipCount = chunkEnd * 10;
+
+  // --- 3) 直近(要約していない)部分は生テキスト(英語優先)を追加 ---
+  let aCnt = 0; // アクションカウンタ
   for (const scn of window.scenes) {
+    aCnt++;
+
+    // skipCount 以下のアクションは、すでに要約で対応済みなのでスキップ
+    if (aCnt <= skipCount && aCnt != 0) continue;
+
+    // プレイヤー行動 (英語があれば英語、なければ日本語)
     if (scn.action?.content.trim()) {
-      aCnt++;
+      const actionText = scn.action.content_en && scn.action.content_en.trim()
+        ? scn.action.content_en
+        : scn.action.content;
+      scenarioText += `\n(プレイヤー行動)${actionText}\n`;
     }
-    if (aCnt <= skipCount) continue;
-    scenarioText += `\n(プレイヤー行動)${scn.action?.content}\n(シーン)${scn.content}\n`;
+
+    // シーン本文 (英語があれば英語、なければ日本語)
+    const sceneText = scn.content_en && scn.content_en.trim()
+      ? scn.content_en
+      : scn.content;
+    scenarioText += `(シーン)${sceneText}\n`;
   }
 
+  // すでに抽出済みのエンティティを列挙
   const existingTextArr = existingEntities.map(ent => {
     return `${ent.name}: ${ent.description}`;
   });
   const existingDesc = existingTextArr.join("\n") || "（なし）";
 
+  // ChatGPTへ指定する「システムメッセージ」は日本語でOK
+  // （最終的な回答を日本語で求めるため。ただし英語にしても構いません）
   const systemContent = "あなたはTRPGアシスタントAIです。日本語で回答してください。";
+
+  // ユーザープロンプト
+  // ここでは説明部分が長いときはさらに省略するなど工夫可能
   const userContent = `
 以下はTRPGのシナリオ中に登場したテキストです。
 すでに抽出済みのアイテム/キャラクター(人物)は下記のとおりです：
 ${existingDesc}
 
-新たに見つかったアイテムや登場人物があれば、JSON配列で出力してください。例：
-[{"category":"item","name":"○○","description":"～"}, {"category":"character","name":"◇◇","description":"～"}]
+新たに見つかったアイテムや登場人物があれば、JSON配列で出力してください。
+固有名詞も日本語にしてください。日本語にできないものはカタカナにしてください。
+例：
+[{"category":"item","name":"木の杖","description":"～"}, {"category":"character","name":"太郎","description":"～"}]
 
+地域や場所を含めないでください。
 すでにあるものに似ている場合は出力しないでください。重複しそうなものは省いてください。
-文章は短めで。
 シナリオ全体本文:
 ====================
 ${scenarioText}
 ====================
-    `.trim();
+  `;
 
   try {
     showLoadingModal(true);
@@ -1999,6 +2036,7 @@ ${scenarioText}
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
 
+    // ChatGPTの応答をパースしてJSON配列として取得
     const rawAnswer = data.choices[0].message.content;
     let newEntities = [];
     try {
@@ -2014,6 +2052,7 @@ ${scenarioText}
       newEntities = [];
     }
 
+    // 結果を画面に表示
     renderNewEntitiesCandidateList(newEntities);
   } catch (err) {
     console.error("onUpdateEntitiesFromAllScenes失敗:", err);
@@ -2022,6 +2061,7 @@ ${scenarioText}
     showLoadingModal(false);
   }
 }
+
 
 /**
  * ここで「選択ボタンはリストの下に配置」「候補が無いならボタンを非表示」などを実装
@@ -2216,7 +2256,7 @@ function createEntityRow(entity, isOdd) {
 
   // 下段： Wandボタン + ドロップダウン
   const bottomWrapper = document.createElement("div");
-    bottomWrapper.className = "l-flexbox";
+  bottomWrapper.className = "l-flexbox";
 
   const wandBtn = document.createElement("button");
   wandBtn.className = "scene-menu-button";
