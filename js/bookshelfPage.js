@@ -272,7 +272,6 @@ async function renderBooksOnShelf(scenarios) {
     bookFront.style.transformOrigin = "0 " + spineWidth + "px";
     bookFront.style.borderRadius = "0 4px 4px 0";
 
-    console.log("きてる？");
     if (scenario.useCoverImage && coverImage) {
       // 画像ありの場合
       const frontImg = document.createElement("img");
@@ -752,9 +751,12 @@ async function onSaveEditScenario() {
     // チップ選択の状態を読み取り
     const coverImageChoice = document.getElementById("cover-image-choice");
     const selectedChip = coverImageChoice.querySelector('.chip.selected');
+    console.log(selectedChip.dataset.value);
     let newUseCoverImage = true;
     if (selectedChip && selectedChip.dataset.value === "on") {
       newUseCoverImage = true;
+    } else {
+      newUseCoverImage = false;
     }
 
     // scenarioToEdit オブジェクトを更新して保存
