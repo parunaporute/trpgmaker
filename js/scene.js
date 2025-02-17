@@ -444,12 +444,12 @@ async function getNextScene() {
 
     // 3) 過去のシーンを ChatGPT へ渡す
     const actionCount = window.scenes.length;
-    console.log("actionCount", actionCount);
+    // console.log("actionCount", actionCount);
 
     // (A) 先に要約を push
     const chunkEnd = Math.floor((actionCount - 15) / 10);
     for (let i = 0; i <= chunkEnd; i++) {
-      console.log("要約はあるようだ");
+      // ("要約はあるようだ");
       if (i < 0) continue;
       if (window.sceneSummaries[i]) {
         const sumObj = window.sceneSummaries[i];
@@ -459,8 +459,8 @@ async function getNextScene() {
         });
       }
     }
-    console.log("要約組み立て終了");
-    console.log("window.scenesの状態", window.scenes);
+    // console.log("要約組み立て終了");
+    // console.log("window.scenesの状態", window.scenes);
 
     // (B) 要約に含まれない分だけ raw を push
     const skipCount = (chunkEnd + 1) * 10;
@@ -481,8 +481,8 @@ async function getNextScene() {
     if (pinput) {
       msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
     }
-    console.log("メッセージ組み立て終了");
-    console.log("window.scenesの状態", window.scenes);
+    // console.log("メッセージ組み立て終了");
+    // console.log("window.scenesの状態", window.scenes);
 
     // 4) ChatGPT呼び出し
     window.currentRequestController = new AbortController();
@@ -507,8 +507,8 @@ async function getNextScene() {
     }
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
-    console.log("レスポンス取得");
-    console.log("window.scenesの状態", window.scenes);
+    // console.log("レスポンス取得");
+    // console.log("window.scenesの状態", window.scenes);
 
     // 5) ChatGPTの返答が英語か日本語かを判定 → 日本語へ統一
     const rawScene = data.choices[0].message.content || "";
@@ -521,7 +521,7 @@ async function getNextScene() {
       finalSceneEn = await generateEnglishTranslation(rawScene);
     }
 
-    console.log("翻訳");
+    // console.log("翻訳");
     // 6) 新しいシーンをDBに保存
     const sid = "scene_" + Date.now();
     const sRec = {
@@ -535,7 +535,7 @@ async function getNextScene() {
       prompt: "",
       dataUrl: ""
     };
-    console.log("DBへの格納データ", window.scenes);
+    // console.log("DBへの格納データ", window.scenes);
     const newId = await addSceneEntry(sRec);
     sRec.entryId = newId;
 
@@ -552,12 +552,12 @@ async function getNextScene() {
       images: []
     };
 
-    console.log("メモリ用オブジェクト", newSceneObj);
-    console.log("window.scenesの状態前", window.scenes);
+    // console.log("メモリ用オブジェクト", newSceneObj);
+    // console.log("window.scenesの状態前", window.scenes);
     window.scenes.push(newSceneObj);
-    console.log("-----");
-    console.log("window.scenesの状態後", window.scenes);
-    console.log("-----");
+    // console.log("-----");
+    // console.log("window.scenesの状態後", window.scenes);
+    // console.log("-----");
 
     // debugAllRecordsFromStore('sceneEntries');
 
@@ -575,28 +575,28 @@ async function getNextScene() {
         updatedAt: new Date().toISOString()
       });
     }
-    console.log("window.scenesの状態後1", window.scenes);
+    // console.log("window.scenesの状態後1", window.scenes);
     // 9) セクション達成チェック
     await checkSectionClearViaChatGPT(pinput, finalSceneJa);
-    console.log("window.scenesの状態後2", window.scenes);
+    // console.log("window.scenesの状態後2", window.scenes);
 
     // 10) 要約処理 (10アクション単位)
     await handleSceneSummaries();
-    console.log("window.scenesの状態後3", window.scenes);
+    // console.log("window.scenesの状態後3", window.scenes);
 
     // 11) 画面再描画
     document.getElementById("player-input").value = "";
     updateSceneHistory();
     showLastScene();
-    console.log("表示修正");
-    console.log("window.scenesの状態後4", window.scenes);
+    // console.log("表示修正");
+    // console.log("window.scenesの状態後4", window.scenes);
 
     // 12) 回答候補コンテナクリア＆自動生成
     const candidatesContainer = document.getElementById("action-candidates-container");
     if (candidatesContainer) {
       candidatesContainer.innerHTML = "";
     }
-    console.log("window.scenesの状態後5", window.scenes);
+    // console.log("window.scenesの状態後5", window.scenes);
 
     const autoGenCheckbox = document.getElementById("auto-generate-candidates-checkbox");
     if (autoGenCheckbox && autoGenCheckbox.checked) {
