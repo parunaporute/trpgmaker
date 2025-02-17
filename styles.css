@@ -1329,8 +1329,7 @@ button.important {
 
 /* アコーディオン全体のラッパ */
 .accordion {
-  margin-top: 30px;
-  /* 既存スタイルを移行 */
+  
 }
 
 /* アコーディオンヘッダー */
@@ -1577,7 +1576,7 @@ button.important {
   display: flex;
   gap: 10px;
   top: 0;
-  background-color: #00000054;
+  background-color: rgba(0, 0, 0, 0.7);
   width: 100%;
   z-index: 100;
   justify-content: right;
