@@ -362,11 +362,11 @@ async function getNextScene() {
     console.log(allData);
     await tx.done;
   }*/
-/* console.log("3秒待ってください...");
-  setTimeout(() => {
-    debugAllRecordsFromStore('sceneEntries');
-  }, 3000); // 3,000ミリ秒（秒）
- */
+  /* console.log("3秒待ってください...");
+    setTimeout(() => {
+      debugAllRecordsFromStore('sceneEntries');
+    }, 3000); // 3,000ミリ秒（秒）
+   */
 
   if (!window.apiKey) {
     alert("APIキー未設定");
@@ -1184,15 +1184,26 @@ function updateSceneHistory() {
     });
     tile.appendChild(st);
 
-    // 画像
+    // ====== ここで画像サムネを表示 ======
+    // scn.images配列をループし、画像を配置
     const scImages = scn.images || [];
-    scImages.forEach(imgRec => {
+    scImages.forEach((imgRec, index) => {
+      // 画像タグを作成
       const img = document.createElement("img");
       img.src = imgRec.dataUrl;
       img.alt = "生成画像";
+      // サムネのスタイル (例)
       img.style.maxHeight = "350px";
       img.style.width = "100%";
       img.style.objectFit = "contain";
+
+      // **ここでクリック時にモーダルを開くイベントを追加**
+      img.addEventListener("click", () => {
+        // scn: このシーンオブジェクト
+        // index: 画像の配列内インデックス
+        openImageViewer(scn, index);
+      });
+
       tile.appendChild(img);
     });
 
@@ -1326,7 +1337,7 @@ function showLastScene() {
 
     // 画像一覧
     lastSceneImagesDiv.innerHTML = "";
-    for (const imgObj of lastScene.images) {
+    lastScene.images.forEach((imgObj, index) => {
       const div = document.createElement("div");
       div.className = "image-container";
 
@@ -1335,11 +1346,14 @@ function showLastScene() {
       imgEl.alt = "生成画像";
       imgEl.style.maxHeight = "50vh";
       imgEl.style.objectFit = "contain";
+      // **ここでクリックイベント**
+      imgEl.addEventListener("click", () => {
+        openImageViewer(lastScene, index);
+      });
+
       div.appendChild(imgEl);
-
       lastSceneImagesDiv.appendChild(div);
-    }
-
+    });
     if (window.apiKey) {
       nextSceneBtn.style.display = "inline-block";
       playerInput.style.display = "inline-block";
@@ -2445,6 +2459,290 @@ function showLoadingModal(show) {
     m.classList.add("active");
   } else {
     m.classList.remove("active");
+  }
+}
+
+// ▼ 画像ビューア状態管理用
+// 画像ビューア用の状態管理
+window.imageViewerState = {
+  sceneObj: null,
+  currentIndex: 0,
+  images: [],
+  isOpen: false,
+
+  // ドラッグ/タップ判定用
+  startX: 0,
+  startY: 0,
+  currentX: 0,
+  currentY: 0,
+  isDragging: false,
+  hasMoved: false,
+  tapThreshold: 10 // 移動距離がこのpx以内なら「タップ」とみなす
+};
+
+function openImageViewer(sceneObj, startIndex) {
+  window.imageViewerState.sceneObj = sceneObj;
+  window.imageViewerState.currentIndex = startIndex;
+  window.imageViewerState.images = sceneObj.images || [];
+  window.imageViewerState.isOpen = true;
+
+  const viewerModal = document.getElementById("image-viewer-modal");
+  const imgEl = document.getElementById("viewer-image-element");
+
+  // ポートレートかランドスケープかで、幅/高さを調整
+  const orientationPortrait = (window.innerHeight >= window.innerWidth);
+  if (orientationPortrait) {
+    imgEl.style.width = "100%";
+    imgEl.style.height = "auto";
+  } else {
+    imgEl.style.width = "auto";
+    imgEl.style.height = "100%";
+  }
+
+  // 最初の画像を表示
+  showImageInViewer();
+
+  // ボタン類は初期的に非表示
+  const controls = document.getElementById("viewer-controls");
+  if (controls) controls.classList.add("hidden");
+
+  // モーダルをアクティブに
+  viewerModal.classList.add("active");
+
+  // pointer系イベントをバインド（ドラッグ＆クリック判定）
+  addViewerTouchEvents(imgEl);
+
+  // 削除/ダウンロード/閉じるボタン
+  const delBtn = document.getElementById("viewer-delete-button");
+  if (delBtn) delBtn.onclick = onClickViewerDelete;
+  const dlBtn = document.getElementById("viewer-download-button");
+  if (dlBtn) dlBtn.onclick = onClickViewerDownload;
+  const closeBtn = document.getElementById("viewer-close-button");
+  if (closeBtn) closeBtn.onclick = closeImageViewer;
+}
+
+// 実際の画像を差し替えて表示
+function showImageInViewer() {
+  const { images, currentIndex } = window.imageViewerState;
+  const viewerImg = document.getElementById("viewer-image-element");
+  if (!viewerImg) return;
+  if (!images[currentIndex]) return;
+
+  viewerImg.src = images[currentIndex].dataUrl;
+  viewerImg.style.transform = "translateX(0px)";
+}
+
+// スワイプ/ドラッグなどをまとめて管理
+function addViewerTouchEvents(imgEl) {
+  imgEl.onpointerdown = (e) => {
+    e.preventDefault();
+    window.imageViewerState.isDragging = true;
+    window.imageViewerState.hasMoved = false;
+
+    // 開始位置を記録
+    window.imageViewerState.startX = e.clientX;
+    window.imageViewerState.startY = e.clientY;
+    window.imageViewerState.currentX = e.clientX;
+    window.imageViewerState.currentY = e.clientY;
+
+    // ドラッグ中も pointermove を捕まえられるように
+    imgEl.setPointerCapture(e.pointerId);
+  };
+
+  imgEl.onpointermove = (e) => {
+    if (!window.imageViewerState.isDragging) return;
+    e.preventDefault();
+
+    const dx = e.clientX - window.imageViewerState.startX;
+    const dy = e.clientY - window.imageViewerState.startY;
+
+    window.imageViewerState.currentX = e.clientX;
+    window.imageViewerState.currentY = e.clientY;
+
+    // 一定距離以上動いたら「hasMoved = true」
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > window.imageViewerState.tapThreshold) {
+      window.imageViewerState.hasMoved = true;
+    }
+
+    // スワイプのときは X 方向に動かす
+    const imgEl = document.getElementById("viewer-image-element");
+    if (imgEl) {
+      imgEl.style.transform = `translateX(${dx}px)`;
+    }
+  };
+
+  imgEl.onpointerup = (e) => {
+    if (!window.imageViewerState.isDragging) return;
+    e.preventDefault();
+
+    // pointerIdのキャプチャ解除
+    imgEl.releasePointerCapture(e.pointerId);
+
+    finishSwipeOrTap();
+  };
+
+  // pointercancel (OSやスクロール介入等で中断された場合)
+  imgEl.onpointercancel = (e) => {
+    if (!window.imageViewerState.isDragging) return;
+    imgEl.releasePointerCapture(e.pointerId);
+    finishSwipeOrTap(true); // キャンセル扱い
+  };
+}
+
+// ドラッグ終了時に「タップ or スワイプ」判定
+function finishSwipeOrTap(isCancel = false) {
+  window.imageViewerState.isDragging = false;
+
+  if (isCancel) {
+    resetImagePosition();
+    return;
+  }
+
+  // 「hasMoved === false」なら、小さい移動で終わった → タップ扱い
+  if (!window.imageViewerState.hasMoved) {
+    toggleViewerControls();
+    return;
+  }
+
+  // ここからスワイプ処理
+  const { startX, currentX } = window.imageViewerState;
+  const dx = currentX - startX;
+  const threshold = window.innerWidth * 0.3;
+
+  if (Math.abs(dx) < threshold) {
+    // バウンドバック
+    resetImagePosition();
+  } else {
+    if (dx < 0) {
+      // 左へ -> 次の画像
+      goNextImage();
+    } else {
+      // 右へ -> 前の画像
+      goPrevImage();
+    }
+  }
+}
+
+// バウンドバック
+function resetImagePosition() {
+  const imgEl = document.getElementById("viewer-image-element");
+  if (!imgEl) return;
+  imgEl.style.transition = "transform 0.2s";
+  imgEl.style.transform = "translateX(0px)";
+  setTimeout(() => {
+    imgEl.style.transition = "";
+  }, 200);
+}
+
+// 次へ
+function goNextImage() {
+  const { images, currentIndex } = window.imageViewerState;
+  if (currentIndex < images.length - 1) {
+    // 次がある
+    animateSwipeTransition(-window.innerWidth);
+    window.imageViewerState.currentIndex++;
+  } else {
+    // 端まできてる
+    bounceBack(-1);
+  }
+}
+
+// 前へ
+function goPrevImage() {
+  const { currentIndex } = window.imageViewerState;
+  if (currentIndex > 0) {
+    animateSwipeTransition(window.innerWidth);
+    window.imageViewerState.currentIndex--;
+  } else {
+    // 先頭
+    bounceBack(1);
+  }
+}
+
+// スワイプアニメ後に画像を差し替えてリセット
+function animateSwipeTransition(offset) {
+  const imgEl = document.getElementById("viewer-image-element");
+  if (!imgEl) return;
+  imgEl.style.transition = "transform 0.2s";
+  // いったん画面外に飛ばす
+  imgEl.style.transform = `translateX(${offset}px)`;
+  setTimeout(() => {
+    showImageInViewer();
+    imgEl.style.transition = "none";
+  }, 200);
+}
+
+// バウンスアニメ
+function bounceBack(direction) {
+  const imgEl = document.getElementById("viewer-image-element");
+  if (!imgEl) return;
+  imgEl.style.transition = "transform 0.2s";
+  imgEl.style.transform = `translateX(${direction * 60}px)`;
+  setTimeout(() => {
+    imgEl.style.transform = "translateX(0px)";
+  }, 200);
+  setTimeout(() => {
+    imgEl.style.transition = "";
+  }, 400);
+}
+
+// タップ時にコントロール表示/非表示をトグル
+function toggleViewerControls() {
+  const controls = document.getElementById("viewer-controls");
+  if (!controls) return;
+  controls.classList.toggle("hidden");
+}
+
+// 画像削除
+async function onClickViewerDelete() {
+  const { sceneObj, currentIndex, images } = window.imageViewerState;
+  if (!images[currentIndex]) return;
+  if (!confirm("この画像を削除します。よろしいですか？")) return;
+
+  const entryId = images[currentIndex].entryId;
+  try {
+    await deleteSceneEntry(entryId); // IndexedDBから物理削除
+    images.splice(currentIndex, 1); // メモリ上からも削除
+
+    if (images.length === 0) {
+      closeImageViewer();
+      updateSceneHistory();
+      showLastScene();
+      return;
+    }
+    // インデックス補正
+    if (currentIndex >= images.length) {
+      window.imageViewerState.currentIndex = images.length - 1;
+    }
+    showImageInViewer();
+    updateSceneHistory();
+    showLastScene();
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("削除に失敗しました: " + err.message);
+  }
+}
+
+// ダウンロード
+function onClickViewerDownload() {
+  const { images, currentIndex } = window.imageViewerState;
+  if (!images[currentIndex]) return;
+
+  const link = document.createElement("a");
+  link.href = images[currentIndex].dataUrl;
+  link.download = "image.png";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// 閉じる
+function closeImageViewer() {
+  window.imageViewerState.isOpen = false;
+  const viewerModal = document.getElementById("image-viewer-modal");
+  if (viewerModal) {
+    viewerModal.classList.remove("active");
   }
 }
 
