@@ -97,7 +97,6 @@ async function initBookshelfPage() {
   }
 
   // ここで useCoverImage が未設定ならデフォルト true をセット
-  // （DBへ保存するかはケースによりますが、画面表示上はここで一律設定します）
   for (const sc of allScenarios) {
     if (typeof sc.useCoverImage === "undefined") {
       sc.useCoverImage = true;
@@ -115,13 +114,16 @@ async function initBookshelfPage() {
 
   renderBooksOnShelf(shelfScenarios);
   renderBookshelfList(shelfScenarios);
+
+  // ★ アコーディオン初期化（本一覧の開閉を index.html 同様の動作に）
+  initBookshelfListAccordion();
 }
 
 /** 再描画 */
 async function refreshBookshelfView() {
   try {
     const allScenarios = await listAllScenarios();
-    // ここでも useCoverImage が未設定ならデフォルト true
+    // useCoverImage が未設定ならデフォルト true
     for (const sc of allScenarios) {
       if (typeof sc.useCoverImage === "undefined") {
         sc.useCoverImage = true;
@@ -183,8 +185,10 @@ async function renderBooksOnShelf(scenarios) {
         wrapper.style.marginLeft = bookLeftMargin + "px";
         wrapper.style.zIndex = 1000;
         if (wrapper.classList.contains("facing-front")) {
-          wrapper.querySelector(".book-front").style.transform = `rotateY(90deg) translateZ(-${spineWidth}px)`;
-          wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
+          wrapper.querySelector(".book-front").style.transform =
+            `rotateY(90deg) translateZ(-${spineWidth}px)`;
+          wrapper.querySelector(".book-front").style.transformOrigin =
+            "0 " + spineWidth + "px";
         }
       }, 500);
     } else {
@@ -258,8 +262,10 @@ async function renderBooksOnShelf(scenarios) {
       wrapper.style.marginLeft = bookLeftMargin + "px";
       setTimeout(() => {
         if (wrapper.classList.contains("facing-front")) {
-          wrapper.querySelector(".book-front").style.transform = `rotateY(90deg) translateZ(-${spineWidth}px)`;
-          wrapper.querySelector(".book-front").style.transformOrigin = "0 " + spineWidth + "px";
+          wrapper.querySelector(".book-front").style.transform =
+            `rotateY(90deg) translateZ(-${spineWidth}px)`;
+          wrapper.querySelector(".book-front").style.transformOrigin =
+            "0 " + spineWidth + "px";
         }
       }, 500);
       wrapper.style.zIndex = 1000;
@@ -277,8 +283,6 @@ async function renderBooksOnShelf(scenarios) {
       const frontImg = document.createElement("img");
       frontImg.src = coverImage.dataUrl;
       frontImg.style.borderRadius = "0 4px 4px 0";
-
-      // 必要に応じてサイズ調整
       bookFront.appendChild(frontImg);
     } else {
       // 画像なしの場合 → 色のグラデーション
@@ -295,7 +299,8 @@ async function renderBooksOnShelf(scenarios) {
       await updateScenario(scenario, noUpdateDateTimeFlag);
       wrapper.classList.remove("facing-front");
       wrapper.querySelector(".book-front").style.transform = `rotateY(90deg)`;
-      wrapper.querySelector(".book-front").style.transformOrigin = "0 " + bookLeftMargin + "px";
+      wrapper.querySelector(".book-front").style.transformOrigin =
+        "0 " + bookLeftMargin + "px";
       wrapper.style.marginLeft = bookLeftMargin + "px";
       setTimeout(() => {
         wrapper.style.paddingRight = 0;
@@ -697,17 +702,13 @@ async function openEditScenarioModal(scenarioId) {
     const coverImageChoice = document.getElementById("cover-image-choice");
     const chipOn = coverImageChoice.querySelector('.chip[data-value="on"]');
     const chipOff = coverImageChoice.querySelector('.chip[data-value="off"]');
-
-    // いったんselectedを外す
     chipOn.classList.remove('selected');
-    chipOff.classList.remove('selected');  // useCoverImage が true なら "on" を selected に
-    // false なら "off" を selected に
+    chipOff.classList.remove('selected');
     if (sc.useCoverImage) {
       chipOn.classList.add('selected');
     } else {
       chipOff.classList.add('selected');
     }
-
 
     document.getElementById("edit-scenario-modal").classList.add("active");
   } catch (err) {
@@ -721,9 +722,7 @@ function setupChipEvents() {
 
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
-      // 全ての chip から selected を外す
       chips.forEach((c) => c.classList.remove("selected"));
-      // クリックされた chip のみに selected を付与
       chip.classList.add("selected");
     });
   });
@@ -751,7 +750,6 @@ async function onSaveEditScenario() {
     // チップ選択の状態を読み取り
     const coverImageChoice = document.getElementById("cover-image-choice");
     const selectedChip = coverImageChoice.querySelector('.chip.selected');
-    console.log(selectedChip.dataset.value);
     let newUseCoverImage = true;
     if (selectedChip && selectedChip.dataset.value === "on") {
       newUseCoverImage = true;
@@ -759,10 +757,8 @@ async function onSaveEditScenario() {
       newUseCoverImage = false;
     }
 
-    // scenarioToEdit オブジェクトを更新して保存
     scenarioToEdit.useCoverImage = newUseCoverImage;
     await updateScenario(scenarioToEdit);
-
 
     // シナリオオブジェクトを更新
     scenarioToEdit.title = newTitle;
@@ -779,4 +775,29 @@ async function onSaveEditScenario() {
   }
 }
 setupChipEvents();
+
+/* ======================
+   アコーディオン動作
+ ====================== */
+function initBookshelfListAccordion() {
+  const header = document.getElementById("bookshelf-list-header");
+  const content = document.getElementById("bookshelf-list-content");
+  if (!header || !content) return;
+
+  // localStorageに保存して前回の開閉状態を復元
+  const savedState = localStorage.getItem("bookshelfListAccordionState");
+  if (savedState === "open") {
+    content.classList.add("open");
+  }
+
+  header.addEventListener("click", () => {
+    content.classList.toggle("open");
+    if (content.classList.contains("open")) {
+      localStorage.setItem("bookshelfListAccordionState", "open");
+    } else {
+      localStorage.setItem("bookshelfListAccordionState", "closed");
+    }
+  });
+}
+
 window.initBookshelfPage = initBookshelfPage;

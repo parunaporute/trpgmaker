@@ -924,7 +924,7 @@ button:hover {
   align-items: center;
   display: flex;
   flex-direction: column;
-  max-height: 100vh;
+  max-height: 50vh;
   overflow-y: auto;
 }
 
@@ -1365,7 +1365,7 @@ button.important {
 .accordion-content.open {
   padding: 0;
   margin-bottom: 20px;
-  max-height: 100vh;
+  max-height: 50vh;
 }
 
 #show-hidden-scenarios {
