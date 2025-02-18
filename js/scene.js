@@ -151,11 +151,16 @@ window.addEventListener("load", async () => {
       }
     });
   }
-
-  // 回答候補生成ボタン
-  const generateActionCandidatesBtn = document.getElementById("generate-action-candidates-button");
-  if (generateActionCandidatesBtn) {
-    generateActionCandidatesBtn.addEventListener("click", onGenerateActionCandidates);
+  // ----------------------------------------------------
+  // 【追加】 チェックボックスにチェック時、自動で候補を生成する
+  // ----------------------------------------------------
+  const autoGenCbx = document.getElementById("auto-generate-candidates-checkbox");
+  if (autoGenCbx) {
+    autoGenCbx.addEventListener("change", () => {
+      if (autoGenCbx.checked) {
+        onGenerateActionCandidates();
+      }
+    });
   }
 
   // パーティ確認用モーダル
@@ -352,22 +357,6 @@ async function loadAllScenesForScenario(scenarioId) {
 // ▼ シーン生成＆次のシーン取得
 // --------------------------------------------------
 async function getNextScene() {
-  /*
-  // デバッグ用のDB確認関数
-  async function debugAllRecordsFromStore(storeName) {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    const allData = await store.getAll(); // 全件取得
-    console.log(`--- ${storeName} の全データ ---`);
-    console.log(allData);
-    await tx.done;
-  }*/
-  /* console.log("3秒待ってください...");
-    setTimeout(() => {
-      debugAllRecordsFromStore('sceneEntries');
-    }, 3000); // 3,000ミリ秒（秒）
-   */
-
   if (!window.apiKey) {
     alert("APIキー未設定");
     return;
@@ -444,12 +433,10 @@ async function getNextScene() {
 
     // 3) 過去のシーンを ChatGPT へ渡す
     const actionCount = window.scenes.length;
-    // console.log("actionCount", actionCount);
 
     // (A) 先に要約を push
     const chunkEnd = Math.floor((actionCount - 15) / 10);
     for (let i = 0; i <= chunkEnd; i++) {
-      // ("要約はあるようだ");
       if (i < 0) continue;
       if (window.sceneSummaries[i]) {
         const sumObj = window.sceneSummaries[i];
@@ -459,8 +446,6 @@ async function getNextScene() {
         });
       }
     }
-    // console.log("要約組み立て終了");
-    // console.log("window.scenesの状態", window.scenes);
 
     // (B) 要約に含まれない分だけ raw を push
     const skipCount = (chunkEnd + 1) * 10;
@@ -481,8 +466,6 @@ async function getNextScene() {
     if (pinput) {
       msgs.push({ role: "user", content: "プレイヤーの行動:" + pinput });
     }
-    // console.log("メッセージ組み立て終了");
-    // console.log("window.scenesの状態", window.scenes);
 
     // 4) ChatGPT呼び出し
     window.currentRequestController = new AbortController();
@@ -507,8 +490,6 @@ async function getNextScene() {
     }
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
-    // console.log("レスポンス取得");
-    // console.log("window.scenesの状態", window.scenes);
 
     // 5) ChatGPTの返答が英語か日本語かを判定 → 日本語へ統一
     const rawScene = data.choices[0].message.content || "";
@@ -521,7 +502,6 @@ async function getNextScene() {
       finalSceneEn = await generateEnglishTranslation(rawScene);
     }
 
-    // console.log("翻訳");
     // 6) 新しいシーンをDBに保存
     const sid = "scene_" + Date.now();
     const sRec = {
@@ -535,7 +515,6 @@ async function getNextScene() {
       prompt: "",
       dataUrl: ""
     };
-    // console.log("DBへの格納データ", window.scenes);
     const newId = await addSceneEntry(sRec);
     sRec.entryId = newId;
 
@@ -551,15 +530,7 @@ async function getNextScene() {
       },
       images: []
     };
-
-    // console.log("メモリ用オブジェクト", newSceneObj);
-    // console.log("window.scenesの状態前", window.scenes);
     window.scenes.push(newSceneObj);
-    // console.log("-----");
-    // console.log("window.scenesの状態後", window.scenes);
-    // console.log("-----");
-
-    // debugAllRecordsFromStore('sceneEntries');
 
     // 7) シーンから挿絵用プロンプトを生成してDB更新
     const imagePromptText = await generateImagePromptFromScene(finalSceneJa);
@@ -575,28 +546,23 @@ async function getNextScene() {
         updatedAt: new Date().toISOString()
       });
     }
-    // console.log("window.scenesの状態後1", window.scenes);
+
     // 9) セクション達成チェック
     await checkSectionClearViaChatGPT(pinput, finalSceneJa);
-    // console.log("window.scenesの状態後2", window.scenes);
 
     // 10) 要約処理 (10アクション単位)
     await handleSceneSummaries();
-    // console.log("window.scenesの状態後3", window.scenes);
 
     // 11) 画面再描画
     document.getElementById("player-input").value = "";
     updateSceneHistory();
     showLastScene();
-    // console.log("表示修正");
-    // console.log("window.scenesの状態後4", window.scenes);
 
     // 12) 回答候補コンテナクリア＆自動生成
     const candidatesContainer = document.getElementById("action-candidates-container");
     if (candidatesContainer) {
       candidatesContainer.innerHTML = "";
     }
-    // console.log("window.scenesの状態後5", window.scenes);
 
     const autoGenCheckbox = document.getElementById("auto-generate-candidates-checkbox");
     if (autoGenCheckbox && autoGenCheckbox.checked) {
@@ -1184,23 +1150,17 @@ function updateSceneHistory() {
     });
     tile.appendChild(st);
 
-    // ====== ここで画像サムネを表示 ======
-    // scn.images配列をループし、画像を配置
+    // ====== 画像サムネを表示 ======
     const scImages = scn.images || [];
     scImages.forEach((imgRec, index) => {
-      // 画像タグを作成
       const img = document.createElement("img");
       img.src = imgRec.dataUrl;
       img.alt = "生成画像";
-      // サムネのスタイル (例)
       img.style.maxHeight = "350px";
       img.style.width = "100%";
       img.style.objectFit = "contain";
 
-      // **ここでクリック時にモーダルを開くイベントを追加**
       img.addEventListener("click", () => {
-        // scn: このシーンオブジェクト
-        // index: 画像の配列内インデックス
         openImageViewer(scn, index);
       });
 
@@ -1227,7 +1187,6 @@ function updateSceneHistory() {
     wandBtn.className = "scene-menu-button";
     wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
     c.appendChild(wandBtn);
-
 
     wandBtn.addEventListener("click", () => {
       dropdown.style.display =
@@ -1314,7 +1273,6 @@ function showLastScene() {
     wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
     lastSceneAdded.appendChild(wandBtn);
 
-
     wandBtn.addEventListener("click", () => {
       dropdown.style.display =
         (dropdown.style.display === "none") ? "block" : "none";
@@ -1346,7 +1304,6 @@ function showLastScene() {
       imgEl.alt = "生成画像";
       imgEl.style.maxHeight = "50vh";
       imgEl.style.objectFit = "contain";
-      // **ここでクリックイベント**
       imgEl.addEventListener("click", () => {
         openImageViewer(lastScene, index);
       });
@@ -1984,7 +1941,6 @@ async function onCustomImageGenerate() {
 // ▼ シナリオから取得ボタン
 // --------------------------------------------------
 async function onUpdateEntitiesFromAllScenes() {
-
   if (!window.apiKey) {
     alert("APIキーが未設定です。");
     return;
@@ -2037,14 +1993,11 @@ async function onUpdateEntitiesFromAllScenes() {
     scenarioText += `(シーン)${sceneText}\n`;
   }
 
-  // 既存エンティティのテキスト
   const existingTextArr = existingEntities.map(ent => {
     return `${ent.name}: ${ent.description}`;
   });
   const existingDesc = existingTextArr.join("\n") || "（なし）";
 
-  // ChatGPTへ指定する「システムメッセージ」は日本語でOK
-  // （最終的な回答を日本語で求めるため。ただし英語にしても構いません）
   const systemContent = "あなたはTRPGアシスタントAIです。日本語で回答してください。";
   const userContent = `
 以下はTRPGのシナリオ中に登場したテキストです。
@@ -2463,21 +2416,19 @@ function showLoadingModal(show) {
 }
 
 // ▼ 画像ビューア状態管理用
-// 画像ビューア用の状態管理
 window.imageViewerState = {
   sceneObj: null,
   currentIndex: 0,
   images: [],
   isOpen: false,
 
-  // ドラッグ/タップ判定用
   startX: 0,
   startY: 0,
   currentX: 0,
   currentY: 0,
   isDragging: false,
   hasMoved: false,
-  tapThreshold: 10 // 移動距離がこのpx以内なら「タップ」とみなす
+  tapThreshold: 10
 };
 
 function openImageViewer(sceneObj, startIndex) {
