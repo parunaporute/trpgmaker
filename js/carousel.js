@@ -148,3 +148,16 @@ function initCarousel() {
     updateActiveTab(realIndex);
   });
 }
+
+// 複製セルに含まれるIDを削除
+function removeDuplicateIDs() {
+  // Flickityや独自ライブラリなどで複製されたセル（.is-cloned など）を探す
+  const clonedCells = document.querySelectorAll(".carousel-cell.is-cloned");
+  // クローンされたセル配下にいるすべての「id属性を持つ要素」からidを外す
+  clonedCells.forEach(cell => {
+    const elemsWithId = cell.querySelectorAll("[id]");
+    elemsWithId.forEach(el => {
+      el.removeAttribute("id");
+    });
+  });
+}

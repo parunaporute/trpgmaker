@@ -105,26 +105,31 @@
               <div class="carousel-cell" data-cell-index="0">
 
                 <!-- 回答候補のチェックボックス -->
-                <div style="margin-top:10px;display: flex;">
+                <div style="display: flex; margin-bottom: 10px;">
                   <label style="margin-left:10px;display: flex;">
-                    <input type="checkbox" id="auto-generate-candidates-checkbox"/>
-                    <p style="width: 100%;">AIが選択肢を作成する</p>
+                    <input type="checkbox" id="auto-generate-candidates-checkbox" style="margin: 0;"/>
+                    <p style="width: 100%;margin: 0;padding: 5px 0 5px 10px;">AIが選択肢を作成する</p>
                   </label>
                 </div>
-                <div id="action-candidates-container" style="margin-top:10px;"></div>
-
-                <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
-
-                <div class="c-flexbox">
-                  <button id="next-scene" class="important" style="display:none;">次のシーン</button>
+                <div style="display: flex;flex-direction: column;gap: 10px;">
+                  <div id="action-candidates-container" style=""></div>
+                  <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
+                  <div class="c-flexbox" style="margin-bottom: 0;">
+                    <button id="next-scene" class="important" style="display:none; ">次のシーン</button>
+                  </div>
+  
                 </div>
               </div>
               <!-- 2枚目 -->
               <div class="carousel-cell" data-cell-index="1">
-                <div class="c-flexbox">
-                  <button id="item-next-scene" class="important">次のシーン</button>
+                <div style="display: flex;flex-direction: column;gap: 10px;">
+                  <!-- ▼ ここにアイテムのchipsを並べる -->
+                  <div id="item-chips-container" class="chips-container"></div>
+                  <!-- アイテム使用ボタン -->
+                  <div class="c-flexbox" style="margin-bottom: 0;">
+                    <button id="use-item-button" class="important">アイテム使用</button>
+                  </div>
                 </div>
-                <p>このセルは「アイテム」の内容を想定</p>
               </div>
             </div>
           </div>
@@ -252,6 +257,7 @@
       document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
           initCarousel();
+          removeDuplicateIDs();
         }, 500);
       });
     </script>

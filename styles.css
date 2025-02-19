@@ -241,18 +241,18 @@ button {
 
 .scene-dropdown-menu button {
   background-color: transparent;
-  box-shadow: inset 0px 0px 8px 2px #161616; 
+  box-shadow: inset 0px 0px 8px 2px #161616;
   border: 1px dashed #bbb;
   color: #bbb;
   border-radius: 0;
-  background-image: linear-gradient(87deg, #00000061, transparent); 
+  background-image: linear-gradient(87deg, #00000061, transparent);
 }
 .scene-dropdown-menu button:hover {
-  box-shadow: none; 
+  box-shadow: none;
   border: 1px dashed #fff;
   color: #fff;
   border-radius: 0;
-  background-image: linear-gradient(87deg, #00000061, transparent); 
+  background-image: linear-gradient(87deg, #00000061, transparent);
 }
 .scene-dropdown-menu button + button {
   border-left: none;
@@ -808,6 +808,20 @@ button:hover {
   min-width: 6rem;
 }
 
+.chip-withimage {
+  min-width: initial;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  gap: 10px;
+}
+
+.chip-withimage img {
+  height: 80px;
+  border-radius: 50%;
+}
+
 .chip:hover {
   border: 1px solid #00d14c;
   background-color: #00d14c;
@@ -1329,7 +1343,6 @@ button.important {
 
 /* アコーディオン全体のラッパ */
 .accordion {
-  
 }
 
 /* アコーディオンヘッダー */
@@ -1760,13 +1773,24 @@ button.important {
   touch-action: pan-y; /* 縦スクロールを妨げないように */
 }
 .carousel-cell {
-  min-width: 100%;
+  width: 100%;
   flex-shrink: 0;
   box-sizing: border-box;
   padding: 20px;
-  background-color: rgba(0,0,0,0.3);
+  background-color: rgba(0, 0, 0, 0.3);
   border: 1px solid #333;
 }
 .carousel-cell h3 {
   margin-top: 0;
+}
+
+#action-candidates-container{
+  display: flex;
+  flex-wrap: wrap;
+  gap:10px;
+  
+}
+
+.player-input{
+  margin-bottom: 0;
 }
