@@ -751,8 +751,6 @@ async function renderItemChips() {
       }
       currentSelectedChip = wasActive ? null : chip;
     };
-    console.log(container);
-
     container.appendChild(chip);
   });
 }
