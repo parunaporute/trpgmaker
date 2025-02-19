@@ -2006,8 +2006,9 @@ ${existingDesc}
 
 新たに見つかったアイテムや登場人物があれば、JSON配列で出力してください。
 固有名詞も日本語にしてください。日本語にできないものはカタカナにしてください。
+さらに、もしプレイヤーがすでにそのアイテムを入手したと判断できる場合は "acquired": true、それ以外は "acquired": false としてください。
 例：
-[{"category":"item","name":"木の杖","description":"～"}, {"category":"character","name":"太郎","description":"～"}]
+[{"category":"item","name":"木の杖","description":"～","acquired": false}, {"category":"character","name":"太郎","description":"～"}]
 
 地域や場所を含めないでください。
 すでにあるものに似ている場合は出力しないでください。重複しそうなものは省いてください。
@@ -2015,7 +2016,7 @@ ${existingDesc}
 ====================
 ${scenarioText}
 ====================
-  `;
+`;
 
   try {
     showLoadingModal(true);
@@ -2040,20 +2041,28 @@ ${scenarioText}
     // ChatGPTの応答をパースしてJSON配列として取得
     const rawAnswer = data.choices[0].message.content;
     let newEntities = [];
-    try {
-      newEntities = JSON.parse(rawAnswer);
-      if (!Array.isArray(newEntities)) {
-        console.warn("JSONが配列ではありません:", newEntities);
-        alert("AI応答が配列ではありません。");
-        newEntities = [];
-      }
-    } catch (e) {
-      console.warn("JSONパース失敗。応答テキスト:", rawAnswer);
-      alert("AI応答がJSON形式でないためパース失敗。");
-      newEntities = [];
-    }
+    newEntities = JSON.parse(rawAnswer); // など
 
-    renderNewEntitiesCandidateList(newEntities);
+    // ▼ 変更ポイント: チェックボックスUIを経ず、即登録へ
+    if (!newEntities || newEntities.length === 0) {
+      // 画面に「追加無し」を表示するだけ
+      const candidateListDiv = document.getElementById("entity-candidate-list");
+      if (candidateListDiv) {
+        candidateListDiv.innerHTML = "新しく追加できそうなアイテム/人物はありませんでした。";
+      }
+    } else {
+      // AIから取得したものをそのままDBへ保存
+      await saveNewEntities(newEntities);
+
+      // 再描画
+      await renderEntitiesList();
+
+      // 画面通知用
+      const candidateListDiv = document.getElementById("entity-candidate-list");
+      if (candidateListDiv) {
+        candidateListDiv.innerHTML = "新しいアイテム/登場人物を自動登録しました。";
+      }
+    }
   } catch (err) {
     console.error("onUpdateEntitiesFromAllScenes失敗:", err);
     alert("抽出に失敗:\n" + err.message);
@@ -2125,18 +2134,21 @@ function renderNewEntitiesCandidateList(newEntities) {
   }
 }
 
-async function saveNewEntities(entities) {
-  for (const e of entities) {
+async function saveNewEntities(toSave) {
+  for (const e of toSave) {
     const rec = {
       scenarioId: window.currentScenarioId,
       category: e.category === "character" ? "character" : "item",
       name: e.name || "名称不明",
       description: e.description || "",
+      // 追加: もし ChatGPT が acquired を true/false で返していれば反映
+      acquired: e.acquired === true,
       imageData: ""
     };
     await addEntity(rec);
   }
 }
+
 
 // --------------------------------------------------
 // ▼ 情報モーダル
@@ -2225,7 +2237,14 @@ function createEntityRow(entity, isOdd) {
   }
 
   const infoSpan = document.createElement("span");
-  infoSpan.innerHTML = `<h4>${entity.name}</h4> ${entity.description}`;
+  // ▼ 追加：アイテムかつ acquired=true の場合は名前に【使用可能】を付加する
+  let displayName = entity.name;
+  if (entity.category === "item" && entity.acquired) {
+    displayName += "【使用可能】";
+  }
+
+  infoSpan.innerHTML = `<h4>${displayName}</h4> ${entity.description}`;
+  
   topWrapper.appendChild(infoSpan);
 
   row.appendChild(topWrapper);
