@@ -1717,3 +1717,56 @@ button.important {
   background-color: rgba(0, 0, 0, 0.6);
   border-color: #ccc;
 }
+
+/* ==== 以下、カルーセル追加スタイル ==== */
+.carousel-wrapper {
+  margin-top: 0;
+  background-color: transparent;
+  padding: 10px;
+}
+.carousel-tabs-scrollable {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  margin-bottom: 10px;
+}
+.carousel-tabs {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.carousel-tab {
+  background-color: #222;
+  color: #eee;
+  border-radius: 4px;
+  border: 1px solid #666;
+  padding: 8px 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+.carousel-tab.active {
+  background-color: #005f24;
+}
+.carousel-viewport {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+.carousel-track {
+  display: flex;
+  transition: transform 0.3s;
+  will-change: transform;
+  touch-action: pan-y; /* 縦スクロールを妨げないように */
+}
+.carousel-cell {
+  min-width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 20px;
+  background-color: rgba(0,0,0,0.3);
+  border: 1px solid #333;
+}
+.carousel-cell h3 {
+  margin-top: 0;
+}
