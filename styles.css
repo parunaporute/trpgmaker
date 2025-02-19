@@ -1121,6 +1121,7 @@ button:hover {
 }
 
 button.important {
+  margin: 0;
   background-color: #2196f3;
   font-size: 1.4rem;
   padding: 20px 35px;
@@ -1214,10 +1215,6 @@ button.important {
 }
 
 #player-action {
-  margin-bottom: 20px;
-}
-
-#player-input {
   margin-bottom: 20px;
 }
 
@@ -1791,6 +1788,6 @@ button.important {
   
 }
 
-.player-input{
+#player-input{
   margin-bottom: 0;
 }
