@@ -1732,7 +1732,6 @@ button.important {
 .carousel-wrapper {
   margin-top: 0;
   background-color: transparent;
-  padding: 10px;
 }
 .carousel-tabs-scrollable {
   overflow-x: auto;
@@ -1760,8 +1759,9 @@ button.important {
 }
 .carousel-viewport {
   overflow: hidden;
-  width: 100%;
   position: relative;
+  margin-left: -20px;
+  margin-right: -20px;
 }
 .carousel-track {
   display: flex;
@@ -1770,6 +1770,7 @@ button.important {
   touch-action: pan-y; /* 縦スクロールを妨げないように */
 }
 .carousel-cell {
+  box-sizing: border-box;
   width: 100%;
   flex-shrink: 0;
   box-sizing: border-box;
