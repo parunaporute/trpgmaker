@@ -828,7 +828,9 @@ button:hover {
 
 .chip-withimage img {
   height: 80px;
-  border-radius: 50%;
+  border-radius: 40px;
+  width: 80px;
+  object-fit: cover;  
 }
 
 .chip:hover {
