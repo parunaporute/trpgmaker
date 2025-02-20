@@ -422,7 +422,7 @@ async function getNextScene(useItem = false) {
   if (hasIntro) {
     // 2回目以降
     if (!useItem) {
-      pinput = (document.getElementById("player-input")[0]?.value || "").trim();
+      pinput = (document.getElementById("player-input")?.value || "").trim();
       if (!pinput) {
         alert("プレイヤー行動を入力してください");
         return;
