@@ -156,7 +156,7 @@ window.addEventListener("load", async () => {
   }
 
   // 回答候補チェックボックス
-  const autoGenCbx = document.getElementsByClassName("auto-generate-candidates-checkbox")[0];
+  const autoGenCbx = document.getElementById("auto-generate-candidates-checkbox");
   if (autoGenCbx) {
     autoGenCbx.addEventListener("change", () => {
       if (autoGenCbx.checked) {
@@ -1794,6 +1794,7 @@ async function onGenerateActionCandidates() {
       btn.style.textAlign = "left";
       btn.style.margin = "0";
       btn.addEventListener("click", () => {
+        const playerInput = document.getElementById("player-input");
         if (playerInput) {
           playerInput.value = btn.textContent;
         }
