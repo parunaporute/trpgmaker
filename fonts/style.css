@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'icomoon';
-  src:  url('fonts/icomoon.eot?nm9h0u');
-  src:  url('fonts/icomoon.eot?nm9h0u#iefix') format('embedded-opentype'),
-    url('fonts/icomoon.ttf?nm9h0u') format('truetype'),
-    url('fonts/icomoon.woff?nm9h0u') format('woff'),
-    url('fonts/icomoon.svg?nm9h0u#icomoon') format('svg');
+  src:  url('fonts/icomoon.eot?xqlxzk');
+  src:  url('fonts/icomoon.eot?xqlxzk#iefix') format('embedded-opentype'),
+    url('fonts/icomoon.ttf?xqlxzk') format('truetype'),
+    url('fonts/icomoon.woff?xqlxzk') format('woff'),
+    url('fonts/icomoon.svg?xqlxzk#icomoon') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -19,12 +19,25 @@
   font-variant: normal;
   text-transform: none;
   line-height: 1;
+  
+  /* Enable Ligatures ================ */
+  letter-spacing: 0;
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  -ms-font-feature-settings: "liga" 1;
+  font-feature-settings: "liga";
+  -webkit-font-variant-ligatures: discretionary-ligatures;
+  font-variant-ligatures: discretionary-ligatures;
 
   /* Better Font Rendering =========== */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+.icon-dots-three-horizontal:before {
+  content: "\e900";
+}
 .icon-newspaper:before {
   content: "\e009";
 }
@@ -43,11 +56,14 @@
 .icon-profile-male:before {
   content: "\e040";
 }
-.icon-profile-female:before {
-  content: "\e041";
-}
 .icon-target:before {
   content: "\e04e";
+}
+.icon-home:before {
+  content: "\e901";
+}
+.icon-home2:before {
+  content: "\e903";
 }
 .icon-home3:before {
   content: "\e902";
@@ -60,9 +76,6 @@
 }
 .icon-library:before {
   content: "\e921";
-}
-.icon-file-picture:before {
-  content: "\e927";
 }
 .icon-folder-download:before {
   content: "\e933";
@@ -78,6 +91,12 @@
 }
 .icon-gift:before {
   content: "\e99f";
+}
+.icon-bin:before {
+  content: "\e9ac";
+}
+.icon-bin2:before {
+  content: "\e9ad";
 }
 .icon-star-full:before {
   content: "\e9d9";
@@ -97,9 +116,9 @@
 .icon-sort-alpha-desc:before {
   content: "\ea49";
 }
-.icon-sort-amount-asc:before {
-  content: "\ea4c";
+.icon-sort-numeric-asc:before {
+  content: "\ea4a";
 }
-.icon-sort-amount-desc:before {
-  content: "\ea4d";
+.icon-sort-numberic-desc:before {
+  content: "\ea4b";
 }

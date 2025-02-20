@@ -1359,7 +1359,7 @@ function updateSceneHistory() {
     c.className = "r-flexbox";
     const wandBtn = document.createElement("button");
     wandBtn.className = "scene-menu-button";
-    wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+    wandBtn.innerHTML = '<div class="iconmoon icon-dots-three-horizontal"></div>';
     c.appendChild(wandBtn);
 
     wandBtn.addEventListener("click", () => {
@@ -1444,7 +1444,7 @@ function showLastScene() {
     lastSceneAdded.appendChild(dropdown);
     const wandBtn = document.createElement("button");
     wandBtn.className = "scene-menu-button";
-    wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+    wandBtn.innerHTML = '<div class="iconmoon icon-dots-three-horizontal"></div>';
     lastSceneAdded.appendChild(wandBtn);
 
     wandBtn.addEventListener("click", () => {
@@ -2353,7 +2353,7 @@ function createEntityRow(entity, isOdd) {
 
   const wandBtn = document.createElement("button");
   wandBtn.className = "scene-menu-button";
-  wandBtn.innerHTML = '<div class="iconmoon icon-magic-wand"></div>';
+  wandBtn.innerHTML = '<div class="iconmoon icon-dots-three-horizontal"></div>';
   bottomWrapper.appendChild(wandBtn);
 
   const dropdown = document.createElement("div");
