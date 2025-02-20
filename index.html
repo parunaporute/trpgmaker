@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>one and only</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <!-- 黒背景 + 白文字ベースのCSS -->
+    <!-- 黒背景 + 白文字ベースのCSS -->
   <link rel="stylesheet" href="styles.css" />
   <!-- サニタイズ -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
@@ -19,8 +19,8 @@
 </head>
 
 <body>
-
-<div class="application-bar">
+  
+  <div class="application-bar">
   
 
     <!-- 背景を変更するボタン -->
@@ -98,7 +98,12 @@
         新しいシナリオを始める
       </button>
     </div>
-
+    <!-- カスタムシナリオ」ボタン  -->
+    <div class="scenario-wizard-section">
+      <button id="start-custom-scenario-button">
+        カスタムシナリオ
+      </button>
+    </div>
     <!-- ▼ アコーディオン構造 -->
     <div class="accordion">
       <!-- ヘッダー部分 -->
@@ -155,7 +160,7 @@
   <!-- ▼ 各種スクリプト読み込み -->
   <script src="js/indexedDB.js"></script>
   <script src="js/avatar.js"></script>
-  <script src="js/menu.js"></script> <!-- ★ メニューJS: 差分更新ロジックなど -->
+  <script src="js/menu.js"></script><!-- ★ メニューJS: 差分更新ロジックなど -->
   <script src="js/warehouse.js"></script>
 
   <!-- exportImportMulti.js (ZIP入出力) -->
@@ -167,21 +172,24 @@
     // ページ初期処理
     function fadeInPlay(audio) {
       audio.volume = 0;
-      audio.play().then(() => {
-        const fadeInInterval = setInterval(() => {
-          if (audio.volume < 1.0) {
-            audio.volume = Math.min(audio.volume + 0.01, 1);
-          } else {
-            clearInterval(fadeInInterval);
-          }
-        }, 100);
-      }).catch(err => {});
+      audio
+        .play()
+        .then(() => {
+          const fadeInInterval = setInterval(() => {
+            if (audio.volume < 1.0) {
+              audio.volume = Math.min(audio.volume + 0.01, 1);
+            } else {
+              clearInterval(fadeInInterval);
+            }
+          }, 100);
+        })
+        .catch(err => { });
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
       try {
-        await initIndexedDB(); 
-        initAvatar(); 
+        await initIndexedDB();
+        initAvatar();
         await initBackground("index");
         initMenuPage(); // ← menu.js内の初期化
       } catch (e) {
@@ -191,7 +199,8 @@
       const bgmAudio = document.getElementById("bgm");
       const stopBgmButton = document.getElementById("stop-bgm-button");
 
-      if (!bgmAudio || !stopBgmButton) return;
+      if (!bgmAudio || !stopBgmButton)
+        return;
 
       const isBgmStopped = localStorage.getItem("bgmStopped") === "true";
 
@@ -233,6 +242,12 @@
         }
       });
     });
+    // 「カスタムシナリオ」ボタンが押されたら customScenario.html へ遷移
+    const customBtn = document.getElementById("start-custom-scenario-button");
+    customBtn.addEventListener("click", () => {
+      window.location.href = "customScenario.html";
+    });
   </script>
 </body>
+
 </html>

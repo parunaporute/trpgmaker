@@ -125,7 +125,9 @@
 
     <!-- 選んだジャンルの出力例 -->
     <div style="margin-top:20px;">
-      <p><strong>選んだジャンルの出力例：</strong></p>
+      <p>
+        <strong>選んだジャンルの出力例：</strong>
+      </p>
       <p id="genre-result-text" style="font-weight:bold; white-space:pre-wrap;"></p>
     </div>
 
@@ -157,9 +159,11 @@
     });
 
     // メニューに戻るボタン
-    document.getElementById("back-to-menu").addEventListener("click", function () {
-      window.location.href = "index.html";
-    });
+    document
+      .getElementById("back-to-menu")
+      .addEventListener("click", function () {
+        window.location.href = "index.html";
+      });
   </script>
 </body>
 

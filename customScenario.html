@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>カスタムシナリオ作成ウィザード</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <!-- 黒背景 + 白文字ベースのCSS -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- 黒背景 + 白文字ベースのCSS -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- サニタイズ -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
+  <!-- zip -->
+  <script src="https://cdn.jsdelivr.net/npm/pako/dist/pako.min.js"></script>
+  <!-- 背景管理用 -->
+  <script src="js/background.js"></script>
+  <!-- 雑多 -->
+  <script src="js/common.js"></script>
+
+</head>
+
+<body>
+<div class="application-bar">
+  
+
+    <!-- メニューに戻るボタン -->
+    <button id="back-to-menu"><div class="iconmoon icon-home3"></div>戻る</button>
+    <!-- 背景を変更するボタン -->
+    <button id="change-bg-button"><div class="iconmoon icon-picture"></div>背景</button>
+    <!-- ▼ 背景選択モーダル -->
+    <div id="bg-modal" class="modal">
+      <div class="modal-content bg-modal-content">
+        <h2>背景選択</h2>
+        <div id="bg-stock-container" class="bg-stock-grid"></div>
+        <div class="c-flexbox">
+          <button id="bg-none-button" class="btn-secondary">背景無し</button>
+          <button id="bg-generate-button">生成する</button>
+        </div>
+        <div class="c-flexbox">
+          <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
+        </div>
+      </div>
+    </div>
+    <div id="bg-generate-modal" class="modal">
+      <div class="modal-content">
+        <p>背景画像を生成中...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>カスタムシナリオ作成ウィザード</h1>
+
+    <!-- ▼ ステップ0：パーティ選択 -->
+    <div id="custom-step0" style="display:block;">
+      <h2>ステップ0：パーティを選択してください</h2>
+      <p style="margin-bottom:1rem;">
+        以下のリストから一つだけ選択してください。カードが1枚以上入ったパーティのみが表示されます。<br>
+        パーティが不要な場合は「パーティなし」を選んでください。
+      </p>
+      <div id="custom-wizard-party-list" style="margin-bottom:20px;"></div>
+      <div class="l-flexbox">
+        <button id="custom-go-step1-btn">次へ</button>
+      </div>
+    </div>
+
+    <!-- ステップ1：タイトル & 概要 -->
+    <div id="custom-step1" style="display:none;">
+      <div class="l-flexbox">
+        <button id="custom-back-to-step0-btn">ステップ0に戻る</button>
+      </div>
+      <h2>ステップ1：タイトルとシナリオ概要を入力してください</h2>
+      <p>
+        <strong>シナリオタイトル</strong>
+      </p>
+      <input type="text" id="custom-title-input" placeholder="タイトル..." style="margin-bottom:10px;width:100%;" />
+      <p>
+        <strong>シナリオ概要</strong>
+      </p>
+      <textarea id="custom-overview-input" rows="4" placeholder="シナリオ概要..." style="margin-bottom:20px;"></textarea>
+      <div class="l-flexbox">
+        <button id="custom-go-step2-btn">次へ</button>
+      </div>
+    </div>
+
+    <!-- ステップ2：セクション入力 -->
+    <div id="custom-step2" style="display:none;">
+      <div class="l-flexbox">
+        <button id="custom-back-to-step1-btn">ステップ1に戻る</button>
+      </div>
+      <h2>ステップ2：セクションを入力してください</h2>
+      <p style="font-size:0.9em;color:#ccc;">
+        ・各セクションの「達成条件」は、<strong>動詞で始める</strong>ように書いてください。<br />
+        ・1アクションや1回のレスポンスで判定するので、<br />
+        「<span style="text-decoration:line-through;">主人公がセクション1で入手したXXXXを使って～</span>」のような書き方は避けてください。
+      </p>
+
+      <div id="custom-sections-container" style="margin-bottom:15px;"></div>
+      <button id="custom-add-section-btn" style="margin-bottom:20px;">セクション追加</button>
+
+      <div class="l-flexbox">
+        <button id="custom-go-step3-btn">次へ</button>
+      </div>
+    </div>
+
+    <!-- ステップ3：導入入力 -->
+    <div id="custom-step3" style="display:none;">
+      <div class="l-flexbox">
+        <button id="custom-back-to-step2-btn">ステップ2に戻る</button>
+      </div>
+      <h2>ステップ3：導入を入力してください</h2>
+      <textarea id="custom-intro-input" rows="6" placeholder="導入シーン..." style="margin-bottom:20px;"></textarea>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:inline-flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="custom-generate-image-checkbox" />
+          画像を作成する
+        </label>
+        <p style="color:#ccc;margin:0;font-size:0.9em;">
+          チェックすると、導入シーンに紐づく画像を自動生成します（<code>scene.js</code> の <code>generateImageForScene</code> を利用）。
+        </p>
+      </div>
+
+      <div class="l-flexbox">
+        <button id="custom-complete-btn" style="background-color:#4CAF50;">完了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ローディングモーダル -->
+  <div id="loading-modal" class="modal">
+    <div class="modal-content">
+      <p>応答を待っています...</p>
+      <button id="cancel-request-button" onclick="onCancelFetch()">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- スクリプト類 -->
+  <script src="js/indexedDB.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/background.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/customScenario.js"></script>
+
+  <script>
+    document
+      .getElementById("back-to-menu")
+      .addEventListener("click", () => {
+        window.location.href = "index.html";
+      });
+
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      // APIキー読み込み
+      const savedApiKey = localStorage.getItem('apiKey');
+      if (savedApiKey) {
+        window.apiKey = savedApiKey;
+      }
+      await initBackground("customScenario");
+      initCustomScenario(); // ← customScenario.js 内の初期化
+    });
+  </script>
+</body>
+
+</html>

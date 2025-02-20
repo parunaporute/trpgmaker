@@ -21,6 +21,7 @@ const outputPartyCreate     = nunjucks.render('partyCreate.njk');
 const outputPartyList       = nunjucks.render('partyList.njk');
 const outputScenario        = nunjucks.render('scenario.njk');
 const outputScenarioWizard  = nunjucks.render('scenarioWizard.njk');
+const outputCustomScenario  = nunjucks.render('customScenario.njk');
 
 // 結果をファイルに保存
 fs.writeFileSync(path.join(distPath, 'index.html'), outputIndex);
@@ -30,5 +31,6 @@ fs.writeFileSync(path.join(distPath, 'partyCreate.html'), outputPartyCreate);
 fs.writeFileSync(path.join(distPath, 'partyList.html'), outputPartyList);
 fs.writeFileSync(path.join(distPath, 'scenario.html'), outputScenario);
 fs.writeFileSync(path.join(distPath, 'scenarioWizard.html'), outputScenarioWizard );
+fs.writeFileSync(path.join(distPath, 'customScenario.html'), outputCustomScenario );
 
 console.log('HTML を ' + distPath + 'に出力しました');

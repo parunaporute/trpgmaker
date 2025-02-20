@@ -52,7 +52,6 @@
     <h1>シナリオ作成ウィザード</h1>
 
     <!-- ▼ ステップ0：パーティ選択 -->
-    <!-- ステップ0：パーティ選択 -->
     <div id="wizard-step0" style="display:block;">
       <h2>ステップ0：パーティを選択してください</h2>
       <p style="margin-bottom:1rem;">
@@ -175,7 +174,8 @@
     </div>
     <!-- ▲ ステップ3ここまで -->
 
-  </div><!-- /.container -->
+  </div>
+  <!-- /.container -->
 
   <!-- ChatGPT応答待ちモーダル -->
   <div id="loading-modal" class="modal">
@@ -222,9 +222,11 @@
   <script src="js/scenarioWizard.js"></script>
 
   <script>
-    document.getElementById("back-to-menu").addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
+    document
+      .getElementById("back-to-menu")
+      .addEventListener("click", () => {
+        window.location.href = "index.html";
+      });
 
     window.addEventListener("load", async () => {
       await initBackground("scenarioWizard");
