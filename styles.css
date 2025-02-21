@@ -371,7 +371,7 @@ button:hover {
   box-shadow: 0 0 0 2px #ffffff99;
 }
 .scene-menu-button:hover {
-  box-shadow:none;
+  box-shadow: none;
   color: #fff;
 }
 .delete-scene {
@@ -830,7 +830,7 @@ button:hover {
   height: 80px;
   border-radius: 40px;
   width: 80px;
-  object-fit: cover;  
+  object-fit: cover;
 }
 
 .chip:hover {
@@ -1801,4 +1801,13 @@ button.important {
 
 #player-input {
   margin-bottom: 0;
+}
+
+/* tutorialHighlight.css */
+/* 例: ハイライト要素を最前面に表示してクリック可、
+   他の要素はオーバーレイに飲み込まれる */
+.tutorial-highlight {
+  position: relative !important;
+  z-index: 9999 !important;
+  box-shadow: 0 0 10px 5px yellow;
 }
