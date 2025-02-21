@@ -1,7 +1,15 @@
+// tutorialData.js
+window.tutorialGroups = [
+  { id: "basic", name: "基本編" },
+  { id: "advanced", name: "応用編" }
+];
+
 window.tutorials = [
   {
     id: "story1",
-    title: "メイン画面のボタン説明",
+    title: "index.htmlのボタン説明",
+    description: "indexページにあるボタンの使い方を順番に説明します。",
+    groupId: "basic",
     steps: [
       {
         type: "page",
@@ -13,27 +21,39 @@ window.tutorials = [
             highlightSelector: "#character-create"
           },
           {
-            message: "パーティボタン: 編成したキャラを管理します。",
+            message: "パーティボタン: 作成したキャラを編成・管理します。",
             highlightSelector: "#party-list"
-          },
-          {
-            message: "倉庫: ガチャ生成物をまとめて確認する画面。",
-            highlightSelector: "#show-warehouse-btn"
-          },
-          {
-            message: "あなたの分身: アバターを設定できます。",
-            highlightSelector: "#you-avatar-btn"
-          },
-          {
-            message: "本棚: シナリオのアップロード・管理を行います。",
-            highlightSelector: "#show-bookshelf-btn"
-          },
-          {
-            message: "新しいシナリオ: TRPGシナリオ作成ウィザードへ移動。",
-            highlightSelector: "#start-new-scenario-button"
           }
         ]
       }
+    ]
+  },
+  {
+    id: "story2",
+    title: "シナリオ本棚の使い方",
+    description: "シナリオファイルのアップロードから実行までの流れを説明します。",
+    groupId: "basic",
+    steps: [
+      {
+        type: "page",
+        match: "index.html",
+        message: "本棚のチュートリアル",
+        subSteps: [
+          {
+            message: "本棚: シナリオをアップロードして管理します。",
+            highlightSelector: "#show-bookshelf-btn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "story3",
+    title: "高度な倉庫管理",
+    description: "倉庫画面でのソートやフィルタリングなど高度な機能を紹介します。",
+    groupId: "advanced",
+    steps: [
+      // 省略
     ]
   }
 ];
