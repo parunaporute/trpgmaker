@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8"/>
+  <title>取説一覧</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css"/>
+{% include "partials/inits.njk" %}
+  <!-- 本画面制御用のJS -->
+  <script src="js/tutorialList.js"></script>
+</head>
+
+<body>
+{% include "partials/top.njk"%}
+
+  <div class="container">
+
+    <h2>取説一覧</h2>
+    <div id="tutorial-list-container"></div>
+
+    <!-- ▼ 確認用モーダル -->
+    <div id="tutorial-confirm-modal" class="modal">
+      <div class="modal-content" style="padding: 20px; max-width:400px;">
+        <h2>取説確認</h2>
+        <p id="tutorial-confirm-message"></p>
+        <div class="c-flexbox">
+          <button id="tutorial-confirm-ok">OK</button>
+          <button id="tutorial-confirm-cancel">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="js/indexedDB.js"></script>
+  <script>
+    // ページ読み込み時にDB初期化 & 背景適用
+    window.addEventListener("load", async () => {
+      await initIndexedDB();
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("TutorialCreate");
+    });
+
+    // メニューに戻るボタン
+    document
+      .getElementById("back-to-menu")
+      .addEventListener("click", function () {
+        window.location.href = "index.html";
+      });
+  </script>
+</body>
+</html>

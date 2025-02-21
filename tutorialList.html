@@ -2,10 +2,10 @@
 <html lang="ja">
 
 <head>
-  <meta charset="UTF-8" />
-  <title>パーティ一覧</title>
+  <meta charset="UTF-8"/>
+  <title>取説一覧</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css"/>
 <!-- 黒背景 + 白文字ベースのCSS -->
 <link rel="stylesheet" href="styles.css"/>
 <!-- サニタイズ -->
@@ -19,6 +19,8 @@
 <!-- 取説 -->
 <script src="js/tutorialData.js"></script>
 <script src="js/tutorialManager.js"></script>
+  <!-- 本画面制御用のJS -->
+  <script src="js/tutorialList.js"></script>
 </head>
 
 <body>
@@ -54,31 +56,38 @@
   </div>
 
   <div class="container">
-    <h1>パーティ一覧</h1>
-    <p style="margin-bottom:20px;">
-      複数のパーティを作成して管理できます。<br>
-      「カレントのパーティ」に設定すると、<br>
-      以後の「パーティ編成」や「シナリオウィザード」画面でそれが使われます。
-    </p>
 
-    <div style="margin-bottom:20px;">
-      <label for="new-party-name">新しいパーティ名:</label>
-      <input type="text" id="new-party-name" placeholder="パーティ名..." />
-      <button id="create-party-button">作成</button>
+    <h2>取説一覧</h2>
+    <div id="tutorial-list-container"></div>
+
+    <!-- ▼ 確認用モーダル -->
+    <div id="tutorial-confirm-modal" class="modal">
+      <div class="modal-content" style="padding: 20px; max-width:400px;">
+        <h2>取説確認</h2>
+        <p id="tutorial-confirm-message"></p>
+        <div class="c-flexbox">
+          <button id="tutorial-confirm-ok">OK</button>
+          <button id="tutorial-confirm-cancel">キャンセル</button>
+        </div>
+      </div>
     </div>
 
-    <div id="party-list-container" style="margin-bottom:30px;text-align: right;"></div>
   </div>
-
   <script src="js/indexedDB.js"></script>
-  <script src="js/partyList.js"></script>
-
   <script>
+    // ページ読み込み時にDB初期化 & 背景適用
     window.addEventListener("load", async () => {
       await initIndexedDB();
-      await initBackground("partyList");
+      // 背景初期化(選択済みがあれば適用)
+      await initBackground("TutorialCreate");
     });
+
+    // メニューに戻るボタン
+    document
+      .getElementById("back-to-menu")
+      .addEventListener("click", function () {
+        window.location.href = "index.html";
+      });
   </script>
 </body>
-
 </html>

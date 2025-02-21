@@ -14,7 +14,7 @@ window.tutorials = [
       {
         type: "page",
         match: "index.html",
-        message: "indexページのチュートリアル開始",
+        message: "indexページの取説開始",
         subSteps: [
           {
             message: "ガチャボタン: キャラ生成画面へ移動します。",
@@ -37,7 +37,7 @@ window.tutorials = [
       {
         type: "page",
         match: "index.html",
-        message: "本棚のチュートリアル",
+        message: "本棚の取説",
         subSteps: [
           {
             message: "本棚: シナリオをアップロードして管理します。",

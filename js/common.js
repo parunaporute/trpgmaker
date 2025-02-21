@@ -48,3 +48,11 @@ function showToast(message) {
     });
   }, 3000);
 }
+window.addEventListener("DOMContentLoaded", async () => {
+
+  // 「取説」ボタンのクリックで tutorialList.html へ遷移
+  const tutorialButton = document.getElementById("open-tutorial-list-button");
+  tutorialButton.addEventListener("click", () => {
+    window.location.href = "tutorialList.html";
+  });
+});
