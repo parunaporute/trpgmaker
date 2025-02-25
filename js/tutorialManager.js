@@ -1,4 +1,4 @@
-(function() {
+(function () {
   // -------------------------------------------
   // A) スコープ内変数
   // -------------------------------------------
@@ -27,12 +27,16 @@
     overlayEl = document.createElement("div");
     overlayEl.id = "tutorial-overlay";
     overlayEl.classList.add("tutorial-overlay");
+    // pointer-events: none; にして、下の要素操作を許可
+    overlayEl.style.pointerEvents = "none";
     document.body.appendChild(overlayEl);
 
     // (2) ダイアログ
     dialogEl = document.createElement("div");
     dialogEl.id = "tutorial-dialog";
     dialogEl.classList.add("tutorial-dialog");
+    // ダイアログ上は pointer-events: auto; でクリック可
+    dialogEl.style.pointerEvents = "auto";
     document.body.appendChild(dialogEl);
   }
 
@@ -68,8 +72,7 @@
       const isCompleted = localStorage.getItem("completeStory_" + story.id) === "true";
       if (!isCompleted) {
         await runTutorialIfMatchPage(story);
-        // 1つ実行したらループ抜け
-        break;
+        break; // 1つ実行したらループ抜け
       }
     }
   }
@@ -88,39 +91,95 @@
   // E) チュートリアルステップ開始
   // -------------------------------------------
   async function startTutorialSteps(story) {
+    // 1) 現在ページ用のstepを特定
     const step = story.steps.find(s => s.type === "page" && s.match === getCurrentPageName());
     if (!step) return;
 
-    // subSteps が無ければ単発表示
+    // 2) この step の「pageStepIndex」を特定する（複数stepの中で何番目か）
+    //    ※ stepIndex は story.steps.indexOf(step) でもOK、ただし type===page で絞るなら別途filterする
+    const pageSteps = story.steps.filter(s => s.type === "page");
+    const currentIndex = pageSteps.indexOf(step);
+
+    // 3) 前の step がある場合、前の step が完了しているかをチェック
+    if (currentIndex > 0) {
+      const prevStep = pageSteps[currentIndex - 1];
+      if (!isPageStepDone(story.id, prevStep)) {
+        // 前stepが完了していない → 今回のstepはまだ実行しない
+        console.log(`[Tutorial] The previous page-step is not done yet. Skipping tutorial for this page.`);
+        return;
+      }
+    }
+
+    // 4) 既にこの step が終わっていたら表示しない
+    if (isPageStepDone(story.id, step)) {
+      console.log(`[Tutorial] This page-step is already done. Skipping.`);
+      return;
+    }
+
+    // 5) subStepsが無ければ単発表示
     if (!step.subSteps || step.subSteps.length === 0) {
       const result = await showDialog(story.title, step.message, null);
-      // 「次は表示しない」か「OK」押下なら完了扱い
+      // OK or skipCheck なら、page-step終了と判断
       if (result.skipCheck || result.ok) {
-        localStorage.setItem("completeStory_" + story.id, "true");
+        markPageStepDone(story, step);
       }
       return;
     }
 
-    // subSteps がある
+    // 6) subSteps がある場合、順番に表示
     for (const sub of step.subSteps) {
       const result = await showDialog(story.title, sub.message, sub);
       if (result.skipCheck) {
-        // 「次は表示しない」→ 残りもスキップし完了
+        // 「次は表示しない」→ ここでチュートリアル全体を強制完了扱い
         localStorage.setItem("completeStory_" + story.id, "true");
         return;
       }
       if (!result.ok) {
-        // キャンセル等 → 途中離脱として終了(完了扱いにしない例)
+        // キャンセル等 → 途中離脱 (pageStep完了せず終了)
         return;
       }
     }
 
-    // 全 subSteps 終了 → 完了扱い
-    localStorage.setItem("completeStory_" + story.id, "true");
+    // 7) このページのsubSteps完了 → page-step完了
+    markPageStepDone(story, step);
   }
 
   // -------------------------------------------
-  // F) ダイアログ表示 (Promise で完了を返す)
+  // F) page-stepの完了フラグ管理
+  // -------------------------------------------
+  function isPageStepDone(storyId, step) {
+    const stepIndex = getPageStepIndex(storyId, step);
+    if (stepIndex < 0) return false; // stepが見つからない
+    const key = `pageStepDone_${storyId}_${stepIndex}`;
+    return localStorage.getItem(key) === "true";
+  }
+
+  function markPageStepDone(story, step) {
+    const stepIndex = getPageStepIndex(story.id, step);
+    if (stepIndex < 0) return;
+    // 今のpage-step完了
+    localStorage.setItem(`pageStepDone_${story.id}_${stepIndex}`, "true");
+
+    // もしこれが story.steps のうち最後のtype===page だったら → 全体完了
+    const pageSteps = story.steps.filter(s => s.type === "page");
+    const currentIdx = pageSteps.indexOf(step);
+    if (currentIdx === pageSteps.length - 1) {
+      localStorage.setItem(`completeStory_${story.id}`, "true");
+      console.log(`[Tutorial] story ${story.id} is fully completed.`);
+    } else {
+      console.log(`[Tutorial] page-step index=${currentIdx} done. More steps remain.`);
+    }
+  }
+
+  function getPageStepIndex(storyId, step) {
+    // story内で type==="page" のstepリストの何番目か
+    // あるいは story.steps.indexOf(step) でも可
+    const pageSteps = (window.tutorials.find(t => t.id === storyId) || {}).steps?.filter(s => s.type === "page") || [];
+    return pageSteps.indexOf(step);
+  }
+
+  // -------------------------------------------
+  // G) ダイアログ表示 (Promise で完了を返す)
   // -------------------------------------------
   function showDialog(title, message, subStep) {
     return new Promise((resolve) => {
@@ -164,7 +223,6 @@
         highlightEl = document.querySelector(subStep.highlightSelector);
         if (highlightEl) {
           highlightEl.classList.add("tutorial-highlight");
-          // スクロール後に位置決め
           highlightEl.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
           waitForScrollEnd(highlightEl, () => {
             positionDialog(dialogEl, highlightEl);
@@ -195,10 +253,9 @@
         }
       }
 
-      // モーダル監視（必要なら）
-      startModalCheck();
+      // ここではモーダル監視はオフにした例
+      //startModalCheck();
 
-      // ダイアログ閉じる共通処理
       function closeDialog(action) {
         // ハイライト解除
         if (highlightEl) {
@@ -219,7 +276,6 @@
         resolve(action);
       }
 
-      // フェードイン
       function fadeInDialog() {
         requestAnimationFrame(() => {
           dialogEl.style.opacity = "1";
@@ -244,13 +300,14 @@
   }
 
   // -------------------------------------------
-  // G) モーダル監視 (任意)
+  // H) モーダル監視 (任意)
   // -------------------------------------------
   function startModalCheck() {
     stopModalCheck();
     modalCheckInterval = setInterval(() => {
       const isModalOpen = !!document.querySelector(".modal.active");
-      overlayEl.style.pointerEvents = isModalOpen ? "none" : "auto";
+      // tutorualOverlayは常にクリック透過にしたい場合は "none" で固定
+      overlayEl.style.pointerEvents = isModalOpen ? "none" : "none";
     }, 300);
   }
 
@@ -262,10 +319,9 @@
   }
 
   // -------------------------------------------
-  // H) 位置調整・ユーティリティ
+  // I) 位置調整・ユーティリティ
   // -------------------------------------------
   function positionDialog(dialog, highlightEl) {
-    // ハイライト要素がある場合、被りを避けつつ表示
     const hlRect = highlightEl.getBoundingClientRect();
     const dw = dialog.offsetWidth;
     const dh = dialog.offsetHeight;
@@ -376,7 +432,7 @@
   }
 
   // -------------------------------------------
-  // I) 細かいユーティリティ
+  // J) 細かいユーティリティ
   // -------------------------------------------
   function getCurrentPageName() {
     return location.pathname.split("/").pop() || "";
@@ -397,5 +453,4 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
-
 })();

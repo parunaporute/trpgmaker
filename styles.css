@@ -894,6 +894,9 @@ button:hover {
   z-index: 0;
   height: 100%;
   width: 100%;
+  display: flex;
+  justify-content: right;
+  align-items: flex-start;
 }
 
 .card.rarity3 .card-front .card-image img,
@@ -940,8 +943,13 @@ button:hover {
 .card.rarity3 .card-front .gen-image-btn,
 .card.rarity4 .card-front .gen-image-btn,
 .card.rarity5 .card-front .gen-image-btn {
-  top: calc(40% - 0.8rem);
+
+  position: relative;
+  left: initial;
+  right: 10px;
   bottom: initial;
+  top: 100px;
+
 }
 
 #scenario-list-container {
