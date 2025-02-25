@@ -1,282 +1,342 @@
-// tutorialManager.js
-(function(){
-  if (!window.tutorials || !Array.isArray(window.tutorials)) {
-    console.warn("No tutorials found.");
-    return;
+(function () {
+  // -------------------------------------------
+  // A) スコープ内変数
+  // -------------------------------------------
+  let overlayEl = null;
+  let dialogEl = null;
+  let modalCheckInterval = null;
+
+  // -------------------------------------------
+  // B) DOMContentLoaded 後に開始
+  // -------------------------------------------
+  document.addEventListener("DOMContentLoaded", async () => {
+    createBaseElements();  // オーバーレイ & ダイアログを生成 or 再利用
+    await runTutorials();  // チュートリアル全体の開始
+  });
+
+  // -------------------------------------------
+  // C) ベース要素生成
+  // -------------------------------------------
+  function createBaseElements() {
+    // 既に存在すれば使い回し
+    overlayEl = document.getElementById("tutorial-overlay");
+    dialogEl = document.getElementById("tutorial-dialog");
+    if (overlayEl && dialogEl) return;
+
+    // (1) オーバーレイ
+    overlayEl = document.createElement("div");
+    overlayEl.id = "tutorial-overlay";
+    overlayEl.classList.add("tutorial-overlay");
+    // pointer-events: none; にして、下の要素操作を許可
+    overlayEl.style.pointerEvents = "none";
+    document.body.appendChild(overlayEl);
+
+    // (2) ダイアログ
+    dialogEl = document.createElement("div");
+    dialogEl.id = "tutorial-dialog";
+    dialogEl.classList.add("tutorial-dialog");
+    // ダイアログ上は pointer-events: auto; でクリック可
+    dialogEl.style.pointerEvents = "auto";
+    document.body.appendChild(dialogEl);
   }
 
-  document.addEventListener("DOMContentLoaded", initTutorial);
-
-  function initTutorial() {
-    // ----------------------------
-    // 1) URLパラメータをチェック (forceTutorial=xxx)
-    // ----------------------------
-    const forcedTutorialId = getQueryParam("forceTutorial");
-    if (forcedTutorialId) {
-      const targetTutorial = window.tutorials.find(t => t.id === forcedTutorialId);
-      if (targetTutorial) {
-        runTutorialImmediately(targetTutorial);
-      }
-      return; // 他の取説は自動実行しない
+  // -------------------------------------------
+  // D) チュートリアル全体の起動
+  // -------------------------------------------
+  async function runTutorials() {
+    if (!window.tutorials || !Array.isArray(window.tutorials)) {
+      console.warn("No tutorials found.");
+      return;
     }
 
-    // ----------------------------
-    // 2) 通常実行ロジック
-    //    「若いIDが未完了なら後のIDは実行しない」
-    // ----------------------------
-    const currentPage = getCurrentPageName();
+    // URLパラメータに forceTutorial があれば強制実行
+    const forcedTutorialId = getQueryParam("forceTutorial");
+    if (forcedTutorialId) {
+      const target = window.tutorials.find(t => t.id === forcedTutorialId);
+      if (target) {
+        await runTutorialIfMatchPage(target);
+      }
+      return;
+    }
 
-    // 現在ページに合致するステップを持つ取説だけ抽出
+    // 通常実行: 現在ページにマッチ & 未完了のストーリーを順番に
+    const currentPage = getCurrentPageName();
     const pageTutorials = window.tutorials.filter(story =>
       story.steps.some(step => step.type === "page" && step.match === currentPage)
     );
 
-    // IDの末尾数字が小さい順にソート ("story1" -> 1 ...)
-    pageTutorials.sort((a, b) =>
-      getStoryIdNumber(a.id) - getStoryIdNumber(b.id)
-    );
+    // ID末尾の数字が小さい順にソート
+    pageTutorials.sort((a, b) => getStoryIdNumber(a.id) - getStoryIdNumber(b.id));
 
-    // 未完了のものを先頭から実行
     for (const story of pageTutorials) {
       const isCompleted = localStorage.getItem("completeStory_" + story.id) === "true";
       if (!isCompleted) {
-        startTutorialSteps(story);
-        break; // 1つ実行したら終了
+        await runTutorialIfMatchPage(story);
+        break; // 1つ実行したらループ抜け
       }
     }
   }
 
-  /**
-   * URLパラメータで強制指定された取説の実行
-   */
-  function runTutorialImmediately(story) {
+  async function runTutorialIfMatchPage(story) {
     const currentPage = getCurrentPageName();
-    // このページ向けのステップがあれば開始
-    const hasCurrentPageStep = story.steps.some(
+    const hasStepForPage = story.steps.some(
       step => step.type === "page" && step.match === currentPage
     );
-    if (hasCurrentPageStep) {
-      startTutorialSteps(story);
+    if (hasStepForPage) {
+      await startTutorialSteps(story);
     }
   }
 
-  /**
-   * 取説のステップを開始
-   */
-  function startTutorialSteps(story) {
-    // 「type=page & match=現在ページ」なステップを探す
+  // -------------------------------------------
+  // E) チュートリアルステップ開始
+  // -------------------------------------------
+  async function startTutorialSteps(story) {
+    // 1) 現在ページ用のstepを特定
     const step = story.steps.find(s => s.type === "page" && s.match === getCurrentPageName());
     if (!step) return;
 
-    // subSteps が無ければ単発メッセージだけを表示
-    if (!step.subSteps || step.subSteps.length === 0) {
-      showDialogWithHighlight(story.title, step.message, null, (action)=>{
-        // ★「次は表示しない」チェックがあれば completeStory_xxx をセット
-        if (action.skipCheck) {
-          localStorage.setItem("completeStory_" + story.id, "true");
-          return;
-        }
-        // OK(次へ)なら完了
-        if (action.ok) {
-          localStorage.setItem("completeStory_" + story.id, "true");
-        }
-        // キャンセルなら何も保存しない(未完了)
-      });
+    // 2) この step の「pageStepIndex」を特定する（複数stepの中で何番目か）
+    //    ※ stepIndex は story.steps.indexOf(step) でもOK、ただし type===page で絞るなら別途filterする
+    const pageSteps = story.steps.filter(s => s.type === "page");
+    const currentIndex = pageSteps.indexOf(step);
+
+    // 3) 前の step がある場合、前の step が完了しているかをチェック
+    if (currentIndex > 0) {
+      const prevStep = pageSteps[currentIndex - 1];
+      if (!isPageStepDone(story.id, prevStep)) {
+        // 前stepが完了していない → 今回のstepはまだ実行しない
+        console.log(`[Tutorial] The previous page-step is not done yet. Skipping tutorial for this page.`);
+        return;
+      }
+    }
+
+    // 4) 既にこの step が終わっていたら表示しない
+    if (isPageStepDone(story.id, step)) {
+      console.log(`[Tutorial] This page-step is already done. Skipping.`);
       return;
     }
 
-    // subSteps がある場合は1つずつ実行
-    let currentSub = 0;
-    function showNextSub() {
-      if (currentSub >= step.subSteps.length) {
-        // 全部表示し終わったら完了
+    // 5) subStepsが無ければ単発表示
+    if (!step.subSteps || step.subSteps.length === 0) {
+      const result = await showDialog(story.title, step.message, null);
+      // OK or skipCheck なら、page-step終了と判断
+      if (result.skipCheck || result.ok) {
+        markPageStepDone(story, step);
+      }
+      return;
+    }
+
+    // 6) subSteps がある場合、順番に表示
+    for (const sub of step.subSteps) {
+      const result = await showDialog(story.title, sub.message, sub);
+      if (result.skipCheck) {
+        // 「次は表示しない」→ ここでチュートリアル全体を強制完了扱い
         localStorage.setItem("completeStory_" + story.id, "true");
         return;
       }
-      const sub = step.subSteps[currentSub];
-      showDialogWithHighlight(story.title, sub.message, sub.highlightSelector, (action)=>{
-        // ★「次は表示しない」チェックがあれば即完了(残りのsubStepsはスキップ)
-        if (action.skipCheck) {
-          localStorage.setItem("completeStory_" + story.id, "true");
-          return;
-        }
-        // 「次へ」
-        if (action.ok) {
-          currentSub++;
-          showNextSub(); // 次へ
-        } else {
-          // cancel
-          // → ここでは完了フラグは立てず中断
-        }
-      });
+      if (!result.ok) {
+        // キャンセル等 → 途中離脱 (pageStep完了せず終了)
+        return;
+      }
     }
-    showNextSub();
+
+    // 7) このページのsubSteps完了 → page-step完了
+    markPageStepDone(story, step);
   }
 
-  // ===============================
-  // ダイアログ表示関連
-  // ===============================
-  function showDialogWithHighlight(title, message, highlightSelector, onClose) {
-    // オーバーレイ
-    const overlay = document.createElement("div");
-    overlay.style.position = "fixed";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
-    overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
-    overlay.style.zIndex = 9998;
+  // -------------------------------------------
+  // F) page-stepの完了フラグ管理
+  // -------------------------------------------
+  function isPageStepDone(storyId, step) {
+    const stepIndex = getPageStepIndex(storyId, step);
+    if (stepIndex < 0) return false; // stepが見つからない
+    const key = `pageStepDone_${storyId}_${stepIndex}`;
+    return localStorage.getItem(key) === "true";
+  }
 
-    // ダイアログ
-    const box = document.createElement("div");
-    box.style.position = "absolute";
-    box.style.zIndex = "10000";
-    box.style.background = "rgb(255 242 207 / 88%)";
-    box.style.color = "#000";
-    box.style.padding = "15px";
-    box.style.borderRadius = "2px";
-    box.style.width = "300px";
-    box.style.boxSizing = "border-box";
-    box.style.opacity = "0";
-    box.style.transition = "opacity 0.25s";
+  function markPageStepDone(story, step) {
+    const stepIndex = getPageStepIndex(story.id, step);
+    if (stepIndex < 0) return;
+    // 今のpage-step完了
+    localStorage.setItem(`pageStepDone_${story.id}_${stepIndex}`, "true");
 
-    const h2 = document.createElement("h2");
-    h2.textContent = title;
-
-    const p = document.createElement("p");
-    p.textContent = message;
-
-    // ▼ 「次は表示しない」チェックボックス（スキップフラグは使わず完了扱いにする）
-    const skipWrap = document.createElement("div");
-    skipWrap.style.margin = "8px 0";
-    skipWrap.style.display = "flex";
-    skipWrap.style.alignItems = "center";
-
-    const skipCheck = document.createElement("input");
-    skipCheck.type = "checkbox";
-    skipCheck.id = "tutorial-skip-checkbox";
-
-    const skipLabel = document.createElement("label");
-    skipLabel.setAttribute("for", "tutorial-skip-checkbox");
-    skipLabel.textContent = "次は表示しない";
-
-    skipWrap.appendChild(skipCheck);
-    skipWrap.appendChild(skipLabel);
-
-    // ボタン
-    const btnWrap = document.createElement("div");
-    btnWrap.style.display = "flex";
-    btnWrap.style.justifyContent = "center";
-    btnWrap.style.gap = "10px";
-
-    // 「次へ」ボタン
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "次へ";
-
-    // 「キャンセル」ボタン
-    const cancelBtn = document.createElement("button");
-    cancelBtn.textContent = "キャンセル";
-
-    btnWrap.appendChild(nextBtn);
-    btnWrap.appendChild(cancelBtn);
-
-    // 組み立て
-    box.appendChild(h2);
-    box.appendChild(p);
-    box.appendChild(skipWrap);
-    box.appendChild(btnWrap);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    // ハイライト処理
-    let highlightEl = null;
-    if (highlightSelector) {
-      highlightEl = document.querySelector(highlightSelector);
-      if (highlightEl) {
-        highlightEl.classList.add("tutorial-highlight");
-        highlightEl.scrollIntoView({ block:"center", inline:"center", behavior:"smooth" });
-        waitForScrollEnd(highlightEl, () => {
-          positionDialogWithAvoidOverlap(box, highlightEl);
-          requestAnimationFrame(()=> {
-            box.style.opacity="1";
-          });
-        });
-      } else {
-        positionCenter(box);
-        requestAnimationFrame(()=> { box.style.opacity="1"; });
-      }
+    // もしこれが story.steps のうち最後のtype===page だったら → 全体完了
+    const pageSteps = story.steps.filter(s => s.type === "page");
+    const currentIdx = pageSteps.indexOf(step);
+    if (currentIdx === pageSteps.length - 1) {
+      localStorage.setItem(`completeStory_${story.id}`, "true");
+      console.log(`[Tutorial] story ${story.id} is fully completed.`);
     } else {
-      positionCenter(box);
-      requestAnimationFrame(()=> { box.style.opacity="1"; });
-    }
-
-    nextBtn.addEventListener("click", () => {
-      closeDialog({
-        ok: true,
-        cancel: false,
-        skipCheck: skipCheck.checked
-      });
-    });
-    cancelBtn.addEventListener("click", () => {
-      closeDialog({
-        ok: false,
-        cancel: true,
-        skipCheck: skipCheck.checked
-      });
-    });
-
-    function closeDialog(actionObj) {
-      if (highlightEl) {
-        highlightEl.classList.remove("tutorial-highlight");
-      }
-      document.body.removeChild(overlay);
-      onClose && onClose(actionObj);
+      console.log(`[Tutorial] page-step index=${currentIdx} done. More steps remain.`);
     }
   }
 
-  /**
-   * スクロール待ち
-   */
-  function waitForScrollEnd(el, onDone) {
-    let stableCount = 0;
-    let lastTop = null;
-    function step() {
-      const rect = el.getBoundingClientRect();
-      const nowTop = rect.top;
-      if (lastTop !== null && Math.abs(nowTop - lastTop) < 0.5) {
-        stableCount++;
-      } else {
-        stableCount = 0;
-      }
-      lastTop = nowTop;
-      if (stableCount > 5) {
-        onDone();
-      } else {
-        requestAnimationFrame(step);
-      }
-    }
-    requestAnimationFrame(step);
+  function getPageStepIndex(storyId, step) {
+    // story内で type==="page" のstepリストの何番目か
+    // あるいは story.steps.indexOf(step) でも可
+    const pageSteps = (window.tutorials.find(t => t.id === storyId) || {}).steps?.filter(s => s.type === "page") || [];
+    return pageSteps.indexOf(step);
   }
 
-  /**
-   * ハイライト要素を避ける位置にダイアログを配置
-   */
-  function positionDialogWithAvoidOverlap(dialog, hlEl) {
-    const rect = hlEl.getBoundingClientRect();
+  // -------------------------------------------
+  // G) ダイアログ表示 (Promise で完了を返す)
+  // -------------------------------------------
+  function showDialog(title, message, subStep) {
+    return new Promise((resolve) => {
+      // ダイアログ HTML を組み立て
+      dialogEl.innerHTML = buildDialogHTML(title, message);
+
+      // 表示開始
+      overlayEl.style.display = "block";
+      dialogEl.style.display = "block";
+      dialogEl.style.opacity = "0";
+
+      // ボタン類
+      const nextBtn = dialogEl.querySelector("#tutorial-next-btn");
+      const cancelBtn = dialogEl.querySelector("#tutorial-cancel-btn");
+      const skipCheck = dialogEl.querySelector("#tutorial-skip-checkbox");
+
+      // 「OKボタン非表示」指定なら
+      if (subStep?.removeOkButton && nextBtn) {
+        nextBtn.style.display = "none";
+      }
+
+      // イベント
+      if (nextBtn) {
+        nextBtn.addEventListener("click", () => closeDialog({
+          ok: true,
+          cancel: false,
+          skipCheck: !!skipCheck?.checked
+        }));
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => closeDialog({
+          ok: false,
+          cancel: true,
+          skipCheck: !!skipCheck?.checked
+        }));
+      }
+
+      // ハイライト関連
+      let highlightEl = null;
+      if (subStep?.highlightSelector) {
+        highlightEl = document.querySelector(subStep.highlightSelector);
+        if (highlightEl) {
+          highlightEl.classList.add("tutorial-highlight");
+          highlightEl.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+          waitForScrollEnd(highlightEl, () => {
+            positionDialog(dialogEl, highlightEl);
+            fadeInDialog();
+          });
+        } else {
+          centerDialog(dialogEl);
+          fadeInDialog();
+        }
+      } else {
+        centerDialog(dialogEl);
+        fadeInDialog();
+      }
+
+      // 特定要素クリック待ち
+      let clickHandler = null;
+      if (subStep?.waitForClickOn) {
+        const targetEl = document.querySelector(subStep.waitForClickOn);
+        if (targetEl) {
+          clickHandler = () => {
+            closeDialog({
+              ok: true,
+              cancel: false,
+              skipCheck: !!skipCheck?.checked
+            });
+          };
+          targetEl.addEventListener("click", clickHandler);
+        }
+      }
+
+      // ここではモーダル監視はオフにした例
+      //startModalCheck();
+
+      function closeDialog(action) {
+        // ハイライト解除
+        if (highlightEl) {
+          highlightEl.classList.remove("tutorial-highlight");
+        }
+        // クリック待ち解除
+        if (clickHandler && subStep?.waitForClickOn) {
+          const tEl = document.querySelector(subStep.waitForClickOn);
+          tEl?.removeEventListener("click", clickHandler);
+        }
+
+        // 非表示
+        dialogEl.style.display = "none";
+        dialogEl.style.opacity = "0";
+        overlayEl.style.display = "none";
+        stopModalCheck();
+
+        resolve(action);
+      }
+
+      function fadeInDialog() {
+        requestAnimationFrame(() => {
+          dialogEl.style.opacity = "1";
+        });
+      }
+    });
+  }
+
+  function buildDialogHTML(title, message) {
+    return `
+      <h2 style="margin-top:0;">${escapeHtml(title)}</h2>
+      <p>${escapeHtml(message)}</p>
+      <div style="margin:8px 0; display:flex; align-items:center;">
+        <input type="checkbox" id="tutorial-skip-checkbox" />
+        <label for="tutorial-skip-checkbox">次は表示しない</label>
+      </div>
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button id="tutorial-next-btn">次へ</button>
+        <button id="tutorial-cancel-btn">キャンセル</button>
+      </div>
+    `;
+  }
+
+  // -------------------------------------------
+  // H) モーダル監視 (任意)
+  // -------------------------------------------
+  function startModalCheck() {
+    stopModalCheck();
+    modalCheckInterval = setInterval(() => {
+      const isModalOpen = !!document.querySelector(".modal.active");
+      // tutorualOverlayは常にクリック透過にしたい場合は "none" で固定
+      overlayEl.style.pointerEvents = isModalOpen ? "none" : "none";
+    }, 300);
+  }
+
+  function stopModalCheck() {
+    if (modalCheckInterval) {
+      clearInterval(modalCheckInterval);
+      modalCheckInterval = null;
+    }
+  }
+
+  // -------------------------------------------
+  // I) 位置調整・ユーティリティ
+  // -------------------------------------------
+  function positionDialog(dialog, highlightEl) {
+    const hlRect = highlightEl.getBoundingClientRect();
     const dw = dialog.offsetWidth;
     const dh = dialog.offsetHeight;
 
-    // 下に置けるか、置けなければ上
-    const spaceBelow = window.innerHeight - rect.bottom;
+    // 下に配置できるか判定
+    const spaceBelow = window.innerHeight - hlRect.bottom;
     let topPos;
     if (spaceBelow > dh + 10) {
-      topPos = rect.bottom + 10;
+      topPos = hlRect.bottom + 10;
     } else {
-      topPos = rect.top - dh - 10;
+      topPos = hlRect.top - dh - 10;
     }
-
-    let leftPos = rect.left;
     if (topPos < 0) topPos = 0;
+
+    let leftPos = hlRect.left;
     if (leftPos + dw > window.innerWidth) {
       leftPos = window.innerWidth - dw - 10;
     }
@@ -285,13 +345,13 @@
     dialog.style.top = topPos + "px";
     dialog.style.left = leftPos + "px";
 
-    // 重なりチェック → 横ずらし
+    // 被りがあれば横ずらし
     const boxRect = dialog.getBoundingClientRect();
-    if (checkOverlap(rect, boxRect)) {
-      shiftHorizontallyToAvoidOverlap(dialog, rect, boxRect);
-      finalClip(dialog);
+    if (checkOverlap(hlRect, boxRect)) {
+      shiftHorizontally(dialog, hlRect, boxRect);
+      clipToViewport(dialog);
     } else {
-      finalClip(dialog);
+      clipToViewport(dialog);
     }
   }
 
@@ -301,18 +361,15 @@
     return overlapX && overlapY;
   }
 
-  function shiftHorizontallyToAvoidOverlap(dialog, highlightRect, boxRect) {
-    const highlightCenterX = (highlightRect.left + highlightRect.right) / 2;
+  function shiftHorizontally(dialog, hlRect, boxRect) {
+    const highlightCenterX = (hlRect.left + hlRect.right) / 2;
     const screenCenterX = window.innerWidth / 2;
     const dw = boxRect.width;
-
     let newLeft;
     if (highlightCenterX < screenCenterX) {
-      // 右にずらす
-      newLeft = highlightRect.right + 10;
+      newLeft = hlRect.right + 10;
     } else {
-      // 左にずらす
-      newLeft = highlightRect.left - dw - 10;
+      newLeft = hlRect.left - dw - 10;
     }
     if (newLeft < 0) newLeft = 0;
     if (newLeft + dw > window.innerWidth) {
@@ -321,7 +378,7 @@
     dialog.style.left = newLeft + "px";
   }
 
-  function finalClip(dialog) {
+  function clipToViewport(dialog) {
     const boxRect = dialog.getBoundingClientRect();
     let topPos = boxRect.top;
     let leftPos = boxRect.left;
@@ -342,7 +399,7 @@
     dialog.style.left = leftPos + "px";
   }
 
-  function positionCenter(dialog) {
+  function centerDialog(dialog) {
     const dw = dialog.offsetWidth;
     const dh = dialog.offsetHeight;
     let topPos = (window.innerHeight - dh) / 2;
@@ -353,17 +410,47 @@
     dialog.style.left = leftPos + "px";
   }
 
-  function getCurrentPageName() {
-    return location.pathname.split("/").pop();
+  function waitForScrollEnd(el, callback) {
+    let stableCount = 0;
+    let lastTop = null;
+    function step() {
+      const rect = el.getBoundingClientRect();
+      const currentTop = rect.top;
+      if (lastTop !== null && Math.abs(currentTop - lastTop) < 0.5) {
+        stableCount++;
+      } else {
+        stableCount = 0;
+      }
+      lastTop = currentTop;
+      if (stableCount > 5) {
+        callback();
+      } else {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
   }
 
+  // -------------------------------------------
+  // J) 細かいユーティリティ
+  // -------------------------------------------
+  function getCurrentPageName() {
+    return location.pathname.split("/").pop() || "";
+  }
   function getQueryParam(name) {
     const params = new URLSearchParams(window.location.search);
     return params.get(name);
   }
-
   function getStoryIdNumber(storyId) {
     const match = storyId.match(/\d+$/);
     return match ? parseInt(match[0], 10) : 999999;
+  }
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 })();
