@@ -73,9 +73,38 @@
       <div class="modal-content" style="padding: 20px;">
         <h2>APIキー設定</h2>
         <input type="text" id="api-key-input" placeholder="APIキーを入力" style="margin-bottom: 20px;width:80%;" />
+        <div style="padding: 15px; margin-bottom: 15px; background-color: #57575766;">
+          <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" style="color: #fff;">
+            こちら(OpenAIのページに飛びます)
+          </a>
+          から取得できます。<br>
+          <!-- ここをクリックするとモーダルを表示させるため、コメントを外してイベントを付与 -->
+          <a id="open-api-instructions" href="#" style="color: #fff;position: relative;">もっと詳しい説明はこちら</a>
+        </div>
         <div style="display:flex;justify-content:center;gap:20px;">
           <button id="api-key-ok-button">OK</button>
           <button id="api-key-clear-button" style="background-color:#f44336;">クリア</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ▼ APIキー取得手順の説明モーダル(新規追加) -->
+    <div id="api-instructions-modal" class="modal">
+      <div class="modal-content" style="padding: 20px;">
+        <h2>APIキーの取得方法</h2>
+        <p style="margin-bottom:10px;">
+          OpenAIの公式サイトからAPIキーを取得する簡単な手順です。
+        </p>
+        <ol style="text-align:left; margin-bottom:20px; line-height:1.8;">
+          <li>
+            <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" style="color: #fff;">こちらの「API Keys」設定ページ</a>
+            へ移動します（OpenAIアカウントでログインしていない場合はログインを求められます）。
+          </li>
+          <li>[Create new secret key]をクリックし、新しいキーを作成します。</li>
+          <li>表示されたキーをコピーし、このアプリの「APIキーを入力」に貼り付けてください。</li>
+        </ol>
+        <div class="c-flexbox">
+          <button id="close-api-instructions-button" class="btn-close-modal">閉じる</button>
         </div>
       </div>
     </div>
@@ -103,7 +132,7 @@
         新しいシナリオを始める
       </button>
     </div>
-    <!-- カスタムシナリオ」ボタン  -->
+    <!-- カスタムシナリオボタン -->
     <div class="scenario-wizard-section">
       <button id="start-custom-scenario-button">
         カスタムシナリオ
@@ -204,8 +233,7 @@
       const bgmAudio = document.getElementById("bgm");
       const stopBgmButton = document.getElementById("stop-bgm-button");
 
-      if (!bgmAudio || !stopBgmButton)
-        return;
+      if (!bgmAudio || !stopBgmButton) return;
 
       const isBgmStopped = localStorage.getItem("bgmStopped") === "true";
 
@@ -247,11 +275,32 @@
         }
       });
     });
+
     // 「カスタムシナリオ」ボタンが押されたら customScenario.html へ遷移
     const customBtn = document.getElementById("start-custom-scenario-button");
     customBtn.addEventListener("click", () => {
       window.location.href = "customScenario.html";
     });
+
+    // ▼「もっと詳しい説明はこちら」クリックで説明モーダルを表示
+    const openApiInstructionsLink = document.getElementById("open-api-instructions");
+    const apiInstructionsModal = document.getElementById("api-instructions-modal");
+    const closeApiInstructionsButton = document.getElementById("close-api-instructions-button");
+
+    if (openApiInstructionsLink && apiInstructionsModal && closeApiInstructionsButton) {
+      openApiInstructionsLink.addEventListener("click", (e) => {
+        e.preventDefault(); // aタグの遷移を止める
+        // .active を付与して表示
+        apiInstructionsModal.classList.add("active");
+      });
+
+      closeApiInstructionsButton.addEventListener("click", () => {
+        // .active を外して非表示に
+        apiInstructionsModal.classList.remove("active");
+      });
+    }
+
+
   </script>
 </body>
 
