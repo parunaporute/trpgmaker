@@ -90,7 +90,7 @@ window.tutorials = [
   {
     id: "gachaFlow",
     title: "ガチャの流れ",
-    description: "index.html から characterCreate.html へ進み、ガチャを引いて倉庫で確認するまでの流れを解説します。",
+    description: "トップ画面 から ガチャ画面 へ進み、ガチャを引いて倉庫で確認するまでの流れを解説します。",
     groupId: "basic", // または適切なグループID
     steps: [
       // 1) index.html

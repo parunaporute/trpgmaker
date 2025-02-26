@@ -476,7 +476,11 @@
   // J) 細かいユーティリティ
   // -------------------------------------------
   function getCurrentPageName() {
-    return location.pathname.split("/").pop() || "";
+    let page = location.pathname.split("/").pop() || "";
+    if (!page || page === "") {
+      page = "index.html";
+    }
+    return page;
   }
   function getQueryParam(name) {
     const params = new URLSearchParams(window.location.search);
