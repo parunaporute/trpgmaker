@@ -215,6 +215,10 @@ function openTutorialConfirmModal(tutorial) {
 
   okBtn.onclick = () => {
     closeModal();
+
+    // ▼ ここで「押下したストーリーの完了フラグ以外」を削除
+    removeProgressExceptComplete(tutorial.id);
+
     // index.html にパラメータ付きで飛ぶ
     const url = `index.html?forceTutorial=${encodeURIComponent(tutorial.id)}`;
     window.location.href = url;
@@ -223,4 +227,23 @@ function openTutorialConfirmModal(tutorial) {
   cancelBtn.onclick = () => {
     closeModal();
   };
+}
+
+/**
+ * 「指定チュートリアルの完了フラグを残し、それ以外(ページステップフラグ)を削除」
+ */
+function removeProgressExceptComplete(tutorialId) {
+  // 1) tutorialData からそのチュートリアルを探す
+  const t = window.tutorials.find(x => x.id === tutorialId);
+  if (!t) return;
+
+  // 2) そのチュートリアル内の pageStepDone_ フラグを削除
+  const pageSteps = t.steps.filter(s => s.type === "page");
+  pageSteps.forEach((step, idx) => {
+    const key = `pageStepDone_${tutorialId}_${idx}`;
+    localStorage.removeItem(key);
+  });
+
+  // 3) completeStory_... は残す（消さない）
+  //  => もし「完了フラグも消したい」ならここで removeItem(`completeStory_${tutorialId}`) する
 }

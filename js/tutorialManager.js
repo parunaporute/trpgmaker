@@ -229,11 +229,23 @@
         }));
       }
       if (cancelBtn) {
-        cancelBtn.addEventListener("click", () => closeDialog({
-          ok: false,
-          cancel: true,
-          skipCheck: !!skipCheck?.checked
-        }));
+        cancelBtn.addEventListener("click", () => {
+          // ▼ ここで forceTutorial パラメータを削除
+          removeForceTutorialParam();
+          closeDialog({
+            ok: false,
+            cancel: true,
+            skipCheck: !!skipCheck?.checked
+          });
+        });
+      }
+
+      /** forceTutorialパラメータだけを削除してURLを上書き */
+      function removeForceTutorialParam() {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete("forceTutorial");
+        // 同じページでURLだけ書き換え(リロードせず)
+        window.history.replaceState({}, "", currentUrl);
       }
 
       // ハイライト関連
