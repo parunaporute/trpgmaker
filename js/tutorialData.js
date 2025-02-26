@@ -305,7 +305,7 @@ window.tutorials = [
   {
     id: "scenarioCreation",
     title: "シナリオの作成と進行",
-    description: "index.html → scenarioWizard.html → scenario.html の流れで新しいシナリオを作成・進行します。",
+    description: "トップ画面 → シナリオウィザード → シナリオ画面 の流れで新しいシナリオを作成・進行します。",
     groupId: "basic",
     steps: [
       // ---------- index.html ----------
@@ -327,7 +327,7 @@ window.tutorials = [
       {
         type: "page",
         match: "scenarioWizard.html",
-        message: "次にウィザード画面(scenarioWizard.html)で操作を行います。",
+        message: "次にウィザード画面で操作を行います。",
         subSteps: [
           {
             message: "あなたの分身（パーティ）を選んでください。",
