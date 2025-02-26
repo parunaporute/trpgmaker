@@ -79,6 +79,7 @@
 
   async function runTutorialIfMatchPage(story) {
     const currentPage = getCurrentPageName();
+    // このストーリーに現在ページ用の step があるか？
     const hasStepForPage = story.steps.some(
       step => step.type === "page" && step.match === currentPage
     );
@@ -91,57 +92,65 @@
   // E) チュートリアルステップ開始
   // -------------------------------------------
   async function startTutorialSteps(story) {
-    // 1) 現在ページ用のstepを特定
-    const step = story.steps.find(s => s.type === "page" && s.match === getCurrentPageName());
-    if (!step) return;
+    const currentPage = getCurrentPageName();
 
-    // 2) この step の「pageStepIndex」を特定する（複数stepの中で何番目か）
-    //    ※ stepIndex は story.steps.indexOf(step) でもOK、ただし type===page で絞るなら別途filterする
+    // 1) このページに該当する step 一覧を抽出 (複数あり得る)
+    const allPageSteps = story.steps.filter(s => s.type === "page" && s.match === currentPage);
+    if (!allPageSteps.length) return;
+
+    // 2) story 全体の "page" step の順序リスト
     const pageSteps = story.steps.filter(s => s.type === "page");
-    const currentIndex = pageSteps.indexOf(step);
 
-    // 3) 前の step がある場合、前の step が完了しているかをチェック
-    if (currentIndex > 0) {
-      const prevStep = pageSteps[currentIndex - 1];
-      if (!isPageStepDone(story.id, prevStep)) {
-        // 前stepが完了していない → 今回のstepはまだ実行しない
-        console.log(`[Tutorial] The previous page-step is not done yet. Skipping tutorial for this page.`);
-        return;
+    // 3) 今のページ上にある step を「前ステップが完了しているか/自分が未完了か」を確認しながら順に実行
+    for (const st of allPageSteps) {
+      // (a) すでにこの step が完了済みならスキップ
+      if (isPageStepDone(story.id, st)) {
+        console.log(`[Tutorial] This page-step is already done:`, st);
+        continue;
+      }
+
+      // (b) 前のpage-stepがある場合、その完了フラグをチェック
+      const idx = pageSteps.indexOf(st);
+      if (idx > 0) {
+        const prevStep = pageSteps[idx - 1];
+        if (!isPageStepDone(story.id, prevStep)) {
+          // 前stepがまだ終わっていない → このstepは実行不可
+          console.log(`[Tutorial] The previous page-step (index:${idx - 1}) is not done yet. Stop here.`);
+          return; // ここで終了（後続stepも実行しない）
+        }
+      }
+
+      // (c) subSteps実行
+      console.log(`[Tutorial] start subSteps for page-step index:${idx}`);
+      const subSteps = st.subSteps || [];
+      if (!subSteps.length) {
+        // 単発表示
+        const r = await showDialog(story.title, st.message, null);
+        if (r.skipCheck || r.ok) {
+          markPageStepDone(story, st);
+        }
+      } else {
+        // 複数 subSteps
+        let subStepCanceled = false;
+        for (const sub of subSteps) {
+          const r = await showDialog(story.title, sub.message, sub);
+          if (r.skipCheck) {
+            // 「次は表示しない」→ チュートリアル全体完了に
+            localStorage.setItem("completeStory_" + story.id, "true");
+            return;
+          }
+          if (!r.ok) {
+            // キャンセル → 中断
+            subStepCanceled = true;
+            break;
+          }
+        }
+        if (!subStepCanceled) {
+          // subSteps全部クリア → page-step完了
+          markPageStepDone(story, st);
+        }
       }
     }
-
-    // 4) 既にこの step が終わっていたら表示しない
-    if (isPageStepDone(story.id, step)) {
-      console.log(`[Tutorial] This page-step is already done. Skipping.`);
-      return;
-    }
-
-    // 5) subStepsが無ければ単発表示
-    if (!step.subSteps || step.subSteps.length === 0) {
-      const result = await showDialog(story.title, step.message, null);
-      // OK or skipCheck なら、page-step終了と判断
-      if (result.skipCheck || result.ok) {
-        markPageStepDone(story, step);
-      }
-      return;
-    }
-
-    // 6) subSteps がある場合、順番に表示
-    for (const sub of step.subSteps) {
-      const result = await showDialog(story.title, sub.message, sub);
-      if (result.skipCheck) {
-        // 「次は表示しない」→ ここでチュートリアル全体を強制完了扱い
-        localStorage.setItem("completeStory_" + story.id, "true");
-        return;
-      }
-      if (!result.ok) {
-        // キャンセル等 → 途中離脱 (pageStep完了せず終了)
-        return;
-      }
-    }
-
-    // 7) このページのsubSteps完了 → page-step完了
-    markPageStepDone(story, step);
   }
 
   // -------------------------------------------
@@ -165,15 +174,13 @@
     const currentIdx = pageSteps.indexOf(step);
     if (currentIdx === pageSteps.length - 1) {
       localStorage.setItem(`completeStory_${story.id}`, "true");
-      console.log(`[Tutorial] story ${story.id} is fully completed.`);
+      console.log(`[Tutorial] story ${story.id} fully completed.`);
     } else {
       console.log(`[Tutorial] page-step index=${currentIdx} done. More steps remain.`);
     }
   }
 
   function getPageStepIndex(storyId, step) {
-    // story内で type==="page" のstepリストの何番目か
-    // あるいは story.steps.indexOf(step) でも可
     const pageSteps = (window.tutorials.find(t => t.id === storyId) || {}).steps?.filter(s => s.type === "page") || [];
     return pageSteps.indexOf(step);
   }
