@@ -943,13 +943,11 @@ button:hover {
 .card.rarity3 .card-front .gen-image-btn,
 .card.rarity4 .card-front .gen-image-btn,
 .card.rarity5 .card-front .gen-image-btn {
-
   position: relative;
   left: initial;
   right: 10px;
   bottom: initial;
   top: 100px;
-
 }
 
 #scenario-list-container {
@@ -1814,9 +1812,11 @@ button.important {
 /* オーバーレイ */
 #tutorial-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background-color: rgba(0,0,0,0.4);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
 
   /* z-indexはモーダルより上/下など適宜調整 */
   z-index: 9998;
@@ -1834,7 +1834,7 @@ button.important {
   pointer-events: auto; /* ダイアログ内部はクリック可 */
   width: 300px;
   padding: 15px;
-  background-color: rgba(255,242,207,0.88);
+  background-color: rgba(255, 242, 207, 0.88);
   box-sizing: border-box;
 
   display: none; /* 初期は非表示 */
@@ -1849,4 +1849,39 @@ button.important {
   z-index: 19999 !important;
 
   /* クリックを透過する */
+}
+
+.step-title {
+  font-size: 0.8rem;
+  text-align: left;
+  color: #555;
+}
+
+.step-message {
+  font-size: 1.2rem;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.step-skip-container {
+  margin-top: 5px;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  align-items: center;
+}
+
+.step-skip-container input[type="checkbox"] {
+  margin: 0;
+  height: 1rem;
+  width: 1rem;
+}
+.step-skip-container label {
+  padding: 5px;
+}
+
+#tutorial-next-btn {
+  background-color: #4caf50;
+  border: 1px solid #45a049;
+  box-shadow: none;
 }

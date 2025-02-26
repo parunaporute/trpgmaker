@@ -319,23 +319,23 @@
     // もし subStep?.complete が true なら、完了ボタンのみ表示のレイアウトにする
     if (subStep?.complete) {
       return `
-      <h2 style="margin-top:0;">${escapeHtml(title)}</h2>
-      <p>${escapeHtml(message)}</p>
-      <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
-        <button id="tutorial-complete-btn" style="min-width:6rem;">完了</button>
+      <div class="step-title">${escapeHtml(title)}</div>
+      <div class="step-message">${escapeHtml(message)}</div>
+      <div style="display:flex; justify-content:right; gap:10px;">
+        <button id="tutorial-complete-btn" style="min-width:6rem;">完了</button>  
       </div>
     `;
     }
     return `
-      <h2 style="margin-top:0;">${escapeHtml(title)}</h2>
-      <p>${escapeHtml(message)}</p>
-      <div style="margin:8px 0; display:flex; align-items:center;">
-        <input type="checkbox" id="tutorial-skip-checkbox" />
-        <label for="tutorial-skip-checkbox">次は表示しない</label>
-      </div>
-      <div style="display:flex; justify-content:center; gap:10px;">
+      <div class="step-title">${escapeHtml(title)}</div>
+      <div class="step-message">${escapeHtml(message)}</div>
+      <div style="display:flex; justify-content:right; gap:10px;">
         <button id="tutorial-next-btn">次へ</button>
         <button id="tutorial-cancel-btn">キャンセル</button>
+      </div>
+      <div class="step-skip-container">
+        <input type="checkbox" id="tutorial-skip-checkbox" />
+        <label for="tutorial-skip-checkbox">次は表示しない</label>
       </div>
     `;
   }

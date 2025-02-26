@@ -189,7 +189,11 @@ window.tutorials = [
           },
           {
             // 2) 左側タブの紹介
-            message: "画面左側のタブをクリックすると、種類ごとにカードを絞り込めます。試しに切り替えてみましょう。",
+            message: "これが倉庫画面です。",
+          },
+          {
+            // 2) 左側タブの紹介
+            message: "画面上のタブをクリックすると、種類ごとにカードを絞り込めます。試しに切り替えてみましょう。",
             highlightSelector: ".warehouse-tabs"
           },
           {
@@ -203,20 +207,15 @@ window.tutorials = [
             highlightSelector: "#warehouse-sort-direction-btn"
           },
           {
-            // 5) 他のチップやフィルタ
-            message: "ほかにも、各種フィルタチップで詳細な絞り込みができます。"
-            // highlightSelector: ".filter-chips" (実際にあれば)
-          },
-          {
-            // 6) 選択モードの説明
-            message: "複数のカードを一括操作したい場合は「選択モード」を使いましょう。",
-            // 下記は例です。実際の要素ID/クラスに合わせてください。
-            highlightSelector: "#warehouse-select-mode-button"
-          },
-          {
             // 7) 選択モードの使い方
-            message: "選択モードをオンにするとカードを複数同時選択ができます。まとめて削除できます。",
-            highlightSelector: "#toggle-warehouse-selection-mode-btn"
+            message: "複数のカードを一括操作したい場合は「選択モード」を使いましょう。選択モードをオンにするとカードを複数同時選択ができます。まとめて削除できます。",
+            highlightSelector: "#toggle-warehouse-selection-mode-btn",
+            removeOkButton: true,
+            waitForClickOn: "#toggle-warehouse-selection-mode-btn"
+          },
+          {
+            // 2) 左側タブの紹介
+            message: "カードをクリックすると、赤い枠が付きます。左上の選択したカードを削除ボタンを押すことで、削除が可能になります。",
           },
           {
             // 8) 倉庫を閉じる
