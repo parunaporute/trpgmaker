@@ -184,7 +184,7 @@
   function showDialog(title, message, subStep) {
     return new Promise((resolve) => {
       // ダイアログ HTML を組み立て
-      dialogEl.innerHTML = buildDialogHTML(title, message);
+      dialogEl.innerHTML = buildDialogHTML(title, message, subStep);
 
       // 表示開始
       overlayEl.style.display = "block";
@@ -196,9 +196,21 @@
       const cancelBtn = dialogEl.querySelector("#tutorial-cancel-btn");
       const skipCheck = dialogEl.querySelector("#tutorial-skip-checkbox");
 
+      // 「完了ボタン」要素 (completeステップ用)
+      const completeBtn = dialogEl.querySelector("#tutorial-complete-btn");
+
       // 「OKボタン非表示」指定なら
       if (subStep?.removeOkButton && nextBtn) {
         nextBtn.style.display = "none";
+      }
+
+      // もし「完了ボタン」(complete)があるなら、そのクリック時に resolve({ok:true}) して終わる
+      if (completeBtn) {
+        completeBtn.addEventListener("click", () => closeDialog({
+          ok: true,
+          cancel: false,
+          skipCheck: false
+        }));
       }
 
       // イベント
@@ -284,7 +296,17 @@
     });
   }
 
-  function buildDialogHTML(title, message) {
+  function buildDialogHTML(title, message, subStep) {
+    // もし subStep?.complete が true なら、完了ボタンのみ表示のレイアウトにする
+    if (subStep?.complete) {
+      return `
+      <h2 style="margin-top:0;">${escapeHtml(title)}</h2>
+      <p>${escapeHtml(message)}</p>
+      <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+        <button id="tutorial-complete-btn" style="min-width:6rem;">完了</button>
+      </div>
+    `;
+    }
     return `
       <h2 style="margin-top:0;">${escapeHtml(title)}</h2>
       <p>${escapeHtml(message)}</p>
