@@ -65,7 +65,7 @@
     <div style="display: flex; gap: 20px; flex-direction: column;">
 
       <!-- 1. 右スクロール可能な本棚 -->
-      <div style="
+      <div id="bookshelf-scroll-area" style="
         height: 250px;
         box-sizing: border-box;
         overflow: auto;
@@ -116,6 +116,9 @@
       </div>
     </div>
   </div>
+
+  <!-- ▼ ポータル用要素 -->
+  <div id="dropdown-portal"></div>
 
   <!-- ▼ コピー確認用モーダル -->
   <div id="copy-scenario-modal" class="modal">
@@ -190,7 +193,7 @@
         </div>
       </div>
 
-      <!-- 例）シナリオ編集モーダル内 -->
+      <!-- 画像のON/OFFチップ -->
       <div class="edit-row">
         <label>装丁画像</label>
       </div>
@@ -199,6 +202,12 @@
           <div class="chip chip-mini" data-value="on">あり</div>
           <div class="chip chip-mini" data-value="off">なし</div>
         </div>
+      </div>
+
+      <!-- 左右の間隔入力欄 -->
+      <div class="edit-row">
+        <label for="edit-scenario-coverspacing">左右の間隔(px)</label>
+        <input type="number" id="edit-scenario-coverspacing" />
       </div>
 
       <!-- ボタン -->

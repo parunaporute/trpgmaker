@@ -1885,3 +1885,115 @@ button.important {
   border: 1px solid #45a049;
   box-shadow: none;
 }
+
+/* =======================
+   ここから本題のドロップダウン用スタイル
+======================= */
+/* front-menu-button: 本の正面にマウスオーバーで表示される「...」ボタン */
+.front-menu-button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background-color: #5f4c38;
+  border: 1px solid #876d51;
+  border-radius: 20px;
+  box-shadow: inset 0px 0px 8px 2px #161616;
+  background-image: linear-gradient(0deg, #00000061, transparent);
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  color: #fff;
+  display: none; /* 初期は非表示 */
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
+
+/* front-dropdown-menu: ドロップダウン本体 */
+.front-dropdown-menu {
+  position: absolute;
+  display: none;
+  flex-direction: column;
+  min-width: 140px;
+  background-color: #5f4c38;
+  border: 1px solid #876d51;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  padding: 5px 0;
+  z-index: 999;
+}
+
+.front-dropdown-menu.open {
+  display: flex;
+}
+
+/* 個別のメニューアイテム */
+.front-dropdown-menu button {
+  background-color: #5f4c38;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  color: #fff;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #876d51;
+  cursor: pointer;
+  box-shadow: inset 0px 0px 8px 2px #161616;
+  background-image: linear-gradient(0deg, #00000061, transparent);
+}
+
+.front-dropdown-menu button:hover {
+  background-color: #45a049 !important;
+  border: 1px solid #45a049 !important;
+  border-radius: 0;
+}
+
+.front-dropdown-menu button:last-child {
+  border-bottom: none;
+}
+
+/* 既存とは別に、ポータル用コンテナを定義する */
+#dropdown-portal {
+  position: absolute; /* ボタンクリック時にJSでtop/leftを計算して指定 */
+  display: none;      /* 初期は非表示 */
+  flex-direction: column;
+  min-width: 140px;
+  background-color: #5f4c38;
+  border: 1px solid #876d51;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  padding: 5px 0;
+  z-index: 9999; /* 最前面に */
+}
+
+/* ポータルを開く時は .open を付与して表示 */
+#dropdown-portal.open {
+  display: flex;
+}
+
+/* ドロップダウン内部のボタン */
+#dropdown-portal button {
+  background-color: #5f4c38;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  color: #fff;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #876d51;
+  cursor: pointer;
+  box-shadow: inset 0px 0px 8px 2px #161616;
+  background-image: linear-gradient(0deg, #00000061, transparent);
+}
+
+#dropdown-portal button:hover {
+  background-color: #45a049 !important;
+  border: 1px solid #45a049 !important;
+  border-radius: 0;
+}
+
+#dropdown-portal button:last-child {
+  border-bottom: none;
+}
