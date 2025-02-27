@@ -210,8 +210,6 @@ window.tutorials = [
             // 7) 選択モードの使い方
             message: "複数のカードを一括操作したい場合は「選択モード」を使いましょう。選択モードをオンにするとカードを複数同時選択ができます。まとめて削除できます。",
             highlightSelector: "#toggle-warehouse-selection-mode-btn",
-            removeOkButton: true,
-            waitForClickOn: "#toggle-warehouse-selection-mode-btn"
           },
           {
             // 2) 左側タブの紹介
