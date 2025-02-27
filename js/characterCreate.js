@@ -94,7 +94,17 @@ window.addEventListener("load", async function () {
     storedIds = [];
   }
   displayRecentlyCreatedCards(storedIds);
-
+  // 「キャンセル」ボタン押下時にAbort
+  const cancelGachaBtn = document.getElementById("cancel-gacha-btn");
+  cancelGachaBtn.addEventListener("click", () => {
+    // AbortControllerが存在すればabortする
+    if (window.currentGachaController) {
+      window.currentGachaController.abort();
+    }
+    // モーダルを閉じる（UI的に消したい場合）
+    document.getElementById("gacha-modal").classList.remove("active");
+  });
+  
   // 画面リサイズ時に再度「直近生成カード」を描画し直す
   window.addEventListener("resize", () => {
     const reIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
