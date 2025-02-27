@@ -87,7 +87,6 @@
       await startTutorialSteps(story);
     }
   }
-
   // -------------------------------------------
   // E) チュートリアルステップ開始
   // -------------------------------------------
@@ -125,15 +124,21 @@
       const subSteps = st.subSteps || [];
       if (!subSteps.length) {
         // 単発表示
-        const r = await showDialog(story.title, st.message, null);
+        const r = await showDialog(story.title, st.message, null, "1/1");
         if (r.skipCheck || r.ok) {
           markPageStepDone(story, st);
         }
       } else {
         // 複数 subSteps
         let subStepCanceled = false;
-        for (const sub of subSteps) {
-          const r = await showDialog(story.title, sub.message, sub);
+        let stepCounter;
+
+        for (let i = 0; i < subSteps.length; i++) {
+          const sub = subSteps[i];
+          // i番目のサブステップなので (i+1)/(全サブステップ数) を渡す
+          stepCounter = `${i + 1}/${subSteps.length}`;
+
+          const r = await showDialog(story.title, sub.message, sub, stepCounter);
           if (r.skipCheck) {
             // 「次は表示しない」→ チュートリアル全体完了に
             localStorage.setItem("completeStory_" + story.id, "true");
@@ -188,10 +193,10 @@
   // -------------------------------------------
   // G) ダイアログ表示 (Promise で完了を返す)
   // -------------------------------------------
-  function showDialog(title, message, subStep) {
+  function showDialog(title, message, subStep, stepCounter="") {
     return new Promise((resolve) => {
       // ダイアログ HTML を組み立て
-      dialogEl.innerHTML = buildDialogHTML(title, message, subStep);
+      dialogEl.innerHTML = buildDialogHTML(title, message, subStep, stepCounter);
 
       // 表示開始
       overlayEl.style.display = "block";
@@ -315,11 +320,13 @@
     });
   }
 
-  function buildDialogHTML(title, message, subStep) {
+  function buildDialogHTML(title, message, subStep, stepCounter = "") {
     // もし subStep?.complete が true なら、完了ボタンのみ表示のレイアウトにする
     if (subStep?.complete) {
       return `
-      <div class="step-title">${escapeHtml(title)}</div>
+      <div class="step-title">
+        ${escapeHtml(title)}${escapeHtml(stepCounter)}
+      </div>
       <div class="step-message">${escapeHtml(message)}</div>
       <div style="display:flex; justify-content:right; gap:10px;">
         <button id="tutorial-complete-btn" style="min-width:6rem;">完了</button>  
@@ -327,7 +334,9 @@
     `;
     }
     return `
-      <div class="step-title">${escapeHtml(title)}</div>
+      <div class="step-title">
+        ${escapeHtml(title)}${escapeHtml(stepCounter)}
+      </div>
       <div class="step-message">${escapeHtml(message)}</div>
       <div style="display:flex; justify-content:right; gap:10px;">
         <button id="tutorial-next-btn">次へ</button>
