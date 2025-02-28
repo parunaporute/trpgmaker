@@ -119,8 +119,6 @@
     </div>
     <div class="element-section">
       <button id="show-warehouse-btn">倉庫</button>
-      <!-- ★ ゴミ箱ボタンを追加 -->
-      <button id="show-trash-btn" style="background-color:#f44336;">ゴミ箱</button>
     </div>
 
     <!-- 本棚ボタン -->
@@ -270,13 +268,15 @@
         }
       });
 
-      // 「カスタムシナリオ」ボタンが押されたら customScenario.html へ遷移
+      // カスタムシナリオ
       const customBtn = document.getElementById("start-custom-scenario-button");
-      customBtn.addEventListener("click", () => {
-        window.location.href = "customScenario.html";
-      });
+      if (customBtn) {
+        customBtn.addEventListener("click", () => {
+          window.location.href = "customScenario.html";
+        });
+      }
 
-      // ▼「もっと詳しい説明はこちら」クリックで説明モーダルを表示
+      // 「もっと詳しい説明はこちら」クリックで説明モーダルを表示
       const openApiInstructionsLink = document.getElementById("open-api-instructions");
       const apiInstructionsModal = document.getElementById("api-instructions-modal");
       const closeApiInstructionsButton = document.getElementById("close-api-instructions-button");
@@ -284,21 +284,11 @@
       if (openApiInstructionsLink && apiInstructionsModal && closeApiInstructionsButton) {
         openApiInstructionsLink.addEventListener("click", (e) => {
           e.preventDefault(); // aタグの遷移を止める
-          // .active を付与して表示
           apiInstructionsModal.classList.add("active");
         });
 
         closeApiInstructionsButton.addEventListener("click", () => {
-          // .active を外して非表示に
           apiInstructionsModal.classList.remove("active");
-        });
-      }
-
-      // ゴミ箱ボタン
-      const trashBtn = document.getElementById("show-trash-btn");
-      if (trashBtn) {
-        trashBtn.addEventListener("click", () => {
-          window.location.href = "trash.html";
         });
       }
     });
