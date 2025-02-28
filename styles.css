@@ -811,7 +811,7 @@ button:hover {
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s;
-  min-width: 12rem;
+  min-width: 6rem;
   justify-content: center;
   background-image: linear-gradient(0deg, #00000061, transparent);
   border: 1px solid #999;
@@ -2003,4 +2003,8 @@ button.important {
 
 #dropdown-portal button:last-child {
   border-bottom: none;
+}
+
+#warehouse-modal {
+  justify-content: flex-start;
 }

@@ -122,7 +122,7 @@
     </div>
 
     <!-- ▼ カード一覧をスクロール表示 -->
-    <div id="warehouse-card-scroll-container" style="max-height:70vh; overflow-y:auto; width:100%; margin-top:0px;">
+    <div id="warehouse-card-scroll-container" style="overflow-y:auto; width:100%; margin-top:0px;">
       <div id="warehouse-card-container" style="display:flex; flex-wrap:wrap; gap:20px; opacity:0; transition:opacity 0.3s ease;"></div>
     </div>
   </div>
