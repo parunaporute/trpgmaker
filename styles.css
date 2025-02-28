@@ -455,7 +455,6 @@ button:hover {
   max-height: 100vh;
   overflow-y: auto;
   width: 100%;
-  padding: 20px;
   /* ふわっと拡大 */
   transform: scale(0.9);
   transition: transform 0.3s ease;
