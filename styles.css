@@ -1956,15 +1956,16 @@ button.important {
 
 /* 既存とは別に、ポータル用コンテナを定義する */
 #dropdown-portal {
+  box-sizing: border-box;
   position: absolute; /* ボタンクリック時にJSでtop/leftを計算して指定 */
   display: none;      /* 初期は非表示 */
   flex-direction: column;
-  min-width: 140px;
+  min-width: 170px;
   background-color: #5f4c38;
   border: 1px solid #876d51;
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  padding: 5px 0;
+  padding: 5px;
   z-index: 9999; /* 最前面に */
 }
 
