@@ -33,7 +33,7 @@ window.tutorials = [
           },
           {
             // step3: 閉じるボタンを押させる
-            message: "よく読み、APIキー（sk-から始まる文字列）を取得してください。取得できましたら、説明モーダルの「閉じる」を押してください。",
+            message: "よく読み、APIキー（sk-から始まる文字列）を取得してください。取得できましたら、説明画面の「閉じる」を押してください。",
             highlightSelector: "#close-api-instructions-button",
             removeOkButton: true,
             waitForClickOn: "#close-api-instructions-button"
@@ -182,7 +182,7 @@ window.tutorials = [
         subSteps: [
           {
             // 1) 倉庫を開く
-            message: "まずは「倉庫」ボタンを押して、倉庫画面（モーダル）を開きましょう。",
+            message: "まずは「倉庫」ボタンを押して、倉庫画面を開きましょう。",
             highlightSelector: "#show-warehouse-btn",
             removeOkButton: true,
             waitForClickOn: "#show-warehouse-btn"
@@ -254,7 +254,7 @@ window.tutorials = [
           },
           {
             // (2) 名前を入力
-            message: "モーダルが開きました。まずは名前を入力しましょう。",
+            message: "入力画面が開きました。まずは名前を入力しましょう。",
             highlightSelector: "#avatar-name"
           },
           {
@@ -356,7 +356,7 @@ window.tutorials = [
             highlightSelector: "#type-objective-btn"
           },
           {
-            message: "モーダルでOKを押下し、キャンセルは押さずにしばらく待ちます。",
+            message: "OKを押下し、キャンセルは押さずにしばらく待ちます。",
             highlightSelector: "#confirm-scenario-ok",
             removeOkButton: true,
             waitForClickOn: "#confirm-scenario-ok"
