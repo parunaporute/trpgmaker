@@ -15,26 +15,24 @@
   let loadedLineCount = 0;
   const LINES_PER_LOAD = 1;
 
-  // === 追加: タブ毎に持つソート設定を保存・取得するユーティリティ =========================
+  // ===== ソート用ユーティリティ =====
   function setSortConfig(tabName, sortKey, sortDir) {
     localStorage.setItem(`warehouseSortKey_${tabName}`, sortKey);
     localStorage.setItem(`warehouseSortDir_${tabName}`, sortDir);
   }
 
   function getSortConfig(tabName) {
-    const sortKey = localStorage.getItem(`warehouseSortKey_${tabName}`) || "id";  // デフォルトは 取得順
-    const sortDir = localStorage.getItem(`warehouseSortDir_${tabName}`) || "asc"; // デフォルトは 昇順
+    const sortKey = localStorage.getItem(`warehouseSortKey_${tabName}`) || "id";
+    const sortDir = localStorage.getItem(`warehouseSortDir_${tabName}`) || "asc";
     return { sortKey, sortDir };
   }
 
-  // ソートロジック
   function applySort(array, sortKey, sortDir) {
     array.sort((a, b) => {
       if (sortKey === "id") {
-        // 「card_タイムスタンプ_ランダム」の形式 → タイムスタンプ抜き出し
         const tA = getTimeFromId(a.id);
         const tB = getTimeFromId(b.id);
-        return tA - tB; // 古い方が先
+        return tA - tB;
       } else if (sortKey === "name") {
         const an = a.name || "";
         const bn = b.name || "";
@@ -58,27 +56,24 @@
     return isNaN(t) ? 0 : t;
   }
 
-  // -------------------------------
-  // モーダルHTMLの動的挿入
-  // -------------------------------
+  // ======== モーダル初期化 ========
   function ensureWarehouseModalExists() {
     if (document.getElementById("warehouse-modal")) {
       warehouseModal = document.getElementById("warehouse-modal");
       previewModal = document.getElementById("card-image-preview-modal");
       return;
     }
-    // まだ無い場合、body末尾に挿入
+    // まだ無ければ body末尾に挿入
     const modalHTML = `
 <div id="warehouse-modal" class="modal">
   <div class="modal-content">
-  <div class="r-flexbox" style="width:100%"><button id="close-warehouse-btn">✕</button></div>
+    <div class="r-flexbox" style="width:100%"><button id="close-warehouse-btn">✕</button></div>
     <h2>倉庫</h2>
 
-    <!-- ここから：ヘッダー部分を三分割 (左：選択モードボタン類、中央：タブ、右：ソートUI) -->
     <div class="warehouse-header-bar">
       <div class="warehouse-left">
         <button id="toggle-warehouse-selection-mode-btn" style="margin:0;">選択モード</button>
-        <button id="delete-selected-warehouse-btn" style="margin:0; display:none;">選択したカードを削除</button>
+        <button id="delete-selected-warehouse-btn" style="margin:0; display:none;">選択したカードをゴミ箱へ</button>
         <button id="add-to-party-btn" style="margin:0; display:none;">パーティに入れる</button>
       </div>
       <div class="warehouse-center">
@@ -97,7 +92,6 @@
         <button id="warehouse-sort-direction-btn" style="width:30px; margin:0;">↓</button>
       </div>
     </div>
-    <!-- ここまでヘッダー -->
 
     <div id="warehouse-card-scroll-container" style="margin:10px 0; max-height:70vh; overflow-y:auto; width:100%;">
       <div id="warehouse-card-container" style="display:flex; flex-wrap:wrap; gap:20px;"></div>
@@ -105,7 +99,7 @@
   </div>
 </div>
 
-<!-- プレビュー用モーダル -->
+<!-- 画像プレビュー用モーダル -->
 <div id="card-image-preview-modal" class="modal">
   <div class="modal-content">
     <img id="card-preview-img" src="" alt="card image" style="max-width:95vw; max-height:95vh;" />
@@ -125,35 +119,29 @@
     document.getElementById("toggle-warehouse-selection-mode-btn")
       .addEventListener("click", toggleWarehouseSelectionMode);
 
-    // 削除ボタン
+    // 選択削除(ゴミ箱へ)
     document.getElementById("delete-selected-warehouse-btn")
-      .addEventListener("click", deleteSelectedWarehouseCards);
+      .addEventListener("click", moveSelectedCardsToTrash);
 
-    // パーティに入れる
+    // パーティへ移動
     document.getElementById("add-to-party-btn")
       .addEventListener("click", addSelectedCardsToParty);
 
-    // タブ切り替え
+    // タブ
     const tabEls = warehouseModal.querySelectorAll(".warehouse-tab");
     tabEls.forEach(tabEl => {
       tabEl.addEventListener("click", () => {
-        // 全タブリセット
         tabEls.forEach(t => t.classList.remove("active"));
-        // クリックしたタブをアクティブに
         tabEl.classList.add("active");
-
         currentTab = tabEl.getAttribute("data-tab");
         loadCardsByTab();
       });
     });
-    // 最初のタブをアクティブ
     tabEls[0].classList.add("active");
 
-    // ソートUIのイベント
-    const sortDropdown = document.getElementById("warehouse-sort-dropdown");
-    const sortDirBtn = document.getElementById("warehouse-sort-direction-btn");
-    sortDropdown.addEventListener("change", onSortChange);
-    sortDirBtn.addEventListener("click", onSortDirToggle);
+    // ソートUI
+    document.getElementById("warehouse-sort-dropdown").addEventListener("change", onSortChange);
+    document.getElementById("warehouse-sort-direction-btn").addEventListener("click", onSortDirToggle);
 
     // プレビュー閉じる
     document.getElementById("card-preview-close-btn").addEventListener("click", () => {
@@ -170,12 +158,9 @@
     scrollContainer.addEventListener("scroll", onScrollCheck);
   }
 
-  // -------------------------------
-  // モーダルを開く
-  // -------------------------------
+  // ======== モーダルを開く/閉じる ========
   function showWarehouseModal(mode = "menu", partyId = null, onAddCb = null) {
     ensureWarehouseModalExists();
-
     warehouseMode = mode;
     currentPartyIdForAdd = partyId;
     afterAddCallback = onAddCb || null;
@@ -185,28 +170,22 @@
     document.getElementById("toggle-warehouse-selection-mode-btn").textContent = "選択モード";
     clearSelectedCards();
 
-    // タブ初期化 (デフォルトを「キャラクター」)
+    // デフォルトタブを「キャラクター」に
     currentTab = "キャラクター";
-
-    // 全タブをアクティブリセットして、キャラクタータブのみ active
     const tabEls = warehouseModal.querySelectorAll(".warehouse-tab");
     tabEls.forEach(t => t.classList.remove("active"));
     const charTab = Array.from(tabEls).find(t => t.getAttribute("data-tab") === "キャラクター");
     if (charTab) charTab.classList.add("active");
 
-    // モーダルを表示
     warehouseModal.classList.add("active");
 
-    // ソートUIの初期状態をローカルストレージから読み込み＆反映
+    // ソートUIを復元
     applySortUIFromStorage(currentTab);
 
     // カード読み込み
     loadCardsByTab();
   }
 
-  // -------------------------------
-  // モーダルを閉じる
-  // -------------------------------
   function closeWarehouseModal() {
     warehouseModal.classList.remove("active");
     previewModal.classList.remove("active");
@@ -215,38 +194,50 @@
     afterAddCallback = null;
   }
 
-  // -------------------------------
-  // タブ別にカードをロードして表示
-  // -------------------------------
+  // ======== カード表示 ========
   function loadCardsByTab() {
     const container = document.getElementById("warehouse-card-container");
     const scrollContainer = document.getElementById("warehouse-card-scroll-container");
     if (!container || !scrollContainer) return;
 
-    // いったん不可視化してチラつき防止
     container.style.visibility = "hidden";
+    container.innerHTML = "";
 
-    // 既存リセット
+    // group="Warehouse" かつ タイプ一致
     allWarehouseCards = (window.characterData || [])
       .filter(c => c.group === "Warehouse" && c.type === currentTab);
     loadedLineCount = 0;
-    container.innerHTML = "";
 
-    // ソート適用
+    // ソート
     const config = getSortConfig(currentTab);
     applySort(allWarehouseCards, config.sortKey, config.sortDir);
 
-    // 1行あたり枚数を計算
     cardsPerRow = calcCardsPerRow();
-
-    // とりあえず1行分読み込み
     loadNextLines(LINES_PER_LOAD);
-
-    // スクロールが出るまで繰り返し読み込み
     fillContainerIfNeeded(() => {
       container.style.visibility = "visible";
       container.style.opacity = "1";
     });
+  }
+
+  function calcCardsPerRow() {
+    const container = document.getElementById("warehouse-card-container");
+    if (!container) return 1;
+    const containerWidth = container.clientWidth;
+    if (containerWidth <= 0) return 1;
+
+    let cardW = 300;
+    let gap = 20;
+    let per = 1;
+    for (let n = 1; n <= 50; n++) {
+      const totalW = n * cardW + (n - 1) * gap;
+      if (totalW <= containerWidth) {
+        per = n;
+      } else {
+        break;
+      }
+    }
+    return per;
   }
 
   function fillContainerIfNeeded(callback) {
@@ -291,7 +282,7 @@
 
     loadedLineCount += lineCount;
 
-    // 追加後にまだスクロールが出ないなら追加
+    // さらにスクロールが足りない場合読み込む
     const scrollContainer = document.getElementById("warehouse-card-scroll-container");
     if (!scrollContainer) return;
     setTimeout(() => {
@@ -303,29 +294,7 @@
     }, 0);
   }
 
-  function calcCardsPerRow() {
-    const container = document.getElementById("warehouse-card-container");
-    if (!container) return 1;
-    const containerWidth = container.clientWidth;
-    if (containerWidth <= 0) return 1;
-
-    let cardW = 300;
-    let gap = 20;
-    let per = 1;
-    for (let n = 1; n <= 50; n++) {
-      const totalW = n * cardW + (n - 1) * gap;
-      if (totalW <= containerWidth) {
-        per = n;
-      } else {
-        break;
-      }
-    }
-    return per;
-  }
-
-  // -------------------------------
-  // カード生成 (倉庫表示用)
-  // -------------------------------
+  // ======== カード生成 ========
   function createWarehouseCardElement(card) {
     const cardEl = document.createElement("div");
     cardEl.className = "card rarity" + (card.rarity || "").replace("★", "").trim();
@@ -335,13 +304,14 @@
       cardEl.classList.add("flipped");
     }
 
+    // カードクリック
     cardEl.addEventListener("click", (e) => {
       if (warehouseSelectionMode) {
         e.stopPropagation();
         cardEl.classList.toggle("selected");
         updateSelectionButtonsVisibility();
       } else {
-        // 裏返しか画像プレビュー
+        // 裏返しかプレビュー
         if (cardEl.classList.contains("flipped")) {
           cardEl.classList.remove("flipped");
           card.flipped = false;
@@ -356,12 +326,13 @@
       }
     });
 
+    // card-inner
     const cardInner = document.createElement("div");
     cardInner.className = "card-inner";
 
+    // card-front
     const cardFront = document.createElement("div");
     cardFront.className = "card-front";
-
     const bgStyle = (card.backgroundcss || "")
       .replace("background-image:", "")
       .replace("background", "")
@@ -374,7 +345,7 @@
     const rarityValue = (card.rarity || "").replace("★", "").trim();
     cardFront.innerHTML = `<div class='bezel rarity${rarityValue}'></div>`;
 
-    // タイプ
+    // タイプラベル
     const typeEl = document.createElement("div");
     typeEl.className = "card-type";
     typeEl.textContent = card.type || "不明";
@@ -404,7 +375,6 @@
     // 情報
     const infoContainer = document.createElement("div");
     infoContainer.className = "card-info";
-
     const nameEl = document.createElement("p");
     nameEl.innerHTML = `<h3>${DOMPurify.sanitize(card.name || "")}</h3>`;
     infoContainer.appendChild(nameEl);
@@ -426,7 +396,32 @@
 
     cardFront.appendChild(infoContainer);
 
-    // 裏面
+    // ▼ 削除ボタン（実際は「ゴミ箱へ」）
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerHTML = `<span class="iconmoon icon-bin" style="font-size:1rem"></span>`; 
+    deleteBtn.title = "ゴミ箱へ移動";
+    deleteBtn.style.position = "absolute";
+    deleteBtn.style.right = "0px";
+    deleteBtn.style.bottom = "0px";
+    deleteBtn.style.minWidth = "35px";
+    deleteBtn.style.minHeight = "35px";
+    deleteBtn.style.zIndex = "9999"
+    deleteBtn.style.width = "35px";
+    deleteBtn.style.height = "35px";
+    deleteBtn.style.borderRadius = "0 0 0 4px";
+    deleteBtn.style.backgroundColor = "#f44336";
+    deleteBtn.style.color = "#fff";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.boxShadow = "inset 0 0 5px #161616";
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm("このカードをゴミ箱に移動しますか？")) {
+        moveSingleCardToTrash(card.id);
+      }
+    });
+    cardFront.appendChild(deleteBtn);
+
+    // card-back
     const cardBack = document.createElement("div");
     cardBack.className = "card-back";
     cardBack.innerHTML = `<strong>${DOMPurify.sanitize(card.type || "")}</strong>`;
@@ -438,7 +433,7 @@
     return cardEl;
   }
 
-  // 裏返し状態の保存
+  // 裏返し保存
   async function saveFlippedState(cardId, flipped) {
     const idx = (window.characterData || []).findIndex(c => c.id === cardId);
     if (idx !== -1) {
@@ -447,7 +442,6 @@
     }
   }
 
-  // 画像プレビュー
   function openImagePreview(imageUrl) {
     if (!previewModal) return;
     const imgEl = document.getElementById("card-preview-img");
@@ -456,9 +450,7 @@
     previewModal.classList.add("active");
   }
 
-  // -------------------------------
-  // 画像生成 (DALL-E API)
-  // -------------------------------
+  // ======== 画像生成 ========
   async function generateWarehouseImage(card, btnElement) {
     const apiKey = window.apiKey || localStorage.getItem("apiKey");
     if (!apiKey) {
@@ -497,7 +489,7 @@
       const base64 = data.data[0].b64_json;
       const dataUrl = "data:image/png;base64," + base64;
 
-      // DB更新
+      // 更新
       const idx = window.characterData.findIndex(c => c.id === card.id);
       if (idx !== -1) {
         window.characterData[idx].imageData = dataUrl;
@@ -514,9 +506,7 @@
     }
   }
 
-  // -------------------------------
-  // 選択モード
-  // -------------------------------
+  // ======== 選択モード ========
   function toggleWarehouseSelectionMode() {
     warehouseSelectionMode = !warehouseSelectionMode;
     const btn = document.getElementById("toggle-warehouse-selection-mode-btn");
@@ -540,7 +530,7 @@
     }
     const selected = document.querySelectorAll("#warehouse-card-container .card.selected");
     if (warehouseMode === "menu") {
-      // メニューから来た場合のみ「削除」表示
+      // メニューから来た場合のみ「ゴミ箱へ移動」表示
       document.getElementById("delete-selected-warehouse-btn").style.display =
         (selected.length > 0) ? "inline-block" : "none";
       document.getElementById("add-to-party-btn").style.display = "none";
@@ -552,33 +542,37 @@
     }
   }
 
-  // -------------------------------
-  // 倉庫カード削除 (menuモード)
-  // -------------------------------
-  async function deleteSelectedWarehouseCards() {
+  // ======== ゴミ箱へ移動 ========
+  async function moveSingleCardToTrash(cardId) {
+    const idx = window.characterData.findIndex(c => c.id === cardId);
+    if (idx === -1) return;
+    window.characterData[idx].group = "Trash";
+    await saveCharacterDataToIndexedDB(window.characterData);
+    reloadCurrentView();
+  }
+
+  async function moveSelectedCardsToTrash() {
     if (warehouseMode !== "menu") return;
     const selectedCards = document.querySelectorAll("#warehouse-card-container .card.selected");
     if (selectedCards.length === 0) {
       showToast("カードが選択されていません。");
       return;
     }
-    if (!confirm("選択したカードを削除します。よろしいですか？")) {
+    if (!confirm("選択したカードをゴミ箱に移動します。よろしいですか？")) {
       return;
     }
     selectedCards.forEach(cardEl => {
       const cardId = cardEl.getAttribute("data-id");
       const idx = window.characterData.findIndex(c => c.id === cardId);
       if (idx !== -1) {
-        window.characterData.splice(idx, 1);
+        window.characterData[idx].group = "Trash";
       }
     });
     await saveCharacterDataToIndexedDB(window.characterData);
     reloadCurrentView();
   }
 
-  // -------------------------------
-  // パーティに追加 (partyモード)
-  // -------------------------------
+  // ======== パーティに追加 ========
   async function addSelectedCardsToParty() {
     if (warehouseMode !== "party") return;
     if (!currentPartyIdForAdd) {
@@ -610,9 +604,7 @@
     updateSelectionButtonsVisibility();
   }
 
-  // -------------------------------
-  // 再描画
-  // -------------------------------
+  // ======== 再描画 ========
   function reloadCurrentView() {
     const container = document.getElementById("warehouse-card-container");
     if (container) container.innerHTML = "";
@@ -628,9 +620,7 @@
     loadNextLines(LINES_PER_LOAD);
   }
 
-  // -------------------------------
-  // ソートUIの操作ハンドラ
-  // -------------------------------
+  // ======== ソートUI ========
   function onSortChange() {
     const sortKey = document.getElementById("warehouse-sort-dropdown").value;
     const { sortDir } = getSortConfig(currentTab);
@@ -643,10 +633,12 @@
     const config = getSortConfig(currentTab);
     const newDir = (config.sortDir === "asc") ? "desc" : "asc";
     setSortConfig(currentTab, config.sortKey, newDir);
-    sortDirBtn.innerHTML = (newDir === "asc") ? `<span class="iconmoon icon-sort-alpha-asc"></span>` : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
+    sortDirBtn.innerHTML = (newDir === "asc")
+      ? `<span class="iconmoon icon-sort-alpha-asc"></span>`
+      : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
     reloadCurrentView();
   }
-  // タブ切り替え時やモーダルを開いたときに、UIの状態をローカルストレージから復元
+
   function applySortUIFromStorage(tabName) {
     const sortDropdown = document.getElementById("warehouse-sort-dropdown");
     const sortDirBtn = document.getElementById("warehouse-sort-direction-btn");
@@ -654,12 +646,11 @@
 
     const config = getSortConfig(tabName);
     sortDropdown.value = config.sortKey;
-//    sortDirBtn.textContent = (config.sortDir === "asc") ? "↑" : "↓";
-    sortDirBtn.innerHTML = (config.sortDir === "asc") ? `<span class="iconmoon icon-sort-alpha-asc"></span>` : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
+    sortDirBtn.innerHTML = (config.sortDir === "asc")
+      ? `<span class="iconmoon icon-sort-alpha-asc"></span>`
+      : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
   }
 
-  // -------------------------------
-  // グローバル公開
-  // -------------------------------
+  // ======== 公開 ========
   window.showWarehouseModal = showWarehouseModal;
 })();
