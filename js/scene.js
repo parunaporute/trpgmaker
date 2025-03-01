@@ -346,7 +346,7 @@ async function loadScenarioData(scenarioId) {
       histDiv.style.display = sc.showHistory ? "block" : "none";
     }
 
-    // セクション全クリアチェック
+    // セクション全クリアチェック & エンディングボタン表示制御
     refreshEndingButtons();
 
     // 画面更新
@@ -434,8 +434,6 @@ async function getNextScene(useItem = false) {
   if (useItem && window.selectedItem) {
     const nm = window.selectedItem.name || "不明アイテム";
     const ds = window.selectedItem.description || "説明不明";
-    // ChatGPTへ流すテキスト例：
-    // 「爆弾という名称の建物ごと爆破できるという説明のあるアイテムを使用します」
     pinput = `「${nm}という名称の${ds}という説明のあるアイテムを使用します」`;
     // 選択解除
     window.selectedItem = null;
@@ -674,9 +672,6 @@ async function renderItemChips() {
   const partyItems = pArr.filter(c => c.type === "アイテム");
 
   // 重複を排除しつつまとめる
-  //   DB: {name, description, imageData, entityId...}
-  //   Party: {name, caption(=description?), imageData, ...}
-  // 同じ名前ならまとめる等、簡易的にやります
   const result = [];
   const addedNames = new Set();
 
@@ -716,18 +711,12 @@ async function renderItemChips() {
   result.forEach(item => {
     const chip = document.createElement("div");
     chip.className = "chip chip-withimage";
-    // 画像があればサムネ、なければ「NoImage」テキスト
+    // 画像があればサムネ
     if (item.imageData) {
       const im = document.createElement("img");
       im.src = item.imageData;
       im.alt = item.name;
       chip.appendChild(im);
-    } else {
-      /*
-      const nm = document.createElement("span");
-      nm.textContent = "";
-      nm.style.marginRight = "4px";
-      chip.appendChild(nm);*/
     }
     // 名前ラベル
     const lbl = document.createElement("span");
@@ -777,15 +766,37 @@ function refreshEndingButtons() {
   const clearEndingBtn = document.getElementById("clear-ending-button");
   if (!endingBtn || !clearEndingBtn) return;
 
+  // セクションが一つもなければ両方非表示
+  if (!window.sections || window.sections.length === 0) {
+    endingBtn.style.display = "none";
+    clearEndingBtn.style.display = "none";
+    return;
+  }
+
+  // いずれか1つでもクリア済みか？
+  const anyCleared = window.sections.some(sec => sec.cleared);
+  // 全てクリアか？
   const allCleared = areAllSectionsCleared();
+
+  // １つもクリアされていない → 両方非表示
+  if (!anyCleared) {
+    endingBtn.style.display = "none";
+    clearEndingBtn.style.display = "none";
+    return;
+  }
+
+  // 全クリア → クリアエンディングのみ表示
   if (allCleared) {
     endingBtn.style.display = "none";
     clearEndingBtn.style.display = "inline-block";
   } else {
+    // 一部だけクリア → 通常エンディングを表示
     endingBtn.style.display = "inline-block";
     clearEndingBtn.style.display = "none";
   }
 }
+
+/** 全セクションがクリア済みかどうか */
 function areAllSectionsCleared() {
   if (!window.sections || !window.sections.length) return false;
   return window.sections.every(s => s.cleared);
@@ -1070,6 +1081,8 @@ YESかNOのみで答えてください。判断が難しい時はYESにしてく
       window.currentScenario.wizardData.sections = wd.sections;
       await updateScenario(window.currentScenario);
       showToast(`セクション${firstUncleared.number}をクリアしました。`);
+      // クリアしたらエンディングボタンの表示制御を更新
+      refreshEndingButtons();
     } else {
       console.log("未達成と判定されました。");
     }
@@ -2335,7 +2348,7 @@ function createEntityRow(entity, isOdd) {
   }
 
   const infoSpan = document.createElement("span");
-  // ▼ 追加：アイテムかつ acquired=true の場合は名前に【使用可能】を付加する
+  // アイテムかつ acquired=true の場合は名前に【使用可能】を付加
   let displayName = entity.name;
   if (entity.category === "item" && entity.acquired) {
     displayName += "【使用可能】";
