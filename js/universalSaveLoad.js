@@ -14,8 +14,6 @@
 
 /* DOM構築後にイベント紐づけ */
 document.addEventListener("DOMContentLoaded", () => {
-  console.trace("２回来てる？");
-
   const addSlotBtn = document.getElementById("add-slot-button");
   if (addSlotBtn) {
     addSlotBtn.addEventListener("click", onAddSlot);
