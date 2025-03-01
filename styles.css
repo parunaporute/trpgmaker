@@ -1171,10 +1171,16 @@ button.important {
 #back-to-menu {
   position: relative;
   z-index: 1;
-  margin-right: auto;
   font-size: 0.7rem;
 }
+#open-tutorial-list-button {
+  position: relative;
+  margin-right: auto;
 
+}
+#save-load-button {
+  position: relative;
+}
 #view-all-sections-button {
   position: absolute;
   z-index: 1;
@@ -2007,4 +2013,67 @@ button.important {
 
 #warehouse-modal {
   justify-content: flex-start;
+}
+
+/* universalSaveLoad用のスロット一覧 */
+#slot-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 400px;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+#slot-items-container {
+  background-color: rgba(0, 0, 0, 0.4);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#add-slot-button {
+  width: 100%;
+  border: 1px dashed;
+  min-height: initial;
+  background: transparent;
+  border-radius: 0;
+  line-height: 2rem;
+  padding: 0;
+}
+.save-slot-row {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.save-slot-row:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+.save-slot-row input[type="radio"] {
+  display: none;
+}
+.save-slot-row label {
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+.save-slot-row label::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #bbb;
+  margin-right: 10px;
+  box-sizing: border-box;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+.save-slot-row input[type="radio"]:checked + label::before {
+  background-color: #4caf50;
+  border-color: #4caf50;
 }

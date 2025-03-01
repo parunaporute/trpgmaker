@@ -1,20 +1,9 @@
-/********************************
- * indexedDB.js
- * IndexedDB関連の初期化・保存・読み込み等を担当
- ********************************/
-
+/* indexedDB.js */
 let db = null;
 
-/**
- * DB初期化
- * バージョン13:
- *   - scenariosストアに "bookShelfFlag" と "hideFromHistoryFlag" を追加扱い
- *   - entitiesストアを追加
- */
 function initIndexedDB() {
   return new Promise((resolve, reject) => {
-    // バージョンを 13 に上げる（※変更）
-    const request = indexedDB.open("trpgDB", 13);
+    const request = indexedDB.open("trpgDB", 17); // バージョンを16に
 
     request.onupgradeneeded = (event) => {
       db = event.target.result;
@@ -105,6 +94,12 @@ function initIndexedDB() {
         });
         entStore.createIndex("scenarioId", "scenarioId", { unique: false });
       }
+      if (!db.objectStoreNames.contains("universalSaves")) {
+        const store = db.createObjectStore("universalSaves", {
+          keyPath: "slotIndex" // 1,2,3...をユニークキーに
+        });
+        // 追加のindexは不要なら何もしない
+      }
     };
 
     request.onsuccess = (event) => {
@@ -112,7 +107,6 @@ function initIndexedDB() {
       resolve();
     };
     request.onerror = (event) => {
-      console.error("IndexedDBの初期化に失敗:", event.target.error);
       reject(event.target.error);
     };
   });
@@ -155,33 +149,21 @@ function createNewScenario(wizardData, title = "新シナリオ") {
  */
 function updateScenario(scenario, noUpdateDateTimeFlag) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     if (!noUpdateDateTimeFlag) {
       scenario.updatedAt = new Date().toISOString();
     }
-    // フラグが無い場合は false で補正
-    if (typeof scenario.bookShelfFlag === "undefined") {
-      scenario.bookShelfFlag = false;
-    }
-    if (typeof scenario.hideFromHistoryFlag === "undefined") {
-      scenario.hideFromHistoryFlag = false;
-    }
-    // ★ もし本棚用として登録されていて shelfOrder が未設定なら、現在時刻を数値で設定
+    if (typeof scenario.bookShelfFlag === "undefined") scenario.bookShelfFlag = false;
+    if (typeof scenario.hideFromHistoryFlag === "undefined") scenario.hideFromHistoryFlag = false;
     if (scenario.bookShelfFlag && typeof scenario.shelfOrder !== "number") {
       scenario.shelfOrder = Date.now();
     }
 
     const tx = db.transaction("scenarios", "readwrite");
     const store = tx.objectStore("scenarios");
-    const putReq = store.put(scenario);
-    putReq.onsuccess = () => {
-      resolve();
-    };
-    putReq.onerror = (err) => {
-      reject(err);
-    };
+    const req = store.put(scenario);
+    req.onsuccess = () => resolve();
+    req.onerror = err => reject(err);
   });
 }
 
@@ -190,18 +172,14 @@ function updateScenario(scenario, noUpdateDateTimeFlag) {
  */
 function getScenarioById(scenarioId) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction("scenarios", "readonly");
     const store = tx.objectStore("scenarios");
     const getReq = store.get(scenarioId);
     getReq.onsuccess = (evt) => {
       resolve(evt.target.result || null);
     };
-    getReq.onerror = (err) => {
-      reject(err);
-    };
+    getReq.onerror = (err) => reject(err);
   });
 }
 
@@ -272,9 +250,7 @@ function deleteScenarioById(scenarioId) {
 /* シーン履歴: add/update/get/delete */
 function addSceneEntry(entry) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction("sceneEntries", "readwrite");
     const store = tx.objectStore("sceneEntries");
     const addReq = store.add(entry);
@@ -306,13 +282,10 @@ function updateSceneEntry(entry) {
 
 function getSceneEntriesByScenarioId(scenarioId) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction("sceneEntries", "readonly");
     const store = tx.objectStore("sceneEntries");
     const index = store.index("scenarioId");
-
     const range = IDBKeyRange.only(scenarioId);
     const results = [];
     index.openCursor(range).onsuccess = (evt) => {
@@ -321,21 +294,17 @@ function getSceneEntriesByScenarioId(scenarioId) {
         results.push(cursor.value);
         cursor.continue();
       } else {
-        results.sort((a, b) => (a.entryId - b.entryId));
+        results.sort((a, b) => a.entryId - b.entryId);
         resolve(results);
       }
     };
-    index.openCursor(range).onerror = (err) => {
-      reject(err);
-    };
+    index.openCursor(range).onerror = (err) => reject(err);
   });
 }
 
 function deleteSceneEntry(entryId) {
   return new Promise((resolve, reject) => {
-    if (!db) {
-      return reject("DB未初期化");
-    }
+    if (!db) return reject("DB未初期化");
     const tx = db.transaction("sceneEntries", "readwrite");
     const store = tx.objectStore("sceneEntries");
     const delReq = store.delete(entryId);
@@ -420,15 +389,10 @@ function deleteSceneSummaryByChunkIndex(chunkIndex) {
 
 /* ---------- パーティ関連 ---------- */
 window.initIndexedDB = initIndexedDB;
-
 window.createNewScenario = createNewScenario;
 window.updateScenario = updateScenario;
 window.getScenarioById = getScenarioById;
-window.listAllScenarios = listAllScenarios;
-window.deleteScenarioById = deleteScenarioById;
-
 window.addSceneEntry = addSceneEntry;
-window.updateSceneEntry = updateSceneEntry;
 window.getSceneEntriesByScenarioId = getSceneEntriesByScenarioId;
 window.deleteSceneEntry = deleteSceneEntry;
 

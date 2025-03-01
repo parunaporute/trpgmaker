@@ -18,39 +18,72 @@
 <!-- 取説 -->
 <script src="js/tutorialData.js"></script>
 <script src="js/tutorialManager.js"></script>
+<script src="js/universalSaveLoad.js"></script>
 </head>
 
 <body>
 <div class="application-bar">
-  
 
-    <!-- メニューに戻るボタン -->
-    <button id="back-to-menu"><div class="iconmoon icon-home3"></div>戻る</button>
-    <!-- 取説一覧ページへ遷移するボタン -->
-    <button id="open-tutorial-list-button"><div class="iconmoon icon-book"></div>取説</button>
 
-    <!-- 背景を変更するボタン -->
-    <button id="change-bg-button"><div class="iconmoon icon-picture"></div>背景</button>
-    <!-- ▼ 背景選択モーダル -->
-    <div id="bg-modal" class="modal">
-      <div class="modal-content bg-modal-content">
-        <h2>背景選択</h2>
-        <div id="bg-stock-container" class="bg-stock-grid"></div>
-        <div class="c-flexbox">
-          <button id="bg-none-button" class="btn-secondary">背景無し</button>
-          <button id="bg-generate-button">生成する</button>
-        </div>
-        <div class="c-flexbox">
-          <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
-        </div>
+  <!-- メニューに戻るボタン -->
+  <button id="back-to-menu">
+    <div class="iconmoon icon-home3"></div>戻る
+  </button>
+
+  <!-- 取説一覧ページへ遷移するボタン -->
+  <button id="open-tutorial-list-button">
+    <div class="iconmoon icon-book"></div>取説
+  </button>
+  <button id="save-load-button">セーブ<br>ロード</button>
+  <!-- 背景を変更するボタン -->
+  <button id="change-bg-button">
+    <div class="iconmoon icon-picture"></div>背景
+  </button>
+  <!-- ▼ 背景選択モーダル -->
+  <div id="bg-modal" class="modal">
+    <div class="modal-content bg-modal-content">
+      <h2>背景選択</h2>
+      <div id="bg-stock-container" class="bg-stock-grid"></div>
+      <div class="c-flexbox">
+        <button id="bg-none-button" class="btn-secondary">背景無し</button>
+        <button id="bg-generate-button">生成する</button>
       </div>
-    </div>
-    <div id="bg-generate-modal" class="modal">
-      <div class="modal-content">
-        <p>背景画像を生成中...</p>
+      <div class="c-flexbox">
+        <button id="bg-close-modal-button" class="btn-close-modal">閉じる</button>
       </div>
     </div>
   </div>
+  <div id="bg-generate-modal" class="modal">
+    <div class="modal-content">
+      <p>背景画像を生成中...</p>
+    </div>
+  </div>
+</div>
+
+<!-- セーブ／ロードモーダル -->
+<div id="save-load-modal" class="modal">
+  <div class="modal-content save-load-modal-content" style="max-width:500px;">
+    <div id="slot-container">
+      <!-- スロット一覧: 全シナリオ共通 -->
+      <div id="slot-items-container"></div>
+
+      <!-- スロット追加ボタン -->
+      <button id="add-slot-button">＋</button>
+    </div>
+    <!-- セーブ／ロード操作ボタン -->
+    <div class="c-flexbox" style="margin-bottom:20px;">
+      <button id="do-save-button" style="display: none;">セーブ</button>
+      <button id="do-load-button">ロード</button>
+    </div>
+    <!-- ▼ 全クリアボタンを追加 -->
+    <div class="c-flexbox" style="margin-top:15px;">
+      <button id="clear-all-slots-button" style="background-color:#b71c1c; border-color:#b71c1c;">
+        全クリア
+      </button>
+    </div>
+    <button id="save-load-close-button" class="btn-close-modal">閉じる</button>
+  </div>
+</div>
 
   <div class="container">
 

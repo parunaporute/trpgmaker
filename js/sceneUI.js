@@ -8,30 +8,30 @@ window.addEventListener("DOMContentLoaded", () => {
   // ▼ アプリケーションバーに各種ボタンを動的追加
   // --------------------------------------------------
   const applicationBar = document.querySelector(".application-bar");
-  const changeBgButton = document.getElementById("change-bg-button");
-  if (applicationBar && changeBgButton) {
+  
+  // セーブボタンを基本として左に追加していく
+  const baseButton = document.getElementById("save-load-button"); 
+  if (applicationBar && baseButton) {
     // 履歴ボタン
     const historyBtn = document.createElement("button");
     historyBtn.id = "toggle-history-button";
     historyBtn.innerHTML = '<div class="iconmoon icon-newspaper"></div>履歴';
-    applicationBar.insertBefore(historyBtn, changeBgButton);
+    applicationBar.insertBefore(historyBtn, baseButton);
     historyBtn.addEventListener("click", toggleHistory);
 
     // PTボタン
     const partyButton = document.createElement("button");
     partyButton.id = "show-party-button";
     partyButton.innerHTML = '<div class="iconmoon icon-strategy"></div>PT';
-    applicationBar.insertBefore(partyButton, changeBgButton);
+    applicationBar.insertBefore(partyButton, baseButton);
     partyButton.addEventListener("click", showPartyModal);
 
     // 情報ボタン (アイテム/人物一覧)
     const infoButton = document.createElement("button");
     infoButton.id = "info-button";
-    infoButton.innerHTML = '情報';
-    applicationBar.insertBefore(infoButton, changeBgButton);
-    infoButton.addEventListener("click", () => {
-      openEntitiesModal();
-    });
+    infoButton.innerHTML = '<div class="iconmoon icon-strategy"></div>情報';
+    applicationBar.insertBefore(infoButton, baseButton);
+    infoButton.addEventListener("click", openEntitiesModal); // sceneExtras.js
   }
 
   // --------------------------------------------------
@@ -53,6 +53,13 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --------------------------------------------------
+  // ▼ セーブ/ロードモーダルのセーブボタン
+  // --------------------------------------------------
+  const doSaveButton = document.getElementById("do-save-button");
+  if (doSaveButton) {
+    doSaveButton.style.display = "block";
+  }
   // --------------------------------------------------
   // ▼ ネタバレボタン
   // --------------------------------------------------
