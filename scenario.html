@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>シンプルTRPG</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<!-- 黒背景 + 白文字ベースのCSS -->
+  <!-- 黒背景 + 白文字ベースのCSS -->
 <link rel="stylesheet" href="styles.css"/>
 <!-- サニタイズ -->
 <script src="https://cdn.jsdelivr.net/npm/dompurify@2/dist/purify.min.js"></script>
@@ -21,7 +21,7 @@
 </head>
 
 <body>
-<div class="application-bar">
+  <div class="application-bar">
   
 
     <!-- メニューに戻るボタン -->
@@ -117,12 +117,17 @@
                 </label>
               </div>
               <div style="display: flex;flex-direction: column;gap: 10px;">
-                <div id="action-candidates-container" style=""></div>
+                <div id="action-candidates-container"></div>
                 <textarea id="player-input" rows="4" placeholder="プレイヤーの行動を入力..."></textarea>
                 <div class="c-flexbox" style="margin-bottom: 0;">
                   <button id="next-scene" class="important" style="display:none; ">次のシーン</button>
                 </div>
 
+                <div class="c-flexbox">
+                  <!-- ▼ エンディング関連ボタン&モーダル（追加） -->
+                  <button id="ending-button" style="display:none;">エンディング</button>
+                  <button id="clear-ending-button" style="display:none;">クリア・エンディング</button>
+                </div>
               </div>
             </div>
             <!-- 2枚目 -->
@@ -143,11 +148,6 @@
 
     </div>
 
-    <div class="c-flexbox">
-      <!-- ▼ エンディング関連ボタン&モーダル（追加） -->
-      <button id="ending-button" style="display:none;">エンディング</button>
-      <button id="clear-ending-button" style="display:none;">クリア・エンディング</button>
-    </div>
   </div>
 
   <!-- 全セクションを閲覧するボタン -->
@@ -212,8 +212,10 @@
     <div class="modal-content" style="padding: 10vw;">
       <h2 id="ending-modal-title"></h2>
       <div id="ending-modal-story" style="white-space:pre-wrap; text-align:left; margin-top:10px;"></div>
-      <button id="ending-modal-close-button" style="margin-top:10px;">閉じる</button>
-      <button id="ending-modal-regenerate-button" style="margin-top:10px;">再生成</button>
+      <div class="c-flexbox">
+        <button id="ending-modal-close-button" style="margin-top:10px;">閉じる</button>
+        <button id="ending-modal-regenerate-button" style="margin-top:10px;">再生成</button>
+      </div>
     </div>
   </div>
 
@@ -255,7 +257,7 @@
 
   <!-- スクリプト群 -->
   <script src="js/indexedDB.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/sceneMain.js"></script>
   <script src="js/carousel.js"></script>
 
   <!-- ▼ 分割したscene系JSを新たに読み込む -->
@@ -275,4 +277,5 @@
   </script>
 
 </body>
+
 </html>
