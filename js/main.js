@@ -80,11 +80,7 @@ window.onload = async () => {
     });
   }
 
-  // ---------- 探索型「カードを取得する」ボタン ----------
-  const getCardButton = document.getElementById("get-card-button");
-  if (getCardButton) {
-    // ※ 実際の処理は scenarioPage.js で定義
-  }
+
 
   // 画像生成 (自動)
   const autoGenBtn = document.getElementById('image-auto-generate-button');
@@ -134,19 +130,4 @@ window.onload = async () => {
 
   await initBackground("scenario");
 
-  // イベント付与
-  const entityUpdateBtn = document.getElementById("entity-update-button");
-  if (entityUpdateBtn) {
-    entityUpdateBtn.addEventListener("click", () => {
-      onUpdateEntitiesFromAllScenes();
-    });
-  }
-  const infoCloseBtn = document.getElementById("info-close-button");
-  if (infoCloseBtn) {
-    infoCloseBtn.addEventListener("click", () => {
-      const infoModal = document.getElementById("info-modal");
-      if (infoModal) infoModal.classList.remove("active");
-    });
-  }
-  
 };
