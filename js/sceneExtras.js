@@ -371,7 +371,8 @@ window.renderEntitiesList = async function() {
     listDiv.appendChild(itemTitle);
 
     items.forEach((ent, index) => {
-      const row = createEntityRow(ent);
+      const odd = (index % 2 === 1);
+      const row = createEntityRow(ent, odd);
       listDiv.appendChild(row);
     });
   }
@@ -382,7 +383,8 @@ window.renderEntitiesList = async function() {
     listDiv.appendChild(charTitle);
 
     chars.forEach((ent, index) => {
-      const row = createEntityRow(ent);
+      const odd = (index % 2 === 1);
+      const row = createEntityRow(ent, odd);
       listDiv.appendChild(row);
     });
   }
@@ -392,7 +394,8 @@ window.renderEntitiesList = async function() {
   }
 };
 
-function createEntityRow(entity) {
+function createEntityRow(entity, isOdd) {
+  console.log("isOdd",isOdd);
   const row = document.createElement("div");
   row.className = "info-row";
   row.style.marginBottom = "20px";
@@ -402,30 +405,38 @@ function createEntityRow(entity) {
   topWrapper.style.alignItems = "center";
   topWrapper.style.overflow = "hidden";
 
-  // 画像
   if (entity.imageData) {
     const thumb = document.createElement("img");
     thumb.src = entity.imageData;
     thumb.alt = entity.name;
     thumb.style.height = "150px";
     thumb.style.objectFit = "contain";
-    thumb.style.float = "left";
-    thumb.style.paddingRight = "20px";
+    if (isOdd) {
+      thumb.style.float = "left";
+      thumb.style.paddingRight = "20px";
+    } else {
+      thumb.style.float = "right";
+      thumb.style.paddingLeft = "20px";
+    }
     thumb.style.borderRadius = "50%";
     thumb.style.shapeOutside = "circle(50%)";
     topWrapper.appendChild(thumb);
   }
 
-  // テキスト
   const infoSpan = document.createElement("span");
+  // アイテムかつ acquired=true の場合は名前に【使用可能】を付加
   let displayName = entity.name;
   if (entity.category === "item" && entity.acquired) {
     displayName += "【使用可能】";
   }
+
   infoSpan.innerHTML = `<h4>${displayName}</h4> ${entity.description}`;
+  
   topWrapper.appendChild(infoSpan);
 
-  // 下段：操作ボタン
+  row.appendChild(topWrapper);
+
+  // 下段： Wandボタン + ドロップダウン
   const bottomWrapper = document.createElement("div");
   bottomWrapper.className = "l-flexbox";
 
@@ -448,7 +459,8 @@ function createEntityRow(entity) {
   bottomWrapper.appendChild(dropdown);
 
   wandBtn.addEventListener("click", () => {
-    dropdown.style.display = (dropdown.style.display === "none") ? "block" : "none";
+    dropdown.style.display =
+      (dropdown.style.display === "none") ? "block" : "none";
   });
 
   const genBtn = dropdown.querySelector(".entity-generate");
@@ -458,6 +470,7 @@ function createEntityRow(entity) {
       await generateEntityImage(entity);
     });
   }
+
   const delBtn = dropdown.querySelector(".entity-delete");
   if (delBtn) {
     delBtn.addEventListener("click", async () => {
@@ -469,8 +482,6 @@ function createEntityRow(entity) {
   }
 
   topWrapper.appendChild(bottomWrapper);
-  row.appendChild(topWrapper);
-
   return row;
 }
 
