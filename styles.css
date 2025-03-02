@@ -2177,7 +2177,7 @@ button.important {
   line-height: 2rem;
   padding: 0;
 }
-#add-slot-button:hover{
+#add-slot-button:hover {
   border: none !important;
   box-shadow: none;
   background-color: rgba(0, 255, 55, 0.39) !important;
@@ -2190,7 +2190,7 @@ button.important {
 }
 .save-slot-row-container button {
   border: none;
-  
+
   min-width: initial;
   min-height: initial;
   background: none;
@@ -2201,7 +2201,7 @@ button.important {
 .save-slot-row-container button:hover {
   border: none !important;
   background-color: rgb(255 0 0 / 39%) !important;
-  
+
   min-width: initial;
   min-height: initial;
   background: none;
@@ -2249,4 +2249,8 @@ button.important {
 .save-slot-row input[type="radio"]:checked + label::before {
   background-color: #4caf50;
   border-color: #4caf50;
+}
+
+#info-modal {
+  z-index: 9998;
 }

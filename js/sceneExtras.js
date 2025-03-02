@@ -160,13 +160,13 @@ ${joinedSections}
 }
 
 /** 全セクションがクリア済みかどうか */
-window.areAllSectionsCleared = function() {
+window.areAllSectionsCleared = function () {
   if (!window.sections || !window.sections.length) return false;
   return window.sections.every(s => s.cleared);
 };
 
 /** エンディングボタン表示切り替え */
-window.refreshEndingButtons = function() {
+window.refreshEndingButtons = function () {
   const endingBtn = document.getElementById("ending-button");
   const clearEndingBtn = document.getElementById("clear-ending-button");
   if (!endingBtn || !clearEndingBtn) return;
@@ -200,7 +200,17 @@ window.refreshEndingButtons = function() {
 /* =============================
    エンティティ関連
 ============================= */
-window.onUpdateEntitiesFromAllScenes = async function() {
+
+/**
+ * まとめてリスト描画＆アイテムチップス更新を行うヘルパー関数
+ */
+async function refreshEntitiesAndChips() {
+  await renderEntitiesList();
+  await renderItemChips();
+}
+
+/** シナリオ全体のテキストから新規エンティティ(アイテム/キャラ)を抽出して登録 */
+window.onUpdateEntitiesFromAllScenes = async function () {
   if (!window.apiKey) {
     alert("APIキーが未設定です。");
     return;
@@ -325,7 +335,8 @@ ${scenarioText}
       };
       await addEntity(rec);
     }
-    await renderEntitiesList();
+    // ▼ ここでまとめてUIを更新
+    await refreshEntitiesAndChips();
     if (candidateListDiv) {
       candidateListDiv.innerHTML = "新しいアイテム/登場人物を自動登録しました。";
     }
@@ -339,7 +350,7 @@ ${scenarioText}
 };
 
 /** 情報モーダルを開いて一覧表示 */
-window.openEntitiesModal = async function() {
+window.openEntitiesModal = async function () {
   const infoModal = document.getElementById("info-modal");
   if (!infoModal) return;
   await renderEntitiesList();
@@ -350,7 +361,7 @@ window.openEntitiesModal = async function() {
   infoModal.classList.add("active");
 };
 
-window.renderEntitiesList = async function() {
+window.renderEntitiesList = async function () {
   const listDiv = document.getElementById("entity-list-container");
   if (!listDiv) return;
   listDiv.innerHTML = "";
@@ -395,7 +406,6 @@ window.renderEntitiesList = async function() {
 };
 
 function createEntityRow(entity, isOdd) {
-  console.log("isOdd",isOdd);
   const row = document.createElement("div");
   row.className = "info-row";
   row.style.marginBottom = "20px";
@@ -431,7 +441,7 @@ function createEntityRow(entity, isOdd) {
   }
 
   infoSpan.innerHTML = `<h4>${displayName}</h4> ${entity.description}`;
-  
+
   topWrapper.appendChild(infoSpan);
 
   row.appendChild(topWrapper);
@@ -477,7 +487,8 @@ function createEntityRow(entity, isOdd) {
       dropdown.style.display = "none";
       if (!confirm(`「${entity.name}」を削除しますか？`)) return;
       await deleteEntity(entity.entityId);
-      renderEntitiesList();
+      // ▼ 削除後にまとめて更新
+      await refreshEntitiesAndChips();
     });
   }
 
@@ -528,7 +539,8 @@ No text in the image, Anime style, best quality
     entity.imageData = dataUrl;
     await updateEntity(entity);
 
-    renderEntitiesList();
+    // ▼ 画像生成後にまとめて更新
+    await refreshEntitiesAndChips();
   } catch (err) {
     console.error("generateEntityImage失敗:", err);
     alert("画像生成失敗:\n" + err.message);
@@ -541,7 +553,7 @@ No text in the image, Anime style, best quality
 /* =============================
    パーティ表示 & 全セクション一覧
 ============================= */
-window.showPartyModal = function() {
+window.showPartyModal = function () {
   const modal = document.getElementById("party-modal");
   if (!modal) return;
   modal.classList.add("active");
@@ -583,7 +595,7 @@ function renderPartyCardsInModal() {
 function createPartyCardElement(c) {
   const cardEl = document.createElement("div");
   cardEl.className = "card ";
-  const rarityNum = (c.rarity || "★0").replace("★","").trim();
+  const rarityNum = (c.rarity || "★0").replace("★", "").trim();
   cardEl.className += "rarity" + rarityNum;
 
   cardEl.setAttribute("data-id", c.id);
@@ -637,7 +649,7 @@ function createPartyCardElement(c) {
   info.appendChild(sp);
 
   const cap = document.createElement("p");
-  cap.innerHTML = `<span>${c.caption}</span>`;
+  cap.innerHTML = `<span>${c.caption || "なし"}</span>`;
   info.appendChild(cap);
 
   cf.appendChild(info);
@@ -652,8 +664,15 @@ function createPartyCardElement(c) {
   return cardEl;
 }
 
+window.closePartyModal = function () {
+  const modal = document.getElementById("party-modal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+};
+
 /** 全セクション閲覧 */
-window.showAllSectionsModal = function() {
+window.showAllSectionsModal = function () {
   const modal = document.getElementById("all-sections-modal");
   if (!modal) return;
 
@@ -677,7 +696,7 @@ window.showAllSectionsModal = function() {
 };
 
 /** パーティ情報文章化（sceneManagerで利用） */
-window.buildPartyInsertionText = function(party) {
+window.buildPartyInsertionText = function (party) {
   let txt = "【パーティ編成情報】\n";
 
   const ava = party.find(e => e.role === "avatar");
@@ -742,12 +761,6 @@ function buildCardDescription(card) {
   result += `   【外見】${card.imageprompt || "なし"}\n`;
   return result;
 }
-
-/** ちょっとしたトースト表示 */
-window.showToast = function(message) {
-  alert(message);
-};
-
 
 /* =========================================================
    ▼ ここが今回の修正点：パーティモーダルの「閉じる」処理を追加
