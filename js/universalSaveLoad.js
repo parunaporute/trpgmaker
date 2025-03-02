@@ -36,11 +36,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // セーブロードボタン
   const saveLoadButton = document.getElementById("save-load-button");
-  saveLoadButton.addEventListener("click", () => {
-    openSaveLoadModal(); // universalSaveLoad.js
-  });
+  if (closeModalBtn) {
+    saveLoadButton.addEventListener("click", openSaveLoadModal); // universalSaveLoad.js
+  }
+
+  // ▼ 全クリアボタン
+  const clearAllSlotsBtn = document.getElementById("clear-all-slots-button");
+  if (clearAllSlotsBtn) {
+    clearAllSlotsBtn.addEventListener("click", onClearAllSlots);
+  }
 
 });
+
 
 /**
  * モーダルを開き、スロット一覧を表示
@@ -78,6 +85,15 @@ window.renderSlotList = async function () {
   // 全スロット取得
   const all = await listAllSlots();
   for (const slot of all) {
+    const rowContainer = document.createElement("div");
+    rowContainer.className = "save-slot-row-container";
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "save-slot-delete";
+    deleteButton.innerHTML = `<span class="iconmoon icon-cross"></span>`;
+    deleteButton.addEventListener("click", async (e) => {
+      e.stopPropagation(); // ラベルクリック(=ラジオ選択)と区別
+      await onDeleteSlot(slot.slotIndex);
+    });
     const row = document.createElement("div");
     row.className = "save-slot-row";
 
@@ -92,17 +108,35 @@ window.renderSlotList = async function () {
 
     if (!slot.data) {
       // 空き
-      label.textContent = `スロット${slot.slotIndex}: 空き`;
+      label.textContent = `${slot.slotIndex}: 空き`;
     } else {
       const ymd = (slot.updatedAt || "").split("T")[0];
       const title = slot.data.scenarioTitle || "NoTitle";
-      label.textContent = `スロット${slot.slotIndex}: ${ymd} ${title}`;
+      label.textContent = `${slot.slotIndex}: ${ymd} ${title}`;
     }
 
     row.appendChild(rb);
     row.appendChild(label);
-    container.appendChild(row);
+    rowContainer.appendChild(row);
+    rowContainer.appendChild(deleteButton);
+
+    container.appendChild(rowContainer);
   }
+};
+
+/**
+ * 個別スロットを削除
+ */
+window.onDeleteSlot = async function (slotIndex) {
+  // 確認
+  if (!confirm(`スロット${slotIndex}を削除します。よろしいですか？`)) {
+    return;
+  }
+  // 削除
+  await deleteUniversalSlot(slotIndex);
+
+  // 再描画
+  await renderSlotList();
 };
 
 /**
@@ -126,6 +160,7 @@ window.onAddSlot = async function () {
 
   await renderSlotList();
 };
+
 /**
  * 「セーブ」ボタン
  *   - 選択したスロットに現在シナリオの内容を詰める

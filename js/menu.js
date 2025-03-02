@@ -125,7 +125,7 @@ function createScenarioRow(scenario) {
     // 続きへボタン
     const btnContinue = document.createElement("button");
     btnContinue.type = "button";
-    btnContinue.textContent = "続きへ";
+    btnContinue.textContent = "始める";
     btnContinue.addEventListener("click", () => {
       window.location.href = `scenario.html?scenarioId=${scenario.scenarioId}`;
     });

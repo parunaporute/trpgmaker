@@ -2,12 +2,12 @@
 
 @font-face {
   font-family: "icomoon";
-  src: url("fonts/icomoon.eot?sdaqwee");
+  src: url("fonts/icomoon.eot?sdaqweg");
   src:
-    url("fonts/icomoon.eot?sdaqwee") format("embedded-opentype"),
-    url("fonts/icomoon.ttf?sdaqwee") format("truetype"),
-    url("fonts/icomoon.woff?sdaqwee") format("woff"),
-    url("fonts/icomoon.svg?sdaqwee") format("svg");
+    url("fonts/icomoon.eot?sdaqweg") format("embedded-opentype"),
+    url("fonts/icomoon.ttf?sdaqweg") format("truetype"),
+    url("fonts/icomoon.woff?sdaqweg") format("woff"),
+    url("fonts/icomoon.svg?sdaqweg") format("svg");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -17,152 +17,286 @@
   font-family: "icomoon" !important;
   font-size: 1.2rem;
 }
-
+.icon-dots-three-horizontal:before {
+  content: "\e900";
+  /* 3つ並んだ水平ドットのアイコン（メニュー、オプションなど） */
+}
+.icon-home:before {
+  content: "\e901";
+  /* 家のアイコン（ホーム画面、メインページなど） */
+}
+.icon-home3:before {
+  content: "\e902";
+  /* 別デザインのホームアイコン（ホーム画面、トップページ） */
+}
+.icon-home2:before {
+  content: "\e903";
+  /* もう一つのホームアイコン（ホーム画面、トップページ） */
+}
+.icon-save:before {
+  content: "\e904";
+  /* 保存のアイコン（セーブ、書き込みなど） */
+}
+.icon-address:before {
+  content: "\e905";
+  /* 住所アイコン（所在地、アドレス情報など） */
+}
+.icon-chat:before {
+  content: "\e906";
+  /* チャットのアイコン（会話、メッセージ、チャット画面など） */
+}
+.icon-credit-card:before {
+  content: "\e907";
+  /* クレジットカードのアイコン（支払い、決済など） */
+}
+.icon-documents:before {
+  content: "\e908";
+  /* ドキュメントのアイコン（複数書類、ファイルなど） */
+}
+.icon-flag1:before {
+  content: "\e909";
+  /* フラグアイコン（マーク、注目など） */
+}
+.icon-game-controller:before {
+  content: "\e90a";
+  /* ゲームコントローラーのアイコン（ゲーム関連、エンターテインメントなど） */
+}
+.icon-info-with-circle:before {
+  content: "\e90b";
+  /* 丸枠付きの情報アイコン（ヘルプ、案内など） */
+}
+.icon-info:before {
+  content: "\e90c";
+  /* 情報アイコン（ヘルプ、詳細情報など） */
+}
+.icon-mail:before {
+  content: "\e90d";
+  /* メールのアイコン（メッセージ、連絡先など） */
+}
+.icon-tag:before {
+  content: "\e90e";
+  /* タグのアイコン（分類、ラベルなど） */
+}
+.icon-typing:before {
+  content: "\e90f";
+  /* 入力中のアイコン（チャット、テキスト入力など） */
+}
+.icon-search:before {
+  content: "\e007";
+  /* 検索のアイコン（サーチ、虫眼鏡など） */
+}
+.icon-clipboard:before {
+  content: "\e008";
+  /* クリップボードのアイコン（コピー、貼り付け、メモなど） */
+}
 .icon-newspaper:before {
   content: "\e009";
   /* 新聞のアイコン（ニュース、記事など） */
 }
-
+.icon-book-open:before {
+  content: "\e00b";
+  /* 開いている本のアイコン（テキスト、ドキュメント参照など） */
+}
+.icon-browser:before {
+  content: "\e00c";
+  /* ブラウザアイコン（ウェブ閲覧、ページなど） */
+}
 .icon-picture:before {
   content: "\e00f";
-  /* 画像や写真のアイコン */
+  /* 画像アイコン（写真、ギャラリーなど） */
 }
-
+.icon-edit:before {
+  content: "\e01c";
+  /* 編集のアイコン（ペンツール、修正など） */
+}
+.icon-ribbon:before {
+  content: "\e01e";
+  /* リボンアイコン（受賞、バッジ、飾りなど） */
+}
+.icon-streetsign:before {
+  content: "\e029";
+  /* 道路標識アイコン（道案内、方向など） */
+}
+.icon-gears:before {
+  content: "\e02b";
+  /* ギア（歯車）アイコン（設定、オプションなど） */
+}
 .icon-key:before {
   content: "\e02c";
-  /* 鍵のアイコン（セキュリティ、アクセス管理） */
+  /* 鍵のアイコン（セキュリティ、ロックなど） */
 }
-
 .icon-strategy:before {
   content: "\e03b";
-  /* 戦略のアイコン（チェスの駒などの可能性） */
+  /* 戦略アイコン（プランニング、戦略的思考など） */
 }
-
 .icon-beaker:before {
   content: "\e03c";
-  /* フラスコやビーカーのアイコン（実験、科学） */
+  /* ビーカーアイコン（実験、化学、テストなど） */
 }
-
 .icon-profile-male:before {
   content: "\e040";
-  /* 男性のプロフィールアイコン */
+  /* 男性プロフィールアイコン（ユーザー、人物など） */
 }
-
-.icon-profile-female:before {
-  content: "\e041";
-  /* 女性のプロフィールアイコン */
+.icon-chat1:before {
+  content: "\e049";
+  /* 別デザインのチャットアイコン（会話、メッセージなど） */
 }
-
 .icon-target:before {
   content: "\e04e";
-  /* 的（ターゲット）のアイコン（目標や目的を示す） */
+  /* ターゲットアイコン（目標、的など） */
 }
-
-.icon-home3:before {
-  content: "\e902";
-  /* 家のアイコン（ホーム画面、トップページなど） */
+.icon-pacman:before {
+  content: "\e916";
+  /* パックマンアイコン（ゲーム、エンタメなど） */
 }
-
 .icon-book:before {
   content: "\e91f";
-  /* 本のアイコン（読書、文書関連） */
+  /* 本のアイコン（書籍、資料など） */
 }
-
 .icon-books:before {
   content: "\e920";
-  /* 複数の本のアイコン（図書、ライブラリ） */
+  /* 複数の本アイコン（ライブラリ、書籍集など） */
 }
-
 .icon-library:before {
   content: "\e921";
-  /* 図書館のアイコン（蔵書、知識） */
+  /* 図書館アイコン（ライブラリ、保管場所など） */
 }
-
-.icon-file-picture:before {
-  content: "\e927";
-  /* 画像ファイルのアイコン（写真、イメージ） */
-}
-
 .icon-folder-download:before {
   content: "\e933";
-  /* フォルダのダウンロードアイコン（ファイル保存） */
+  /* ダウンロードフォルダアイコン（ファイル取得など） */
 }
-
 .icon-folder-upload:before {
   content: "\e934";
-  /* フォルダのアップロードアイコン（ファイル送信） */
+  /* アップロードフォルダアイコン（ファイル送信など） */
 }
-
-.icon-user:before {
-  content: "\e971";
-  /* 一般的なユーザーのアイコン（アカウント、プロフィール） */
+.icon-price-tag:before {
+  content: "\e935";
+  /* プライスタグアイコン（値札、価格情報など） */
 }
-
-.icon-magic-wand:before {
-  content: "\e997";
-  /* 魔法の杖のアイコン（エフェクト、編集ツールなど） */
+.icon-price-tags:before {
+  content: "\e936";
+  /* プライスタグが複数のアイコン（複数の価格情報など） */
 }
-
-.icon-gift:before {
-  content: "\e99f";
-  /* ギフトのアイコン（プレゼント、報酬） */
+.icon-coin-dollar:before {
+  content: "\e93b";
+  /* ドル硬貨のアイコン（通貨、金銭、経済など） */
 }
-
-.icon-star-full:before {
-  content: "\e9d9";
-  /* 星（評価、ランク、お気に入り） */
+.icon-floppy-disk:before {
+  content: "\e962";
+  /* フロッピーディスクのアイコン（セーブ、保存など） */
 }
-
-.icon-heart:before {
-  content: "\e9da";
-  /* ハート（お気に入り、いいね） */
-}
-
-.icon-volume-high:before {
-  content: "\ea26";
-  /* 音量大のアイコン（スピーカー） */
-}
-
-.icon-volume-mute2:before {
-  content: "\ea2a";
-  /* ミュートのアイコン（音量オフ） */
-}
-
-.icon-sort-alpha-asc:before {
-  content: "\ea48";
-  /* アルファベット順（昇順）のアイコン */
-}
-
-.icon-sort-alpha-desc:before {
-  content: "\ea49";
-  /* アルファベット順（降順）のアイコン */
-}
-
-.icon-sort-amount-asc:before {
-  content: "\ea4c";
-  /* 数値ソート（小さい順） */
-}
-
-.icon-sort-amount-desc:before {
-  content: "\ea4d";
-  /* 数値ソート（大きい順） */
-}
-
-.icon-bin:before {
-  content: "\e9ac";
-  /* ゴミ箱 */
-}
-
-.icon-dots-three-horizontal:before {
-  content: "\e900";
-  /* ... */
-}
-
 .icon-undo2:before {
   content: "\e967";
-  /* undo */
+  /* 元に戻すアイコン（アンドゥ、巻き戻しなど） */
 }
-
+.icon-bubble:before {
+  content: "\e96b";
+  /* 吹き出しアイコン（コメント、メッセージなど） */
+}
+.icon-bubbles:before {
+  content: "\e96c";
+  /* 複数の吹き出しアイコン（会話、スレッドなど） */
+}
+.icon-bubbles2:before {
+  content: "\e96d";
+  /* 別デザインの複数吹き出しアイコン（メッセージやチャットなど） */
+}
+.icon-user:before {
+  content: "\e971";
+  /* ユーザーアイコン（人物、アカウントなど） */
+}
+.icon-cog:before {
+  content: "\e994";
+  /* 歯車アイコン（設定、オプションなど） */
+}
+.icon-magic-wand:before {
+  content: "\e997";
+  /* 魔法の杖アイコン（特別な操作、エフェクトなど） */
+}
+.icon-trophy:before {
+  content: "\e99e";
+  /* トロフィーのアイコン（受賞、実績、コンテストなど） */
+}
+.icon-gift:before {
+  content: "\e99f";
+  /* ギフトアイコン（プレゼント、特典など） */
+}
+.icon-bin:before {
+  content: "\e9ac";
+  /* ゴミ箱アイコン（削除、破棄など） */
+}
+.icon-bin2:before {
+  content: "\e9ad";
+  /* 別デザインのゴミ箱アイコン（削除、破棄など） */
+}
+.icon-flag:before {
+  content: "\e9cc";
+  /* フラグアイコン（マーク、印など） */
+}
+.icon-star-full:before {
+  content: "\e9d9";
+  /* 星のアイコン（お気に入り、評価など） */
+}
+.icon-heart:before {
+  content: "\e9da";
+  /* ハートアイコン（いいね、愛、好みなど） */
+}
+.icon-smile:before {
+  content: "\e9e1";
+  /* 笑顔アイコン（幸せ、嬉しいなど） */
+}
+.icon-sad:before {
+  content: "\e9e5";
+  /* 悲しい顔アイコン（落ち込み、悲哀など） */
+}
+.icon-confused:before {
+  content: "\e9f5";
+  /* 困惑した顔アイコン（混乱、不明など） */
+}
+.icon-neutral:before {
+  content: "\e9f7";
+  /* 無表情アイコン（特に感情なし、中立など） */
+}
+.icon-hipster:before {
+  content: "\e9f9";
+  /* ヒップスター風アイコン（おしゃれ、個性的など） */
+}
+.icon-cross:before {
+  content: "\ea0f";
+  /* バツ印のアイコン（閉じる、キャンセルなど） */
+}
+.icon-volume-high:before {
+  content: "\ea26";
+  /* 音量大のアイコン（最大音量、音声出力など） */
+}
+.icon-volume-mute2:before {
+  content: "\ea2a";
+  /* 音量ミュートアイコン（無音、ミュートなど） */
+}
+.icon-arrow-right:before {
+  content: "\ea34";
+  /* 右矢印アイコン（次へ、移動など） */
+}
+.icon-arrow-left:before {
+  content: "\ea38";
+  /* 左矢印アイコン（戻る、移動など） */
+}
+.icon-sort-alpha-asc:before {
+  content: "\ea48";
+  /* アルファベット昇順ソートのアイコン（A→Zの並びなど） */
+}
+.icon-sort-alpha-desc:before {
+  content: "\ea49";
+  /* アルファベット降順ソートのアイコン（Z→Aの並びなど） */
+}
+.icon-sort-numeric-asc:before {
+  content: "\ea4a";
+  /* 数値昇順ソートのアイコン（小さい数→大きい数など） */
+}
+.icon-sort-numberic-desc:before {
+  content: "\ea4b";
+  /* 数値降順ソートのアイコン（大きい数→小さい数など） */
+}
 
 /* ベース */
 body {
@@ -1176,7 +1310,6 @@ button.important {
 #open-tutorial-list-button {
   position: relative;
   margin-right: auto;
-
 }
 #save-load-button {
   position: relative;
@@ -1922,7 +2055,6 @@ button.important {
   z-index: 10;
 }
 
-
 /* front-dropdown-menu: ドロップダウン本体 */
 .front-dropdown-menu {
   position: absolute;
@@ -1970,13 +2102,13 @@ button.important {
 #dropdown-portal {
   box-sizing: border-box;
   position: absolute; /* ボタンクリック時にJSでtop/leftを計算して指定 */
-  display: none;      /* 初期は非表示 */
+  display: none; /* 初期は非表示 */
   flex-direction: column;
   min-width: 170px;
   background-color: #5f4c38;
   border: 1px solid #876d51;
   border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   padding: 5px;
   z-index: 9999; /* 最前面に */
 }
@@ -2032,12 +2164,45 @@ button.important {
 }
 #add-slot-button {
   width: 100%;
-  border: 1px dashed;
+  border: none !important;
+  background-color: rgba(255, 255, 255, 0.08);
   min-height: initial;
-  background: transparent;
   border-radius: 0;
   line-height: 2rem;
   padding: 0;
+}
+#add-slot-button:hover{
+  border: none !important;
+  box-shadow: none;
+  background-color: rgba(0, 255, 55, 0.39) !important;
+}
+
+.save-slot-row-container {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+}
+.save-slot-row-container button {
+  border: none;
+  
+  min-width: initial;
+  min-height: initial;
+  background: none;
+  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+}
+.save-slot-row-container button:hover {
+  border: none !important;
+  background-color: rgb(255 0 0 / 39%) !important;
+  
+  min-width: initial;
+  min-height: initial;
+  background: none;
+}
+
+.save-slot-row-container button .iconmoon {
+  font-size: 0.5rem !important;
 }
 .save-slot-row {
   display: flex;
@@ -2045,6 +2210,8 @@ button.important {
   background-color: rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   transition: background-color 0.2s;
+  margin-right: auto;
+  flex: 1;
 }
 .save-slot-row:hover {
   background-color: rgba(255, 255, 255, 0.15);
