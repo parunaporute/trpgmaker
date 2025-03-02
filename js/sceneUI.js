@@ -29,7 +29,7 @@ window.addEventListener("DOMContentLoaded", () => {
     // 情報ボタン (アイテム/人物一覧)
     const infoButton = document.createElement("button");
     infoButton.id = "info-button";
-    infoButton.innerHTML = '<div class="iconmoon icon-strategy"></div>情報';
+    infoButton.innerHTML = '<div class="iconmoon icon-info"></div>情報';
     applicationBar.insertBefore(infoButton, baseButton);
     infoButton.addEventListener("click", openEntitiesModal); // sceneExtras.js
   }
