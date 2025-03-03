@@ -470,7 +470,7 @@ function createEntityRow(entity, isOdd) {
 
   wandBtn.addEventListener("click", () => {
     dropdown.style.display =
-      (dropdown.style.display === "none") ? "block" : "none";
+      (dropdown.style.display === "none") ? "flex" : "none";
   });
 
   const genBtn = dropdown.querySelector(".entity-generate");
