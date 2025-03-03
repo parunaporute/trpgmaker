@@ -636,6 +636,7 @@ button:hover {
   transition: transform 0.3s ease;
   position: relative;
   max-width: 300px;
+  overflow: hidden;
 }
 
 .card-inner {

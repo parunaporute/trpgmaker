@@ -1,35 +1,49 @@
 // js/warehouse.js
-// 倉庫 + ゴミ箱タブを統合しつつ、もとのデザインを最大限尊重
+// 倉庫 + ゴミ箱タブを統合しつつ、画像プレビューは「クリックでボタン群を表示」のビューワ仕様へ。
 
 (() => {
+  // ▼ 現在プレビューしているカード
+  let currentPreviewedCard = null;
+
+  // ▼ モーダル要素
   let warehouseModal = null;
   let previewModal = null;
-  let warehouseMode = "menu";         // "menu" or "party"
-  let currentPartyIdForAdd = null;    // パーティID
-  let afterAddCallback = null;        // パーティ追加後のコールバック
-  let currentTab = "キャラクター";      // デフォルトタブ: "キャラクター" / "アイテム" / "モンスター" / "ゴミ箱"
 
-  // ▼ 「倉庫」タブでの選択モード
+  // ▼ 倉庫モード:
+  //    - "menu"  => メニューから開いた倉庫
+  //    - "party" => パーティ編集から開いた倉庫
+  let warehouseMode = "menu";
+
+  // ▼ パーティID + コールバック
+  let currentPartyIdForAdd = null;
+  let afterAddCallback = null;
+
+  // ▼ カレントタブ: "キャラクター" / "アイテム" / "モンスター" / "ゴミ箱"
+  let currentTab = "キャラクター";
+
+  // ▼ 選択モード (倉庫 / ゴミ箱)
   let warehouseSelectionMode = false;
-
-  // ▼ 「ゴミ箱」タブでの選択モード
   let trashSelectionMode = false;
 
+  // ▼ 現在表示すべきカード一覧
   let allCardsForCurrentTab = [];
+
+  // ▼ 1行に何枚カードを並べるか
   let cardsPerRow = 1;
+  // ▼ ロード済みの行数
   let loadedLineCount = 0;
+  // ▼ 1回あたり何行分読み込むか
   const LINES_PER_LOAD = 1;
 
-  // ==============================
-  // ソート設定 (タブごとに保持)
-  // ==============================
+  /****************************************************
+   * ソート設定（タブごとに保持）
+   ****************************************************/
   function setSortConfig(tabName, sortKey, sortDir) {
     localStorage.setItem(`warehouseSortKey_${tabName}`, sortKey);
     localStorage.setItem(`warehouseSortDir_${tabName}`, sortDir);
   }
 
   function getSortConfig(tabName) {
-    // ゴミ箱タブも含め、同じ仕組みで管理
     const sortKey = localStorage.getItem(`warehouseSortKey_${tabName}`) || "id";
     const sortDir = localStorage.getItem(`warehouseSortDir_${tabName}`) || "asc";
     return { sortKey, sortDir };
@@ -58,40 +72,39 @@
   }
 
   function getTimeFromId(cardId) {
-    // 例: "card_1690001234567_xxx"
+    // 例: "card_1690001234567_XXXX"
     const parts = cardId.split("_");
     if (parts.length < 3) return 0;
     const t = parseInt(parts[1], 10);
     return isNaN(t) ? 0 : t;
   }
 
-  // ==============================
-  // 倉庫モーダルが存在しなければ生成
-  // ==============================
+  /****************************************************
+   * 倉庫モーダルが未生成なら生成する
+   ****************************************************/
   function ensureWarehouseModalExists() {
+    // すでに存在するなら再利用
     if (document.getElementById("warehouse-modal")) {
       warehouseModal = document.getElementById("warehouse-modal");
       previewModal = document.getElementById("card-image-preview-modal");
       return;
     }
 
+    // ▼ HTMLを挿入
     const modalHTML = `
 <div id="warehouse-modal" class="modal">
   <div class="modal-content">
-    <!-- 閉じるボタン：もとのデザインを尊重し .close-warehouse-btn クラスのみ付与 -->
     <button id="close-warehouse-btn" class="close-warehouse-btn">✕</button>
 
     <h2>倉庫</h2>
 
-    <!-- 倉庫ヘッダー -->
     <div class="warehouse-header-bar">
       <div class="warehouse-left">
-        <!-- ▼ 倉庫用 選択モード -->
         <button id="toggle-warehouse-selection-mode-btn" style="margin:0;">選択モード</button>
         <button id="delete-selected-warehouse-btn" style="margin:0; display:none;">選択したカードをゴミ箱へ</button>
         <button id="add-to-party-btn" style="margin:0; display:none;">パーティに入れる</button>
 
-        <!-- ▼ ゴミ箱用 選択モード -->
+        <!-- ゴミ箱用 選択モード -->
         <button id="trash-selection-mode-btn" style="display:none;">選択モード</button>
         <button id="trash-restore-selected-btn" style="display:none;">選択したカードを元に戻す</button>
         <button id="trash-delete-selected-btn" style="display:none;background-color:#f44336;">選択したカードを完全削除</button>
@@ -101,7 +114,6 @@
           <div class="warehouse-tab" data-tab="キャラクター">キャラクター</div>
           <div class="warehouse-tab" data-tab="アイテム">アイテム</div>
           <div class="warehouse-tab" data-tab="モンスター">モンスター</div>
-          <!-- ▼ 追加:ゴミ箱 -->
           <div class="warehouse-tab" data-tab="ゴミ箱">ゴミ箱</div>
         </div>
       </div>
@@ -115,36 +127,45 @@
       </div>
     </div>
 
-    <!-- ▼ ゴミ箱タブ専用 すべて戻す/すべて削除 -->
+    <!-- ゴミ箱タブ専用: すべて戻す/すべて削除 -->
     <div class="c-flexbox" id="trash-all-actions" style="display:none;margin-bottom:0">
       <button id="trash-restore-all-btn">すべて戻す</button>
       <button id="trash-delete-all-btn" style="background-color:#f44336;">すべて完全削除</button>
     </div>
 
-    <!-- ▼ カード一覧をスクロール表示 -->
     <div id="warehouse-card-scroll-container" style="overflow-y:auto; width:100%; margin-top:0px;">
       <div id="warehouse-card-container" style="display:flex; flex-wrap:wrap; gap:20px; opacity:0; transition:opacity 0.3s ease;"></div>
     </div>
   </div>
 </div>
 
-<!-- 画像プレビュー用モーダル -->
+<!-- 画像プレビュー用モーダル(クリックでボタン群を出すスタイル) -->
 <div id="card-image-preview-modal" class="modal">
-  <div class="modal-content">
-    <img id="card-preview-img" src="" alt="card image" style="max-width:95vw; max-height:95vh;" />
-    <button id="card-preview-close-btn" style="margin-top:10px;">閉じる</button>
+  <div class="modal-content" style="position: relative; background-color: #000; overflow: hidden;">
+    <img id="card-preview-img" class="viewer-image" src="" alt="card preview" style="max-width:100%; max-height:100%; cursor: pointer;" />
+
+    <div id="card-preview-controls" class="viewer-controls hidden">
+      <div class="center-buttons">
+        <button id="card-preview-rotate-right-btn">右へ回転</button>
+      </div>
+      <div class="close-button-container">
+        <button id="card-preview-close-btn">閉じる</button>
+      </div>
+    </div>
   </div>
 </div>
     `;
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
+    // 変数へ参照をセット
     warehouseModal = document.getElementById("warehouse-modal");
     previewModal = document.getElementById("card-image-preview-modal");
 
-    // 閉じるボタン
-    document.getElementById("close-warehouse-btn").addEventListener("click", closeWarehouseModal);
+    // ▼ 閉じるボタン
+    document.getElementById("close-warehouse-btn")
+      .addEventListener("click", closeWarehouseModal);
 
-    // 倉庫(キャラ/アイテム/モンスター) 用の選択モード
+    // ▼ 倉庫側 選択モード
     document.getElementById("toggle-warehouse-selection-mode-btn")
       .addEventListener("click", toggleWarehouseSelectionMode);
     document.getElementById("delete-selected-warehouse-btn")
@@ -152,7 +173,7 @@
     document.getElementById("add-to-party-btn")
       .addEventListener("click", addSelectedCardsToParty);
 
-    // ゴミ箱 用の選択モード
+    // ▼ ゴミ箱側 選択モード
     document.getElementById("trash-selection-mode-btn")
       .addEventListener("click", toggleTrashSelectionMode);
     document.getElementById("trash-restore-selected-btn")
@@ -164,7 +185,7 @@
     document.getElementById("trash-delete-all-btn")
       .addEventListener("click", deleteAllTrashCards);
 
-    // タブクリック
+    // ▼ タブクリック
     const tabEls = warehouseModal.querySelectorAll(".warehouse-tab");
     tabEls.forEach(tabEl => {
       tabEl.addEventListener("click", () => {
@@ -175,42 +196,61 @@
       });
     });
 
-    // ソートUI
+    // ▼ ソートUI
     document.getElementById("warehouse-sort-dropdown")
       .addEventListener("change", onSortChange);
     document.getElementById("warehouse-sort-direction-btn")
       .addEventListener("click", onSortDirToggle);
 
-    // 画像プレビュー
-    document.getElementById("card-preview-close-btn").addEventListener("click", () => {
+    // ▼ プレビューのボタン群
+    const closePreviewBtn = document.getElementById("card-preview-close-btn");
+    closePreviewBtn.addEventListener("click", () => {
       previewModal.classList.remove("active");
+      currentPreviewedCard = null;
     });
-    previewModal.addEventListener("click", (e) => {
-      if (e.target === previewModal) {
-        previewModal.classList.remove("active");
+
+    const rotateBtn = document.getElementById("card-preview-rotate-right-btn");
+    rotateBtn.addEventListener("click", rotatePreviewImageRight);
+
+    // ▼ 画像をクリック -> ボタン群をトグル
+    const previewImg = document.getElementById("card-preview-img");
+    previewImg.addEventListener("click", () => {
+      const controls = document.getElementById("card-preview-controls");
+      if (controls) {
+        controls.classList.toggle("hidden");
       }
     });
 
-    // スクロールで末尾読み込み
+    // ▼ モーダル背景クリックでプレビュー閉じる(お好みで)
+    previewModal.addEventListener("click", (e) => {
+      if (e.target === previewModal) {
+        previewModal.classList.remove("active");
+        currentPreviewedCard = null;
+      }
+    });
+
+    // ▼ スクロール最下部で次行読み込み
     const scrollC = document.getElementById("warehouse-card-scroll-container");
     scrollC.addEventListener("scroll", onScrollCheck);
   }
 
-  // ==============================
-  // モーダルを開く
-  // ==============================
+  /****************************************************
+   * モーダルを表示・閉じる
+   ****************************************************/
   function showWarehouseModal(mode = "menu", partyId = null, onAddCb = null) {
     ensureWarehouseModalExists();
     warehouseMode = mode;
     currentPartyIdForAdd = partyId;
     afterAddCallback = onAddCb || null;
 
-    // デフォルトタブを キャラクター に
+    // ▼ デフォルトタブをキャラクターに
     currentTab = "キャラクター";
     const tabEls = warehouseModal.querySelectorAll(".warehouse-tab");
     tabEls.forEach(el => el.classList.remove("active"));
     const charTab = Array.from(tabEls).find(el => el.getAttribute("data-tab") === "キャラクター");
-    if (charTab) charTab.classList.add("active");
+    if (charTab) {
+      charTab.classList.add("active");
+    }
 
     warehouseSelectionMode = false;
     trashSelectionMode = false;
@@ -221,6 +261,7 @@
 
     warehouseModal.classList.add("active");
 
+    // ▼ ソートUI適用 + カード読み込み
     applySortUIFromStorage(currentTab);
     loadCardsByTab();
   }
@@ -231,38 +272,39 @@
     warehouseMode = "menu";
     currentPartyIdForAdd = null;
     afterAddCallback = null;
+    currentPreviewedCard = null;
   }
 
-  // ==============================
-  // タブに応じたカード一覧を読み込む
-  // ==============================
+  /****************************************************
+   * カード一覧をタブに応じて読み込み
+   ****************************************************/
   function loadCardsByTab() {
     const container = document.getElementById("warehouse-card-container");
     if (!container) return;
+
     container.innerHTML = "";
     container.style.visibility = "hidden";
     container.style.opacity = "0";
 
     if (currentTab === "ゴミ箱") {
-      // group="Trash"
       allCardsForCurrentTab = (window.characterData || []).filter(c => c.group === "Trash");
     } else {
-      // group="Warehouse" + type=タブ
       allCardsForCurrentTab = (window.characterData || [])
         .filter(c => c.group === "Warehouse" && c.type === currentTab);
     }
 
     loadedLineCount = 0;
 
-    // ソート
+    // ▼ ソート
     const config = getSortConfig(currentTab);
     applySort(allCardsForCurrentTab, config.sortKey, config.sortDir);
 
-    // ヘッダーUIをタブに合わせて更新
+    // ▼ タブごとのヘッダーUI
     updateHeaderUIForTab();
 
     cardsPerRow = calcCardsPerRow();
     loadNextLines(LINES_PER_LOAD);
+
     fillContainerIfNeeded(() => {
       container.style.visibility = "visible";
       container.style.opacity = "1";
@@ -274,13 +316,14 @@
     if (!container) return 1;
     const cw = container.clientWidth || 0;
     if (cw <= 0) return 1;
-    // 仮: 1カード幅300px, gap20pxとして計算
+
     let cardW = 300;
     let gap = 20;
     let per = 1;
     for (let n = 1; n <= 50; n++) {
       const totalW = n * cardW + (n - 1) * gap;
-      if (totalW <= cw) per = n; else break;
+      if (totalW <= cw) per = n;
+      else break;
     }
     return per;
   }
@@ -321,18 +364,21 @@
     const slice = allCardsForCurrentTab.slice(displayedCount, displayedCount + newCount);
 
     slice.forEach(card => {
-      const cardEl = (currentTab === "ゴミ箱")
-        ? createTrashCardElement(card)
-        : createWarehouseCardElement(card);
+      let cardEl;
+      if (currentTab === "ゴミ箱") {
+        cardEl = createTrashCardElement(card);
+      } else {
+        cardEl = createWarehouseCardElement(card);
+      }
       container.appendChild(cardEl);
     });
 
     loadedLineCount += lineCount;
   }
 
-  // ==============================
-  // ヘッダーUIの表示/非表示をタブで切り替え
-  // ==============================
+  /****************************************************
+   * タブによるヘッダーUI切り替え
+   ****************************************************/
   function updateHeaderUIForTab() {
     const toggleSelBtn = document.getElementById("toggle-warehouse-selection-mode-btn");
     const delSelBtn = document.getElementById("delete-selected-warehouse-btn");
@@ -344,7 +390,6 @@
     const trashAllActions = document.getElementById("trash-all-actions");
 
     if (currentTab === "ゴミ箱") {
-      // ゴミ箱タブ
       toggleSelBtn.style.display = "none";
       delSelBtn.style.display = "none";
       addPartyBtn.style.display = "none";
@@ -354,27 +399,26 @@
       trashDeleteSelBtn.style.display = "none";
       trashAllActions.style.display = "flex";
     } else {
-      // 倉庫タブ
       toggleSelBtn.style.display = "inline-block";
-      // 選択モードがOFFなので各ボタンは初期的に非表示に
-      updateWarehouseSelectionButtons();
-
       trashSelBtn.style.display = "none";
       trashRestoreSelBtn.style.display = "none";
       trashDeleteSelBtn.style.display = "none";
       trashAllActions.style.display = "none";
+
+      updateWarehouseSelectionButtons();
     }
   }
 
-  // ==============================
-  // 倉庫カード生成
-  // ==============================
+  /****************************************************
+   * 倉庫カード生成
+   ****************************************************/
   function createWarehouseCardElement(card) {
     const cardEl = document.createElement("div");
-    cardEl.className = "card rarity" + ((card.rarity || "").replace("★", "").trim());
+    const rarityVal = (card.rarity || "").replace("★", "").trim();
+    cardEl.className = "card rarity" + rarityVal;
     cardEl.setAttribute("data-id", card.id);
 
-    // 裏返しフラグ
+    // 裏返し
     if (card.flipped) {
       cardEl.classList.add("flipped");
     }
@@ -385,14 +429,14 @@
         cardEl.classList.toggle("selected");
         updateWarehouseSelectionButtons();
       } else {
-        // 裏表 or 画像プレビュー
+        // ▼ flipping or preview
         if (cardEl.classList.contains("flipped")) {
           cardEl.classList.remove("flipped");
           card.flipped = false;
           saveFlippedState(card.id, false);
         } else {
           if (card.imageData) {
-            openImagePreview(card.imageData);
+            openImagePreview(card);
           } else {
             showToast("画像がありません。");
           }
@@ -403,7 +447,7 @@
     const inner = document.createElement("div");
     inner.className = "card-inner";
 
-    // front
+    // FRONT
     const front = document.createElement("div");
     front.className = "card-front";
     const bgStyle = (card.backgroundcss || "")
@@ -413,7 +457,6 @@
     if (bgStyle) {
       front.style.backgroundImage = bgStyle;
     }
-    const rarityVal = (card.rarity || "").replace("★", "").trim();
     front.innerHTML = `<div class="bezel rarity${rarityVal}"></div>`;
 
     const typeEl = document.createElement("div");
@@ -423,13 +466,22 @@
 
     const imgC = document.createElement("div");
     imgC.className = "card-image";
+
     if (card.imageData) {
       const imgEl = document.createElement("img");
       imgEl.src = card.imageData;
       imgEl.alt = card.name || "";
+      // 回転角度を反映
+      if (card.rotationAngle) {
+        if (card.rotationAngle % 180 === 90) {
+          imgEl.style.transform = `rotate(${card.rotationAngle}deg) scale(1.5)`;
+        } else {
+          imgEl.style.transform = `rotate(${card.rotationAngle}deg)`;
+        }
+      }
       imgC.appendChild(imgEl);
     } else {
-      // 画像生成ボタン
+      // ▼ 画像生成ボタン
       const genBtn = document.createElement("button");
       genBtn.className = "gen-image-btn";
       genBtn.textContent = "画像生成";
@@ -441,6 +493,7 @@
     }
     front.appendChild(imgC);
 
+    // 情報
     const infoC = document.createElement("div");
     infoC.className = "card-info";
 
@@ -464,11 +517,10 @@
 
     front.appendChild(infoC);
 
-    // ゴミ箱へ移動
+    // ゴミ箱ボタン
     const delBtn = document.createElement("button");
     delBtn.title = "ゴミ箱へ移動";
     delBtn.innerHTML = `<span class="iconmoon icon-bin" style="font-size:1rem"></span>`;
-    // 下部に重ならない程度の絶対配置（z-index最小限）
     delBtn.style.position = "absolute";
     delBtn.style.right = "0";
     delBtn.style.bottom = "0";
@@ -490,7 +542,7 @@
     });
     front.appendChild(delBtn);
 
-    // back
+    // BACK
     const back = document.createElement("div");
     back.className = "card-back";
     back.innerHTML = `<strong>${DOMPurify.sanitize(card.type || "")}</strong>`;
@@ -498,6 +550,7 @@
     inner.appendChild(front);
     inner.appendChild(back);
     cardEl.appendChild(inner);
+
     return cardEl;
   }
 
@@ -509,12 +562,13 @@
     }
   }
 
-  // ==============================
-  // ゴミ箱カード生成
-  // ==============================
+  /****************************************************
+   * ゴミ箱カード生成
+   ****************************************************/
   function createTrashCardElement(card) {
     const cardEl = document.createElement("div");
-    cardEl.className = "card rarity" + ((card.rarity || "").replace("★", "").trim());
+    const rarityVal = (card.rarity || "").replace("★", "").trim();
+    cardEl.className = "card rarity" + rarityVal;
     cardEl.setAttribute("data-id", card.id);
 
     cardEl.addEventListener("click", (e) => {
@@ -528,6 +582,7 @@
     const inner = document.createElement("div");
     inner.className = "card-inner";
 
+    // FRONT
     const front = document.createElement("div");
     front.className = "card-front";
     const bgStyle = (card.backgroundcss || "")
@@ -537,7 +592,6 @@
     if (bgStyle) {
       front.style.backgroundImage = bgStyle;
     }
-    const rarityVal = (card.rarity || "").replace("★", "").trim();
     front.innerHTML = `<div class="bezel rarity${rarityVal}"></div>`;
 
     const typeEl = document.createElement("div");
@@ -551,12 +605,21 @@
       const imgEl = document.createElement("img");
       imgEl.src = card.imageData;
       imgEl.alt = card.name || "";
+      if (card.rotationAngle) {
+        if (card.rotationAngle % 180 === 90) {
+          imgEl.style.transform = `rotate(${card.rotationAngle}deg) scale(1.5)`;
+        } else {
+          imgEl.style.transform = `rotate(${card.rotationAngle}deg)`;
+        }
+      }
       imgC.appendChild(imgEl);
     }
     front.appendChild(imgC);
 
+    // 情報
     const infoC = document.createElement("div");
     infoC.className = "card-info";
+
     const nameP = document.createElement("p");
     nameP.innerHTML = `<h3>${DOMPurify.sanitize(card.name || "")}</h3>`;
     infoC.appendChild(nameP);
@@ -577,7 +640,7 @@
 
     front.appendChild(infoC);
 
-    // 倉庫に戻すボタン
+    // ▼ 倉庫に戻す
     const restoreBtn = document.createElement("button");
     restoreBtn.title = "倉庫に戻す";
     restoreBtn.innerHTML = `<span class="iconmoon icon-undo2" style="font-size:1rem"></span>`;
@@ -588,7 +651,6 @@
     restoreBtn.style.height = "35px";
     restoreBtn.style.minWidth = "35px";
     restoreBtn.style.minHeight = "35px";
-
     restoreBtn.style.backgroundColor = "#4caf50";
     restoreBtn.style.color = "#fff";
     restoreBtn.style.border = "none";
@@ -603,7 +665,7 @@
     });
     front.appendChild(restoreBtn);
 
-    // 完全削除ボタン
+    // ▼ 完全削除
     const delBtn = document.createElement("button");
     delBtn.title = "完全削除";
     delBtn.innerHTML = `<span class="iconmoon icon-bin" style="font-size:1rem"></span>`;
@@ -614,14 +676,12 @@
     delBtn.style.height = "35px";
     delBtn.style.minWidth = "35px";
     delBtn.style.minHeight = "35px";
-
     delBtn.style.backgroundColor = "#f44336";
     delBtn.style.color = "#fff";
     delBtn.style.border = "none";
     delBtn.style.borderRadius = "0 0 0 4px";
     delBtn.style.boxShadow = "inset 0 0 5px #161616";
     delBtn.style.zIndex = 10000;
-
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (confirm("このカードを完全に削除しますか？")) {
@@ -632,16 +692,16 @@
 
     const back = document.createElement("div");
     back.className = "card-back";
-
     inner.appendChild(front);
     inner.appendChild(back);
     cardEl.appendChild(inner);
+
     return cardEl;
   }
 
-  // ==============================
-  // 通常倉庫の選択モード
-  // ==============================
+  /****************************************************
+   * 倉庫選択モード（キャラ/アイテム/モンスター時）
+   ****************************************************/
   function toggleWarehouseSelectionMode() {
     warehouseSelectionMode = !warehouseSelectionMode;
     const btn = document.getElementById("toggle-warehouse-selection-mode-btn");
@@ -662,14 +722,11 @@
       addBtn.style.display = "none";
       return;
     }
-    // 選択されたカードがあるか
     const selected = document.querySelectorAll("#warehouse-card-container .card.selected");
     if (warehouseMode === "menu") {
-      // メニューから倉庫を開いたとき
       delBtn.style.display = (selected.length > 0) ? "inline-block" : "none";
       addBtn.style.display = "none";
     } else {
-      // パーティ編集から倉庫を開いたとき
       delBtn.style.display = "none";
       addBtn.style.display = (selected.length > 0) ? "inline-block" : "none";
     }
@@ -680,9 +737,9 @@
     sel.forEach(el => el.classList.remove("selected"));
   }
 
-  // ==============================
-  // ゴミ箱の選択モード
-  // ==============================
+  /****************************************************
+   * ゴミ箱選択モード
+   ****************************************************/
   function toggleTrashSelectionMode() {
     trashSelectionMode = !trashSelectionMode;
     const btn = document.getElementById("trash-selection-mode-btn");
@@ -712,9 +769,9 @@
     sel.forEach(el => el.classList.remove("selected"));
   }
 
-  // ==============================
-  // 画像生成
-  // ==============================
+  /****************************************************
+   * 画像生成
+   ****************************************************/
   async function generateWarehouseImage(card, btn) {
     const apiKey = window.apiKey || localStorage.getItem("apiKey");
     if (!apiKey) {
@@ -725,7 +782,6 @@
     showToast("画像を生成しています...");
 
     const rarityNum = parseInt((card.rarity || "").replace("★", ""), 10) || 0;
-    // レア度3以上なら縦、3未満なら横 (一例)
     const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
     const promptText =
       "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
@@ -753,7 +809,7 @@
 
       const base64 = data.data[0].b64_json;
       const dataUrl = "data:image/png;base64," + base64;
-      // 保存
+
       const idx = window.characterData.findIndex(c => c.id === card.id);
       if (idx !== -1) {
         window.characterData[idx].imageData = dataUrl;
@@ -769,20 +825,81 @@
     }
   }
 
-  // ==============================
-  // プレビュー
-  // ==============================
-  function openImagePreview(url) {
+  /****************************************************
+   * プレビューを開く (画像クリック)
+   ****************************************************/
+  function openImagePreview(card) {
     if (!previewModal) return;
     const img = document.getElementById("card-preview-img");
     if (!img) return;
-    img.src = url;
+
+    currentPreviewedCard = card;
+    img.src = card.imageData || "";
+
+    // 回転角度を適用
+    const angle = card.rotationAngle || 0;
+    if (angle % 180 === 90) {
+      img.style.transform = `rotate(${angle}deg) scale(1.5)`;
+    } else {
+      img.style.transform = `rotate(${angle}deg)`;
+    }
+
+    // ボタン群は最初隠す
+    const controls = document.getElementById("card-preview-controls");
+    if (controls) {
+      controls.classList.add("hidden");
+    }
+
+    // モーダルを表示
     previewModal.classList.add("active");
   }
 
-  // ==============================
-  // 再描画
-  // ==============================
+  /****************************************************
+   * 「右へ回転」ボタン
+   ****************************************************/
+  async function rotatePreviewImageRight() {
+    if (!currentPreviewedCard) return;
+    const newAngle = ((currentPreviewedCard.rotationAngle || 0) + 90) % 360;
+    currentPreviewedCard.rotationAngle = newAngle;
+
+    const img = document.getElementById("card-preview-img");
+    if (newAngle % 180 === 90) {
+      img.style.transform = `rotate(${newAngle}deg) scale(1.5)`;
+    } else {
+      img.style.transform = `rotate(${newAngle}deg)`;
+    }
+
+    // DBに保存
+    const idx = window.characterData.findIndex(c => c.id === currentPreviewedCard.id);
+    if (idx !== -1) {
+      window.characterData[idx].rotationAngle = newAngle;
+      await saveCharacterDataToIndexedDB(window.characterData);
+    }
+
+    // 倉庫一覧の該当カードにも反映
+    applyRotationToCardElement(currentPreviewedCard.id, newAngle);
+  }
+
+  /**
+   * 部分的にDOMを更新して回転を反映
+   */
+  function applyRotationToCardElement(cardId, angle) {
+    const cardEl = document.querySelector(`#warehouse-card-container .card[data-id="${cardId}"]`);
+    if (!cardEl) return;
+
+    const imgEl = cardEl.querySelector(".card-image img");
+    if (!imgEl) return;
+
+    if (angle % 180 === 90) {
+      imgEl.style.transform = `rotate(${angle}deg) scale(1.5)`;
+    } else {
+      imgEl.style.transform = `rotate(${angle}deg)`;
+    }
+  }
+
+  /****************************************************
+   * カード一覧再描画
+   ****************************************************/
   function reloadCurrentTabView() {
     const container = document.getElementById("warehouse-card-container");
     if (container) {
@@ -803,9 +920,7 @@
 
     loadNextLines(LINES_PER_LOAD);
 
-    // ▼ ここで fillContainerIfNeeded を呼ぶ
     fillContainerIfNeeded(() => {
-      // 読み込みが終わったら可視化する
       if (container) {
         container.style.visibility = "visible";
         container.style.opacity = "1";
@@ -813,9 +928,9 @@
     });
   }
 
-  // ==============================
-  // ソートUI操作
-  // ==============================
+  /****************************************************
+   * ソートUI変更時
+   ****************************************************/
   function onSortChange() {
     const sortKey = document.getElementById("warehouse-sort-dropdown").value;
     const { sortDir } = getSortConfig(currentTab);
@@ -845,9 +960,9 @@
       : `<span class="iconmoon icon-sort-alpha-desc"></span>`;
   }
 
-  // ==============================
-  // 倉庫 => ゴミ箱
-  // ==============================
+  /****************************************************
+   * 倉庫 -> ゴミ箱
+   ****************************************************/
   async function moveSingleCardToTrash(cardId) {
     const idx = window.characterData.findIndex(c => c.id === cardId);
     if (idx === -1) return;
@@ -864,6 +979,7 @@
       return;
     }
     if (!confirm("選択したカードをゴミ箱に移動します。よろしいですか？")) return;
+
     selected.forEach(el => {
       const cardId = el.getAttribute("data-id");
       const idx = window.characterData.findIndex(c => c.id === cardId);
@@ -875,9 +991,9 @@
     reloadCurrentTabView();
   }
 
-  // ==============================
-  // 倉庫 => パーティ
-  // ==============================
+  /****************************************************
+   * 倉庫 -> パーティ
+   ****************************************************/
   async function addSelectedCardsToParty() {
     if (warehouseMode !== "party") return;
     if (!currentPartyIdForAdd) {
@@ -907,9 +1023,9 @@
     updateWarehouseSelectionButtons();
   }
 
-  // ==============================
-  // ゴミ箱:単体復元
-  // ==============================
+  /****************************************************
+   * ゴミ箱: 単体復元
+   ****************************************************/
   async function restoreSingleCard(cardId) {
     const idx = window.characterData.findIndex(c => c.id === cardId);
     if (idx === -1) return;
@@ -918,7 +1034,9 @@
     reloadCurrentTabView();
   }
 
-  // ゴミ箱:単体完全削除
+  /****************************************************
+   * ゴミ箱: 単体完全削除
+   ****************************************************/
   async function deleteSingleCardPermanently(cardId) {
     const idx = window.characterData.findIndex(c => c.id === cardId);
     if (idx === -1) return;
@@ -927,7 +1045,9 @@
     reloadCurrentTabView();
   }
 
-  // ゴミ箱:選択復元
+  /****************************************************
+   * ゴミ箱: 選択復元
+   ****************************************************/
   async function restoreSelectedTrashCards() {
     const selected = document.querySelectorAll("#warehouse-card-container .card.selected");
     if (!selected.length) {
@@ -935,6 +1055,7 @@
       return;
     }
     if (!confirm("選択したカードを倉庫へ戻しますか？")) return;
+
     selected.forEach(el => {
       const cid = el.getAttribute("data-id");
       const idx = window.characterData.findIndex(c => c.id === cid);
@@ -946,7 +1067,9 @@
     reloadCurrentTabView();
   }
 
-  // ゴミ箱:選択削除
+  /****************************************************
+   * ゴミ箱: 選択削除
+   ****************************************************/
   async function deleteSelectedTrashCards() {
     const selected = document.querySelectorAll("#warehouse-card-container .card.selected");
     if (!selected.length) {
@@ -954,6 +1077,7 @@
       return;
     }
     if (!confirm("選択したカードを完全に削除します。よろしいですか？")) return;
+
     selected.forEach(el => {
       const cid = el.getAttribute("data-id");
       const idx = window.characterData.findIndex(c => c.id === cid);
@@ -965,7 +1089,9 @@
     reloadCurrentTabView();
   }
 
-  // ゴミ箱:すべて戻す
+  /****************************************************
+   * ゴミ箱: すべて戻す
+   ****************************************************/
   async function restoreAllTrashCards() {
     if (!confirm("ゴミ箱内のカードをすべて倉庫に戻しますか？")) return;
     window.characterData.forEach(c => {
@@ -977,7 +1103,9 @@
     reloadCurrentTabView();
   }
 
-  // ゴミ箱:すべて削除
+  /****************************************************
+   * ゴミ箱: すべて削除
+   ****************************************************/
   async function deleteAllTrashCards() {
     if (!confirm("ゴミ箱を空にします。完全に削除してよろしいですか？")) return;
     window.characterData = window.characterData.filter(c => c.group !== "Trash");
@@ -985,8 +1113,8 @@
     reloadCurrentTabView();
   }
 
-  // ==============================
-  // 外部公開
-  // ==============================
+  /****************************************************
+   * 外部に公開する関数
+   ****************************************************/
   window.showWarehouseModal = showWarehouseModal;
 })();
