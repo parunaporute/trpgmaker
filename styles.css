@@ -2236,6 +2236,7 @@ button.important {
   font-size: 0.9rem;
   display: flex;
   align-items: center;
+  text-align: left;
 }
 .save-slot-row label::before {
   content: "";
