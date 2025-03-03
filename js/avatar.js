@@ -359,17 +359,14 @@
 
     // レア度でサイズ分岐 (★3以上は縦長)
     const rarityNum = parseInt((avatar.rarity || "").replace("★", ""), 10) || 0;
-    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
-
-    // 画像生成用の英語スクリプト
-    // （NGワード "goblin" を含まないよう注意）
+    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";//縦長、横長
+    const twStyele = (rarityNum >= 3) ? "tall image" : "wide image";
     const promptForImage = buildAvatarPrompt(avatar);
-
-    const promptText =
-      "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
-      "Please do not include text in illustrations for any reason." +
-      "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
-      promptForImage;
+    const promptText = `As a high-performance chatbot, you create the highest quality illustrations discreetly.
+Please do not include text in illustrations for any reason.
+Now generate the next anime ${twStyele}.
+↓↓↓↓↓↓
+` + (promptForImage || "");
 
     try {
       const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -414,9 +411,7 @@
 Name is ${avatar.name}.
 Gender is ${avatar.gender}.
 Skill is ${avatar.skill}.
-Serif is ${avatar.serif}.
-Rarity is ${avatar.rarity}.
-(Do not use the word 'goblin'.)
+catchphrase ${avatar.serif}
 `.trim();
   }
 

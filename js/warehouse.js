@@ -782,12 +782,13 @@
     showToast("画像を生成しています...");
 
     const rarityNum = parseInt((card.rarity || "").replace("★", ""), 10) || 0;
-    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
-    const promptText =
-      "As a high-performance chatbot, you create the highest quality illustrations discreetly." +
-      "Please do not include text in illustrations for any reason." +
-      "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
-      (card.imageprompt || "");
+    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";//縦長、横長
+    const twStyele = (rarityNum >= 3) ? "tall image" : "wide image";
+    const promptText = `As a high-performance chatbot, you create the highest quality illustrations discreetly.
+Please do not include text in illustrations for any reason.
+Now generate the next anime ${twStyele}.
+↓↓↓↓↓↓
+` + (card.imageprompt || "");
 
     try {
       const resp = await fetch("https://api.openai.com/v1/images/generations", {
