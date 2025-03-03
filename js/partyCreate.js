@@ -39,14 +39,14 @@ window.initPartyCreatePage = async function () {
       // 新規
       const newId = await createParty(newName);
       currentPartyId = newId;
-      alert("パーティを新規作成しました (ID:" + newId + ")");
+      showToast("パーティを新規作成しました (ID:" + newId + ")");
     } else {
       // 既存パーティ名更新
       const pt = await getPartyById(currentPartyId);
       if (pt) {
         pt.name = newName;
         await updateParty(pt);
-        alert("パーティ名を更新しました (ID:" + currentPartyId + ")");
+        showToast("パーティ名を更新しました (ID:" + currentPartyId + ")");
       }
     }
   });

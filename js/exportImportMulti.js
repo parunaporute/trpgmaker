@@ -130,7 +130,7 @@ async function exportMetadataZip() {
     // zip ダウンロード
     const blob = await zip.generateAsync({ type: "blob" });
     saveAs(blob, "metadata.zip");
-    alert("メタデータのエクスポートが完了しました (metadata.zip)");
+    showToast("メタデータのエクスポートが完了しました (metadata.zip)");
   } catch (err) {
     console.error("exportMetadataZip失敗:", err);
     alert("メタデータのエクスポートに失敗:\n" + err.message);
@@ -170,7 +170,7 @@ async function exportImagesZip() {
     // zip ダウンロード
     const blob = await zip.generateAsync({ type: "blob" });
     saveAs(blob, "images.zip");
-    alert("画像のエクスポートが完了しました (images.zip)");
+    showToast("画像のエクスポートが完了しました (images.zip)");
   } catch (err) {
     console.error("exportImagesZip失敗:", err);
     alert("画像のエクスポートに失敗:\n" + err.message);
@@ -209,7 +209,7 @@ async function importMetadataZip(file) {
       await clearAndPutStoreData(storeName, dataArr);
     }
 
-    alert("メタデータZIPのインポートが完了しました");
+    showToast("メタデータZIPのインポートが完了しました");
   } catch (err) {
     console.error("importMetadataZip失敗:", err);
     alert("メタデータインポートに失敗:\n" + err.message);

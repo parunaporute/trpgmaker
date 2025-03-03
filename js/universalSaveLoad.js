@@ -232,7 +232,7 @@ window.onClickLoad = async function () {
   const slotIndex = parseInt(selected.value, 10);
   const slot = await getUniversalSave(slotIndex);
   if (!slot || !slot.data) {
-    alert("そのスロットは空きです。");
+    alert("そのスロットは空です。");
     return;
   }
 

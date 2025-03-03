@@ -509,7 +509,7 @@ function setupCopyModal() {
     }
     try {
       await copyScenario(scenarioToCopy.scenarioId);
-      alert("シナリオをコピーしました。");
+      showToast("シナリオをコピーしました。");
     } catch (e) {
       console.error(e);
       alert("コピーに失敗しました。");
@@ -757,7 +757,7 @@ function setupScenarioUpload() {
         await addSceneEntry(newEntry);
       }
 
-      alert("シナリオをアップロードしました。");
+      showToast("シナリオをアップロードしました。");
       refreshBookshelfView();
     } catch (err) {
       console.error("シナリオのアップロードに失敗:", err);
