@@ -58,6 +58,10 @@
         <label>特技</label>
         <textarea id="avatar-skill" rows="1"></textarea>
 
+        <!-- 職業項目を追加 -->
+        <label>職業</label>
+        <textarea id="avatar-job" rows="1"></textarea>
+
         <label>カードのセリフ</label>
         <textarea id="avatar-serif" rows="2"></textarea>
 
@@ -126,6 +130,7 @@
         name: "",
         gender: "男",   // 初期値
         skill: "",
+        job: "",
         serif: "",
         rarity: "★1", // 初期値
         imageData: "",   // 生成画像をbase64で保持
@@ -136,13 +141,14 @@
     // フォームに反映
     document.getElementById("avatar-name").value = currentAvatarData.name || "";
     document.getElementById("avatar-skill").value = currentAvatarData.skill || "";
+    document.getElementById("avatar-job").value = currentAvatarData.job || "";
     document.getElementById("avatar-serif").value = currentAvatarData.serif || "";
 
     // チップUI生成
-    setupChips("avatar-gender-chips", ["男","女","不定"], currentAvatarData.gender, (val) => {
+    setupChips("avatar-gender-chips", ["男", "女", "不定"], currentAvatarData.gender, (val) => {
       currentAvatarData.gender = val;
     });
-    setupChips("avatar-rarity-chips", ["★1","★2","★3","★4","★5"], currentAvatarData.rarity, (val) => {
+    setupChips("avatar-rarity-chips", ["★1", "★2", "★3", "★4", "★5"], currentAvatarData.rarity, (val) => {
       currentAvatarData.rarity = val;
     });
 
@@ -209,6 +215,7 @@
     // フォームから取得（チップ選択分は currentAvatarData に既に入っている）
     currentAvatarData.name = document.getElementById("avatar-name").value.trim();
     currentAvatarData.skill = document.getElementById("avatar-skill").value.trim();
+    currentAvatarData.job = document.getElementById("avatar-job").value.trim();
     currentAvatarData.serif = document.getElementById("avatar-serif").value.trim();
 
     // IndexedDBへ保存
@@ -298,6 +305,12 @@
       const skillEl = document.createElement("p");
       skillEl.innerHTML = `<strong>特技：</strong>${DOMPurify.sanitize(currentAvatarData.skill)}`;
       infoContainer.appendChild(skillEl);
+    }
+    // 職業
+    if (currentAvatarData.job) {
+      const jobEl = document.createElement("p");
+      jobEl.innerHTML = `<strong>職業：</strong>${DOMPurify.sanitize(currentAvatarData.job)}`;
+      infoContainer.appendChild(jobEl);
     }
 
     // セリフ
@@ -408,10 +421,10 @@ Now generate the next anime ${twStyele}.
    */
   function buildAvatarPrompt(avatar) {
     return `
-Name is ${avatar.name}.
-Gender is ${avatar.gender}.
-Skill is ${avatar.skill}.
-catchphrase ${avatar.serif}
+p;ease generate an image of the character.
+Job is ${avatar.job} . gender is ${avatar.gender}.
+Special Skills is ${avatar.skill}.
+{Please do not enter any characters}
 `.trim();
   }
 
