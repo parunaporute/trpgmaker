@@ -27,10 +27,46 @@ function initCarousel() {
   let startX = 0;
   let animationId = 0;
 
+  // MutationObserver でセルのサイズ変化を検知し、自動で再計算する ---
+  let mutationTimer = null;
+  const observer = new MutationObserver(() => {
+    // 連続で変化が起きても対応できるようdebounce
+    if (mutationTimer) {
+      clearTimeout(mutationTimer);
+    }
+    mutationTimer = setTimeout(() => {
+      // 内容が変わったあと、しばらくしてサイズ再計算
+      updateCellWidth();
+    }, 500);
+  });
+  observer.observe(track, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true
+  });
+  // -----------------------------------------------------------------------
+
+  // --- (追加) フォーカスを拾ってそのセルをアクティブ表示にする ---
+  track.addEventListener("focusin", (e) => {
+    // フォーカスされた要素がどの.cellに属するかを探す
+    const targetCell = e.target.closest(".carousel-cell");
+    if (!targetCell) return;
+
+    // allCells配列上のインデックスを取得
+    const idx = allCells.indexOf(targetCell);
+    if (idx === -1) return;
+
+    // クローン込みの currentIndex に設定して移動
+    currentIndex = idx;
+    setPositionByIndex(true);
+  });
+  // -----------------------------------------------------------------------
+
   // 3) タブボタンクリックで移動
   tabBtns.forEach((btn, i) => {
     btn.addEventListener("click", () => {
-      currentIndex = i + 1; // クローンが1枚あるので＋1
+      currentIndex = i + 1; // クローンが先頭に1枚あるので+1
       setPositionByIndex(true);
       updateActiveTab(i);
     });
@@ -69,6 +105,7 @@ function initCarousel() {
     if (!cellWidth) return;
 
     const tag = e.target.tagName.toLowerCase();
+    // テキストエリアやボタンなどはドラッグでスワイプしないように
     if (["textarea", "input", "button", "select"].includes(tag)) {
       return;
     }
@@ -86,7 +123,7 @@ function initCarousel() {
     const diff = currentX - startX;
     currentTranslate = prevTranslate + diff;
 
-    // クローンを含む範囲内で強制クリップ
+    // クローンを含む全体範囲で強制クリップ
     const maxTranslate = 0;
     const minTranslate = -cellWidth * (allCells.length - 1);
     if (currentTranslate > maxTranslate) {
@@ -95,10 +132,10 @@ function initCarousel() {
       currentTranslate = minTranslate;
     }
 
-    e.preventDefault(); // スクロール制御
+    e.preventDefault(); // 横スワイプを優先
   }
 
-  function dragEnd(e) {
+  function dragEnd() {
     if (!isDragging) return;
     isDragging = false;
     cancelAnimationFrame(animationId);
@@ -116,7 +153,9 @@ function initCarousel() {
 
   function animation() {
     track.style.transform = `translateX(${currentTranslate}px)`;
-    if (isDragging) requestAnimationFrame(animation);
+    if (isDragging) {
+      requestAnimationFrame(animation);
+    }
   }
 
   // 6) インデックスに応じた位置へ移動
@@ -132,30 +171,29 @@ function initCarousel() {
     const newTransform = `translateX(${currentTranslate}px)`;
     track.style.transform = newTransform;
 
-    // もしトランスフォームが変化しない（＝トランジションが発火しない）ならフォールバック
+    // トランジションが発火しない場合もあるので、一応フォールバック
     if (smooth && oldTransform === newTransform) {
       handleTransitionEndManually();
     }
   }
 
-  // 7) transitionend でクローンセルかを判定し、本物セルへ飛ばす
+  // 7) transitionend でクローンセル位置を調整
   track.addEventListener("transitionend", () => {
     handleTransitionEndManually();
   });
 
-  // 8) 手動フォールバック呼び出し用の関数
+  // 8) 実処理
   function handleTransitionEndManually() {
-    // 幅未確定なら何もしない
     if (!cellWidth) return;
 
-    // もし先頭クローン(index=0)にいる
+    // 先頭クローン(index=0)にいる → 最後の本物セルへ
     if (currentIndex === 0) {
       track.style.transition = "none";
       currentIndex = cells.length; // 本物の末尾
       currentTranslate = -cellWidth * currentIndex;
       track.style.transform = `translateX(${currentTranslate}px)`;
     }
-    // もし末尾クローン(index=allCells.length - 1)にいる
+    // 末尾クローン(index=allCells.length-1) → 先頭の本物セルへ
     else if (currentIndex === allCells.length - 1) {
       track.style.transition = "none";
       currentIndex = 1; // 本物の先頭
@@ -163,7 +201,7 @@ function initCarousel() {
       track.style.transform = `translateX(${currentTranslate}px)`;
     }
 
-    // タブ更新
+    // タブのactive表示を更新
     let realIndex = currentIndex - 1;
     if (realIndex < 0) realIndex = 0;
     if (realIndex >= cells.length) realIndex = cells.length - 1;
