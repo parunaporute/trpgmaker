@@ -8,9 +8,9 @@ window.addEventListener("DOMContentLoaded", () => {
   // ▼ アプリケーションバーに各種ボタンを動的追加
   // --------------------------------------------------
   const applicationBar = document.querySelector(".application-bar");
-  
+
   // セーブボタンを基本として左に追加していく
-  const baseButton = document.getElementById("save-load-button"); 
+  const baseButton = document.getElementById("save-load-button");
   if (applicationBar && baseButton) {
     // 履歴ボタン
     const historyBtn = document.createElement("button");
@@ -242,7 +242,7 @@ window.addEventListener("DOMContentLoaded", () => {
    シーン履歴表示、最新シーン表示など UI更新系関数
 =========================================================== */
 /** 履歴表示を更新 */
-window.updateSceneHistory = function() {
+window.updateSceneHistory = function () {
   const his = document.getElementById("scene-history");
   if (!his) return;
   his.innerHTML = "";
@@ -354,7 +354,7 @@ window.updateSceneHistory = function() {
     c.appendChild(wandBtn);
 
     wandBtn.addEventListener("click", () => {
-      dropdown.style.display = (dropdown.style.display === "none") ? "block" : "none";
+      dropdown.style.display = (dropdown.style.display === "none") ? "flex" : "none";
     });
 
     const delBtn = dropdown.querySelector(".scene-delete");
@@ -379,7 +379,7 @@ window.updateSceneHistory = function() {
 };
 
 /** 最新シーン表示 */
-window.showLastScene = function() {
+window.showLastScene = function () {
   const storyDiv = document.getElementById("story");
   const lastSceneImagesDiv = document.getElementById("last-scene-images");
   const lastSceneAdded = document.getElementById("last-scene-added");
@@ -504,7 +504,7 @@ window.showLastScene = function() {
    シーンテキスト編集、履歴トグル、アイテムchips表示 など
 =========================================================== */
 /** シーンorアクションのテキストを編集 */
-window.onSceneOrActionContentEdited = async function(sceneObj, newText, isActionEdit) {
+window.onSceneOrActionContentEdited = async function (sceneObj, newText, isActionEdit) {
   if (!window.apiKey) return;
   const oldText = isActionEdit ? sceneObj.action.content : sceneObj.content;
   if (newText.trim() === oldText.trim()) {
@@ -539,7 +539,7 @@ window.onSceneOrActionContentEdited = async function(sceneObj, newText, isAction
 };
 
 /** 履歴表示のトグル */
-window.toggleHistory = async function() {
+window.toggleHistory = async function () {
   if (!window.currentScenario) return;
   const hist = document.getElementById("scene-history");
   if (!hist) return;
@@ -551,7 +551,7 @@ window.toggleHistory = async function() {
 };
 
 /** アイテムチップスを表示 */
-window.renderItemChips = async function() {
+window.renderItemChips = async function () {
   const container = document.getElementById("item-chips-container");
   if (!container) return;
   container.innerHTML = "";
@@ -634,10 +634,19 @@ window.renderItemChips = async function() {
     };
     container.appendChild(chip);
   });
+
+  // 「更新」チップを最後に配置 ---
+  const updateChip = document.createElement("div");
+  updateChip.className = "chip chip-withimage";
+  updateChip.textContent = "更新";
+  updateChip.onclick = () => {
+    onUpdateEntitiesFromAllScenes();
+  };
+  container.appendChild(updateChip);
 };
 
 /** シーン削除 */
-window.deleteScene = async function(sceneObj) {
+window.deleteScene = async function (sceneObj) {
   const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
   const scRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
   if (scRec) {
@@ -654,7 +663,7 @@ window.deleteScene = async function(sceneObj) {
 };
 
 /** 挿絵生成 */
-window.generateImageForScene = async function(sceneObj) {
+window.generateImageForScene = async function (sceneObj) {
   if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
@@ -749,7 +758,7 @@ window.generateImageForScene = async function(sceneObj) {
    回答候補生成、トークン調整、カスタム画像生成モーダル 等
 =========================================================== */
 /** 回答候補を生成 */
-window.onGenerateActionCandidates = async function() {
+window.onGenerateActionCandidates = async function () {
   if (!window.apiKey) {
     alert("APIキー未設定");
     return;
@@ -764,7 +773,7 @@ window.onGenerateActionCandidates = async function() {
   const wd = window.currentScenario?.wizardData;
   let conditionText = "";
   if (wd && wd.sections && wd.sections.length > 0) {
-    const sorted = wd.sections.slice().sort((a,b) => a.number - b.number);
+    const sorted = wd.sections.slice().sort((a, b) => a.number - b.number);
     const firstUncleared = sorted.find(sec => !sec.cleared);
     if (firstUncleared) {
       conditionText = decompressCondition(firstUncleared.conditionZipped);
@@ -847,7 +856,7 @@ ${conditionText}
 };
 
 /** トークン調整ボタン押下 */
-window.onOpenTokenAdjustModal = function() {
+window.onOpenTokenAdjustModal = function () {
   let missingCount = window.scenes.filter(sc => !sc.content_en).length;
   const msg = `${missingCount}件のシーン/アクションに内部英語データがありません。生成しますか？`;
   document.getElementById("token-adjust-message").textContent = msg;
@@ -857,7 +866,7 @@ window.onOpenTokenAdjustModal = function() {
 };
 
 /** トークン調整 (英語データ生成) の実行 */
-window.onConfirmTokenAdjust = async function() {
+window.onConfirmTokenAdjust = async function () {
   const mod = document.getElementById("token-adjust-modal");
   const prog = document.getElementById("token-adjust-progress");
 
@@ -893,7 +902,7 @@ window.onConfirmTokenAdjust = async function() {
 };
 
 /** カスタム画像生成モーダルを開く */
-window.openImagePromptModal = function(scenePrompt = "", index = null) {
+window.openImagePromptModal = function (scenePrompt = "", index = null) {
   const ip = document.getElementById("image-custom-prompt");
   if (ip) {
     ip.value = scenePrompt || "";
@@ -905,7 +914,7 @@ window.openImagePromptModal = function(scenePrompt = "", index = null) {
 };
 
 /** カスタム画像生成モーダルを閉じる */
-window.closeImagePromptModal = function() {
+window.closeImagePromptModal = function () {
   const modal = document.getElementById("image-prompt-modal");
   if (modal) {
     modal.classList.remove("active");
@@ -913,7 +922,7 @@ window.closeImagePromptModal = function() {
 };
 
 /** カスタム画像を生成 */
-window.onCustomImageGenerate = async function() {
+window.onCustomImageGenerate = async function () {
   if (!window.apiKey) {
     alert("APIキーが設定されていません。");
     return;
@@ -1010,7 +1019,7 @@ window.imageViewerState = {
 };
 
 /** ビューワを開く */
-window.openImageViewer = function(sceneObj, startIndex) {
+window.openImageViewer = function (sceneObj, startIndex) {
   window.imageViewerState.sceneObj = sceneObj;
   window.imageViewerState.currentIndex = startIndex;
   window.imageViewerState.images = sceneObj.images || [];
