@@ -1,10 +1,10 @@
 // partyList.js
 
 let editingPartyId = null;
-
 window.addEventListener("load", async () => {
   // IndexedDB初期化
   await initIndexedDB();
+  await initBackground("partyList");
 
   // パーティ一覧を取得して描画
   await renderPartyList();
