@@ -12,8 +12,95 @@
  * を保存する方式。
  ************************************************************/
 
+let saveLoadModal = null; // 生成したモーダルの参照
+
+/**
+ * セーブ／ロードモーダルを動的に生成する
+ */
+function createSaveLoadModal() {
+  // すでに生成済みならスキップ
+  if (saveLoadModal) return;
+
+  // ラッパdiv
+  saveLoadModal = document.createElement("div");
+  saveLoadModal.id = "save-load-modal";
+  saveLoadModal.classList.add("modal");
+
+  // モーダルコンテンツ
+  const modalContent = document.createElement("div");
+  modalContent.classList.add("modal-content", "save-load-modal-content");
+  modalContent.style.maxWidth = "500px";
+
+  // slot-container
+  const slotContainer = document.createElement("div");
+  slotContainer.id = "slot-container";
+
+  // slot-items-container
+  const slotItemsContainer = document.createElement("div");
+  slotItemsContainer.id = "slot-items-container";
+  slotContainer.appendChild(slotItemsContainer);
+
+  // スロット追加ボタン (+)
+  const addSlotBtn = document.createElement("button");
+  addSlotBtn.id = "add-slot-button";
+  addSlotBtn.textContent = "＋";
+  slotContainer.appendChild(addSlotBtn);
+
+  // ボタン群 (セーブ／ロード)
+  const flexBox1 = document.createElement("div");
+  flexBox1.classList.add("c-flexbox");
+  flexBox1.style.marginBottom = "20px";
+
+  const doSaveBtn = document.createElement("button");
+  doSaveBtn.id = "do-save-button";
+  doSaveBtn.style.display = "none"; // デフォルト非表示
+  doSaveBtn.textContent = "保存";
+
+  const doLoadBtn = document.createElement("button");
+  doLoadBtn.id = "do-load-button";
+  doLoadBtn.textContent = "始める";
+
+  flexBox1.appendChild(doSaveBtn);
+  flexBox1.appendChild(doLoadBtn);
+
+  // 全クリアボタン
+  const flexBox2 = document.createElement("div");
+  flexBox2.classList.add("c-flexbox");
+  flexBox2.style.marginTop = "15px";
+
+  const clearAllSlotsBtn = document.createElement("button");
+  clearAllSlotsBtn.id = "clear-all-slots-button";
+  clearAllSlotsBtn.style.backgroundColor = "#b71c1c";
+  clearAllSlotsBtn.style.borderColor = "#b71c1c";
+  clearAllSlotsBtn.textContent = "全クリア";
+
+  flexBox2.appendChild(clearAllSlotsBtn);
+
+  // 閉じるボタン
+  const closeModalBtn = document.createElement("button");
+  closeModalBtn.id = "save-load-close-button";
+  closeModalBtn.classList.add("btn-close-modal");
+  closeModalBtn.textContent = "閉じる";
+
+  // 各要素をmodalContentへ配置
+  modalContent.appendChild(slotContainer);
+  modalContent.appendChild(flexBox1);
+  modalContent.appendChild(flexBox2);
+  modalContent.appendChild(closeModalBtn);
+
+  // モーダル全体に組み立て
+  saveLoadModal.appendChild(modalContent);
+
+  // body へ追加
+  document.body.appendChild(saveLoadModal);
+}
+
 /* DOM構築後にイベント紐づけ */
 document.addEventListener("DOMContentLoaded", () => {
+  // 1) 先にモーダルDOMを生成
+  createSaveLoadModal();
+
+  // 2) 生成済み要素を取得してイベントを紐づける
   const addSlotBtn = document.getElementById("add-slot-button");
   if (addSlotBtn) {
     addSlotBtn.addEventListener("click", onAddSlot);
@@ -34,10 +121,10 @@ document.addEventListener("DOMContentLoaded", () => {
     closeModalBtn.addEventListener("click", closeSaveLoadModal);
   }
 
-  // セーブロードボタン
+  // セーブロードボタン（画面上の「続き」ボタン）
   const saveLoadButton = document.getElementById("save-load-button");
-  if (closeModalBtn) {
-    saveLoadButton.addEventListener("click", openSaveLoadModal); // universalSaveLoad.js
+  if (saveLoadButton) {
+    saveLoadButton.addEventListener("click", openSaveLoadModal);
   }
 
   // ▼ 全クリアボタン
@@ -45,7 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (clearAllSlotsBtn) {
     clearAllSlotsBtn.addEventListener("click", onClearAllSlots);
   }
-
 });
 
 
@@ -87,6 +173,7 @@ window.renderSlotList = async function () {
   for (const slot of all) {
     const rowContainer = document.createElement("div");
     rowContainer.className = "save-slot-row-container";
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "save-slot-delete";
     deleteButton.innerHTML = `<span class="iconmoon icon-cross"></span>`;
@@ -94,6 +181,7 @@ window.renderSlotList = async function () {
       e.stopPropagation(); // ラベルクリック(=ラジオ選択)と区別
       await onDeleteSlot(slot.slotIndex);
     });
+
     const row = document.createElement("div");
     row.className = "save-slot-row";
 
@@ -119,7 +207,6 @@ window.renderSlotList = async function () {
     row.appendChild(label);
     rowContainer.appendChild(row);
     rowContainer.appendChild(deleteButton);
-
     container.appendChild(rowContainer);
   }
 };
