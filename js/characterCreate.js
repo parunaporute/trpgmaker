@@ -1,10 +1,4 @@
 // characterCreate.js
-window.addEventListener("DOMContentLoaded", function () {
-  // メニューに戻るボタン
-  document.getElementById("back-to-menu").addEventListener("click", function () {
-    window.location.href = "index.html";
-  });
-});
 
 // グローバル変数
 window.apiKey = localStorage.getItem("apiKey") || "";
@@ -708,3 +702,10 @@ function fillDummyItemsForLastRow(container, realCount) {
     container.appendChild(dummyEl);
   }
 }
+
+window.addEventListener("DOMContentLoaded", function () {
+  // メニューに戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+  });
+});

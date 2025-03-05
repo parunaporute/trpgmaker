@@ -445,3 +445,21 @@ function showLoadingModal(show) {
     m.classList.remove("active");
   }
 }
+
+window.addEventListener("load", async () => {
+  await initIndexedDB();
+  // APIキー読み込み
+  const savedApiKey = localStorage.getItem('apiKey');
+  if (savedApiKey) {
+    window.apiKey = savedApiKey;
+  }
+  await initBackground("customScenario");
+  initCustomScenario(); // ← customScenario.js 内の初期化
+});
+
+window.addEventListener("DOMContentLoaded", function () {
+  // メニューに戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+  });
+});
