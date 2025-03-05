@@ -55,6 +55,7 @@ window.apiKey = localStorage.getItem("apiKey") || "";
 window.addEventListener("load", async () => {
   // 1) IndexedDBを初期化
   await initIndexedDB();
+  await initBackground("scenarioWizard");
 
   // 2) 以前のウィザード状態があれば読み込む
   const storedWizard = await loadWizardDataFromIndexedDB();
@@ -1234,3 +1235,9 @@ function onCancelFetch() {
   showLoadingModal(false);
   // 必要なら fetch の AbortController を呼ぶ等
 }
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("back-to-menu").addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+});

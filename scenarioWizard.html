@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <title>新しいシナリオ作成ウィザード</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css" />
 <!-- 黒背景 + 白文字ベースのCSS -->
 <link rel="stylesheet" href="styles.css"/>
 <!-- サニタイズ -->
@@ -261,18 +260,6 @@
   <script src="js/indexedDB.js"></script>
   <!-- シナリオウィザード用スクリプト -->
   <script src="js/scenarioWizard.js"></script>
-
-  <script>
-    document
-      .getElementById("back-to-menu")
-      .addEventListener("click", () => {
-        window.location.href = "index.html";
-      });
-
-    window.addEventListener("load", async () => {
-      await initBackground("scenarioWizard");
-    });
-  </script>
 </body>
 
 </html>
