@@ -191,21 +191,6 @@
   <!-- characterCreate.js（改変版） -->
   <script src="js/characterCreate.js"></script>
 
-  <script>
-    // ページ読み込み時にDB初期化 & 背景適用
-    window.addEventListener("load", async () => {
-      await initIndexedDB();
-      // 背景初期化(選択済みがあれば適用)
-      await initBackground("characterCreate");
-    });
-
-    // メニューに戻るボタン
-    document
-      .getElementById("back-to-menu")
-      .addEventListener("click", function () {
-        window.location.href = "index.html";
-      });
-  </script>
 </body>
 
 </html>

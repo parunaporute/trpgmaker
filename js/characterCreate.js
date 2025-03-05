@@ -1,4 +1,10 @@
 // characterCreate.js
+window.addEventListener("DOMContentLoaded", function () {
+  // メニューに戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+  });
+});
 
 // グローバル変数
 window.apiKey = localStorage.getItem("apiKey") || "";
@@ -24,6 +30,8 @@ let deletingChipCategory = "";
 window.addEventListener("load", async function () {
   // 1) IndexedDB初期化 & キャラデータロード
   await initIndexedDB();
+  // 背景初期化(選択済みがあれば適用)
+  await initBackground("characterCreate");
   const storedChars = await loadCharacterDataFromIndexedDB();
   if (storedChars) {
     window.characterData = storedChars;
@@ -104,7 +112,7 @@ window.addEventListener("load", async function () {
     // モーダルを閉じる（UI的に消したい場合）
     document.getElementById("gacha-modal").classList.remove("active");
   });
-  
+
   // 画面リサイズ時に再度「直近生成カード」を描画し直す
   window.addEventListener("resize", () => {
     const reIdsStr = localStorage.getItem("latestCreatedIds") || "[]";
