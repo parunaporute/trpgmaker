@@ -60,19 +60,6 @@
   <script src="js/indexedDB.js"></script>
   <script src="js/partyCreate.js"></script>
   <script src="js/warehouse.js"></script>
-
-  <!-- ページ読込時にDB初期化 → initPartyCreatePage() -->
-  <script>
-    window.addEventListener("DOMContentLoaded", async () => {
-      try {
-        await initIndexedDB();
-        await initBackground("partyCreate");
-        initPartyCreatePage();
-      } catch (e) {
-        console.error("DB初期化エラー:", e);
-      }
-    });
-  </script>
 </body>
 
 </html>
