@@ -260,14 +260,6 @@
 
   <script src="js/indexedDB.js"></script>
   <script src="js/bookshelfPage.js"></script>
-  <script>
-    window.addEventListener("DOMContentLoaded", async () => {
-      await initIndexedDB();
-      await initBackground("bookshelf");
-      initBookshelfPage(); // 本棚ページ初期化
-      setupScenarioUpload(); // シナリオアップロード処理のセットアップ
-    });
-  </script>
 </body>
 
 </html>
