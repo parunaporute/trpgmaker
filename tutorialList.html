@@ -5,7 +5,6 @@
   <meta charset="UTF-8"/>
   <title>取説一覧</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css"/>
 <!-- 黒背景 + 白文字ベースのCSS -->
 <link rel="stylesheet" href="styles.css"/>
 <!-- サニタイズ -->
@@ -110,20 +109,5 @@
 
   </div>
   <script src="js/indexedDB.js"></script>
-  <script>
-    // ページ読み込み時にDB初期化 & 背景適用
-    window.addEventListener("load", async () => {
-      await initIndexedDB();
-      // 背景初期化(選択済みがあれば適用)
-      await initBackground("TutorialCreate");
-    });
-
-    // メニューに戻るボタン
-    document
-      .getElementById("back-to-menu")
-      .addEventListener("click", function () {
-        window.location.href = "index.html";
-      });
-  </script>
 </body>
 </html>

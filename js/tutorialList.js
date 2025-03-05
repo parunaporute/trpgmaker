@@ -1,6 +1,17 @@
 // tutorialList.js
+// ページ読み込み時にDB初期化 & 背景適用
+window.addEventListener("load", async () => {
+  await initIndexedDB();
+  // 背景初期化(選択済みがあれば適用)
+  await initBackground("TutorialCreate");
+});
 
 document.addEventListener("DOMContentLoaded", () => {
+  // メニューに戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+  });
+
   const tutorialListContainer = document.getElementById("tutorial-list-container");
   if (!tutorialListContainer) return;
 
@@ -98,7 +109,7 @@ function createTutorialRow(tutorial) {
   resetBtn.textContent = "リセット";
   resetBtn.style.marginLeft = "10px";
   resetBtn.style.width = "5rem";
-  
+
   resetBtn.style.display = "none"; // 初期は非表示
 
   resetBtn.addEventListener("click", () => {
