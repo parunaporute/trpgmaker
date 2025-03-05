@@ -896,3 +896,10 @@ function initBookshelfListAccordion() {
     }
   });
 }
+
+window.addEventListener("DOMContentLoaded", async () => {
+  await initIndexedDB();
+  await initBackground("bookshelf");
+  initBookshelfPage(); // 本棚ページ初期化
+  setupScenarioUpload(); // シナリオアップロード処理のセットアップ
+});
