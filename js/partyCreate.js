@@ -1,12 +1,11 @@
 // js/partyCreate.js
-// ページ読み込み時にDB初期化 & 背景適用
-window.addEventListener("load", async () => {
+
+window.addEventListener("DOMContentLoaded", async () => {
+  // まず最初に DB 初期化
   await initIndexedDB();
   // 背景初期化(選択済みがあれば適用)
   await initBackground("partyCreate");
-});
 
-window.addEventListener("DOMContentLoaded", async () => {
   // URLパラメータで partyId を取得
   const urlParams = new URLSearchParams(window.location.search);
   let currentPartyId = parseInt(urlParams.get("partyId"), 10);
