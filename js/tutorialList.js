@@ -1,12 +1,9 @@
 // tutorialList.js
 // ページ読み込み時にDB初期化 & 背景適用
-window.addEventListener("load", async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   await initIndexedDB();
   // 背景初期化(選択済みがあれば適用)
   await initBackground("TutorialCreate");
-});
-
-document.addEventListener("DOMContentLoaded", () => {
   // メニューに戻るボタン
   document.getElementById("back-to-menu").addEventListener("click", function () {
     window.location.href = "index.html";

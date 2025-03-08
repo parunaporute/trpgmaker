@@ -20,12 +20,21 @@ let currentOtherCategory = "";
 let deletingChipLabel = "";
 let deletingChipCategory = "";
 
-// ページ読み込み時
-window.addEventListener("load", async function () {
-  // 1) IndexedDB初期化 & キャラデータロード
+
+
+window.addEventListener("DOMContentLoaded", async function () {
+    // 1) IndexedDB初期化 & キャラデータロード
   await initIndexedDB();
   // 背景初期化(選択済みがあれば適用)
   await initBackground("characterCreate");
+  // メニューに戻るボタン
+  document.getElementById("back-to-menu").addEventListener("click", function () {
+    window.location.href = "index.html";
+  });
+});
+
+// ページ読み込み時
+window.addEventListener("load", async function () {
   const storedChars = await loadCharacterDataFromIndexedDB();
   if (storedChars) {
     window.characterData = storedChars;
@@ -702,10 +711,3 @@ function fillDummyItemsForLastRow(container, realCount) {
     container.appendChild(dummyEl);
   }
 }
-
-window.addEventListener("DOMContentLoaded", function () {
-  // メニューに戻るボタン
-  document.getElementById("back-to-menu").addEventListener("click", function () {
-    window.location.href = "index.html";
-  });
-});

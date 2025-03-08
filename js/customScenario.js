@@ -446,7 +446,7 @@ function showLoadingModal(show) {
   }
 }
 
-window.addEventListener("load", async () => {
+window.addEventListener("DOMContentLoaded", async function () {
   await initIndexedDB();
   // APIキー読み込み
   const savedApiKey = localStorage.getItem('apiKey');
@@ -454,12 +454,13 @@ window.addEventListener("load", async () => {
     window.apiKey = savedApiKey;
   }
   await initBackground("customScenario");
-  initCustomScenario(); // ← customScenario.js 内の初期化
-});
 
-window.addEventListener("DOMContentLoaded", function () {
   // メニューに戻るボタン
   document.getElementById("back-to-menu").addEventListener("click", function () {
     window.location.href = "index.html";
   });
+});
+
+window.addEventListener("load", async () => {
+  initCustomScenario(); // ← customScenario.js 内の初期化
 });
