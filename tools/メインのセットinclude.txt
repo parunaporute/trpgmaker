@@ -1,0 +1,9 @@
+..\\scenario.html 
+..\\js\\sceneExtras.js 
+..\\js\\sceneGlobals.js 
+..\\js\\sceneMain.js 
+..\\js\\sceneManager.js 
+..\\js\\sceneUI.js 
+..\\styles.css 
+..\\js\\indexedDB.js 
+..\\js\\carousel.js 

@@ -1,0 +1,6 @@
+..\\partyCreate.html 
+..\\partyList.html 
+..\\styles.css 
+..\\js\\partyCreate.js 
+..\\js\\partyList.js 
+..\\js\\warehouse.js 

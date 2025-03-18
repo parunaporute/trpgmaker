@@ -1,0 +1,9 @@
+..\\index.html 
+..\\styles.css 
+..\\js\\avatar.js 
+..\\js\\background.js 
+..\\js\\common.js 
+..\\js\\indexedDB.js 
+..\\js\\menu.js 
+..\\js\\trash.js 
+..\\js\\warehouse.js 
