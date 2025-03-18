@@ -3,19 +3,12 @@
 // グローバルに保持しておく
 let currentPageName = "index"; // デフォルトは index
 
-// 生成したモーダル要素への参照
-let bgModal = null;
-let bgGenerateModal = null;
-
 /**
  * 初期化処理：ページロード後に呼び出し
  * pageName は例："index", "characterCreate", "partyCreate"など
  */
 async function initBackground(pageName = "index") {
   currentPageName = pageName;
-
-  // まずモーダルDOMを動的に生成
-  createBgModals();
 
   // localStorage から そのページ専用のID または "none" を読み取り
   let selectedId = localStorage.getItem("selectedBgId_" + pageName);
@@ -71,13 +64,24 @@ async function onChangeBgButtonClick() {
  * 新規背景生成
  */
 async function generateNewBackground() {
-  if (!bgGenerateModal) return;
-  bgGenerateModal.classList.add("active");
+  // 1) 「背景画像を生成中...」のモーダルを開く
+  let generatingModal = multiModal.open({
+    title: "背景画像を生成中",
+    contentHtml: `<p>しばらくお待ちください...</p>`,
+    showCloseButton: false,
+    closeOnOutsideClick: false
+  });
 
   try {
     const apiKey = localStorage.getItem("apiKey") || "";
     if (!apiKey) {
-      alert("APIキーが未設定です。");
+      // APIキー未設定なら警告モーダルを出す
+      generatingModal.close();
+      multiModal.open({
+        title: "エラー",
+        contentHtml: "<p>APIキーが設定されていません。</p>",
+        cancelLabel: "閉じる"
+      });
       return;
     }
 
@@ -93,7 +97,7 @@ async function generateNewBackground() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: "dall-e-3",
@@ -129,9 +133,18 @@ async function generateNewBackground() {
 
   } catch (err) {
     console.error("背景生成失敗:", err);
-    alert("背景生成失敗: " + err.message);
+    generatingModal.close(); // 一旦閉じる
+    // エラーダイアログ
+    multiModal.open({
+      title: "背景生成失敗",
+      contentHtml: `<p>${DOMPurify.sanitize(err.message)}</p>`,
+      cancelLabel: "閉じる"
+    });
   } finally {
-    bgGenerateModal.classList.remove("active");
+    // 成功・失敗に関係なく、生成中モーダルを閉じる
+    if (generatingModal && generatingModal.isOpen) {
+      generatingModal.close();
+    }
   }
 }
 
@@ -139,17 +152,58 @@ async function generateNewBackground() {
  * 背景選択モーダルを開く
  */
 async function openBgModal() {
-  if (!bgModal) return;
-  bgModal.classList.add("active");
+  // multiModalで「背景選択」モーダルを開く
+  multiModal.open({
+    title: "背景選択",
+    contentHtml: `
+      <div id="bg-stock-container" class="bg-stock-grid" style="margin-bottom:10px;"></div>
+      <div class="c-flexbox" style="margin-bottom:10px;">
+        <button id="bg-none-button">背景無し</button>
+        <button id="bg-generate-button">生成する</button>
+      </div>
+    `,
+    showCloseButton: true,
+    appearanceType: "center",
+    closeOnOutsideClick: true,
+    cancelLabel: "閉じる",
+    onOpen: async () => {
+      // モーダル生成後に要素がDOMに存在する → ここでイベント＆表示更新
+      const container = document.getElementById("bg-stock-container");
+      if (!container) return;
 
-  const container = document.getElementById("bg-stock-container");
-  if (!container) return;
+      const noneBtn = document.getElementById("bg-none-button");
+      const genBtn = document.getElementById("bg-generate-button");
 
-  container.innerHTML = "";
+      // ボタンイベント付与
+      if (noneBtn) {
+        noneBtn.addEventListener("click", () => {
+          onBgNoneButton();
+        });
+      }
+      if (genBtn) {
+        genBtn.addEventListener("click", async () => {
+          await generateNewBackground();
+          // 再描画
+          await refreshBgStock(container);
+        });
+      }
+
+      // ストック一覧を初回表示
+      await refreshBgStock(container);
+    }
+  });
+}
+
+/**
+ * 背景一覧を container に再描画
+ */
+async function refreshBgStock(containerEl) {
+  if (!containerEl) return;
+  containerEl.innerHTML = "";
 
   const all = await getAllBgImages();
   if (all.length === 0) {
-    container.textContent = "ストックが空です。";
+    containerEl.textContent = "ストックが空です。";
     return;
   }
 
@@ -185,26 +239,35 @@ async function openBgModal() {
     delBtn.textContent = "×";
     delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const ok = confirm("この背景を削除しますか？");
-      if (!ok) return;
-      await deleteBgImage(img.id);
+      // confirm代わりに multiModal を使用
+      multiModal.open({
+        title: "背景削除確認",
+        contentHtml: `<p>この背景を削除しますか？</p>`,
+        showCloseButton: true,
+        appearanceType: "center",
+        closeOnOutsideClick: true,
+        okLabel: "OK",
+        cancelLabel: "キャンセル",
+        onOk: async () => {
+          await deleteBgImage(img.id);
 
-      // 削除したIDを使っているページキーがあれば削除
-      for (const k of Object.keys(localStorage)) {
-        if (k.startsWith("selectedBgId_")) {
-          const stored = localStorage.getItem(k);
-          if (stored === String(img.id)) {
-            localStorage.removeItem(k);
+          // 削除したIDを使っているページキーがあれば削除
+          for (const k of Object.keys(localStorage)) {
+            if (k.startsWith("selectedBgId_")) {
+              const stored = localStorage.getItem(k);
+              if (stored === String(img.id)) {
+                localStorage.removeItem(k);
+              }
+            }
           }
+          // 再描画
+          await refreshBgStock(containerEl);
         }
-      }
-
-      // 再描画
-      await openBgModal();
+      });
     });
     wrap.appendChild(delBtn);
 
-    container.appendChild(wrap);
+    containerEl.appendChild(wrap);
   });
 }
 
@@ -217,15 +280,6 @@ function onBgNoneButton() {
   // 選択キーに "none" をセット
   localStorage.setItem("selectedBgId_" + currentPageName, "none");
   // (indexで"none"を選んでも、他ページの"none"設定を消すロジックは特に無い)
-}
-
-/**
- * モーダルを閉じる
- */
-function closeBgModal() {
-  if (bgModal) {
-    bgModal.classList.remove("active");
-  }
 }
 
 /**
@@ -242,7 +296,9 @@ function removeAllNoneSettingsExceptIndex() {
   }
 }
 
-/* ----- ここから先は IndexedDB 関連など、背景画像管理のヘルパー ----- */
+/* -----------------------------------------
+   ここからは IndexedDB 関連など、背景画像管理のヘルパー
+----------------------------------------- */
 
 // 追加(保存)
 function addBgImage(dataUrl) {
@@ -358,82 +414,4 @@ async function fetchLatestScenarioPrompt() {
     "Now generate the next anime wide image.\n↓↓↓↓↓↓\n" +
     rawText
   );
-}
-
-/* -----------------------------------------
- * ここから「背景選択モーダル」と「背景生成モーダル」の
- * DOM構造をまとめて生成する処理
- * ----------------------------------------- */
-function createBgModals() {
-  // すでに生成済みなら何もしない
-  if (bgModal && bgGenerateModal) return;
-
-  // ▼ 背景選択モーダル
-  bgModal = document.createElement("div");
-  bgModal.id = "bg-modal";
-  bgModal.classList.add("modal");
-  // modal-content
-  const modalContent = document.createElement("div");
-  modalContent.classList.add("modal-content", "bg-modal-content");
-
-  // タイトル
-  const h2 = document.createElement("h2");
-  h2.textContent = "背景選択";
-  modalContent.appendChild(h2);
-
-  // ストック表示コンテナ
-  const stockContainer = document.createElement("div");
-  stockContainer.id = "bg-stock-container";
-  stockContainer.classList.add("bg-stock-grid");
-  modalContent.appendChild(stockContainer);
-
-  // ボタン群 (背景無し／生成する)
-  const flexBox1 = document.createElement("div");
-  flexBox1.classList.add("c-flexbox");
-  const noneBtn = document.createElement("button");
-  noneBtn.id = "bg-none-button";
-  noneBtn.classList.add("btn-secondary");
-  noneBtn.textContent = "背景無し";
-  noneBtn.addEventListener("click", onBgNoneButton);
-
-  const genBtn = document.createElement("button");
-  genBtn.id = "bg-generate-button";
-  genBtn.textContent = "生成する";
-  genBtn.addEventListener("click", async () => {
-    await generateNewBackground();
-    await openBgModal(); // 再生成後、一覧を更新してモーダルを開き直す
-  });
-
-  flexBox1.appendChild(noneBtn);
-  flexBox1.appendChild(genBtn);
-  modalContent.appendChild(flexBox1);
-
-  // ボタン群 (閉じる)
-  const flexBox2 = document.createElement("div");
-  flexBox2.classList.add("c-flexbox");
-  const closeModalBtn = document.createElement("button");
-  closeModalBtn.id = "bg-close-modal-button";
-  closeModalBtn.classList.add("btn-close-modal");
-  closeModalBtn.textContent = "閉じる";
-  closeModalBtn.addEventListener("click", closeBgModal);
-
-  flexBox2.appendChild(closeModalBtn);
-  modalContent.appendChild(flexBox2);
-
-  bgModal.appendChild(modalContent);
-
-  // ▼ 背景生成中モーダル
-  bgGenerateModal = document.createElement("div");
-  bgGenerateModal.id = "bg-generate-modal";
-  bgGenerateModal.classList.add("modal");
-  const genModalContent = document.createElement("div");
-  genModalContent.classList.add("modal-content");
-  const p = document.createElement("p");
-  p.textContent = "背景画像を生成中...";
-  genModalContent.appendChild(p);
-  bgGenerateModal.appendChild(genModalContent);
-
-  // 最後にbodyへ追加
-  document.body.appendChild(bgModal);
-  document.body.appendChild(bgGenerateModal);
 }
