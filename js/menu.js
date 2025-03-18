@@ -19,7 +19,7 @@ function fadeInPlay(audio) {
         clearInterval(fadeInInterval);
       }
     }, 100);
-  }).catch(err => { });
+  }).catch(err => { /* ユーザー操作待ちなどで発生 */ });
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -168,7 +168,7 @@ function applyScenarioFilter(showHidden) {
 
   // 4) すでにDOMにあるがフィルタに合わなくなったものを削除
   for (const sid in existingMap) {
-    if (!filteredIds.has(sid)) {
+    if (!filteredIds.has(Number(sid))) {
       existingMap[sid].remove(); // DOMから削除
       delete existingMap[sid];
     }
@@ -283,8 +283,29 @@ function createScenarioRow(scenario) {
     btnDelete.textContent = "削除する";
     btnDelete.style.backgroundColor = "#f44336";
     btnDelete.addEventListener("click", () => {
-      scenarioIdToDelete = scenario.scenarioId;
-      showDeleteScenarioModal(true);
+      // multiModal で削除確認ダイアログを開く
+      multiModal.open({
+        title: "シナリオ削除の確認",
+        contentHtml: `<p>このシナリオを削除します。よろしいですか？</p>`,
+        showCloseButton: true,
+        appearanceType: "center",
+        closeOnOutsideClick: true,
+        okLabel: "OK",
+        cancelLabel: "キャンセル",
+        onOk: async () => {
+          try {
+            await deleteScenarioById(scenario.scenarioId);
+            showToast(`シナリオ(ID:${scenario.scenarioId})を削除しました。`);
+            // cachedScenarios から削除
+            window.cachedScenarios = window.cachedScenarios.filter(s => s.scenarioId !== scenario.scenarioId);
+            // DOM要素も削除
+            removeScenarioFromDOM(scenario.scenarioId);
+          } catch (err) {
+            console.error(err);
+            showToast("シナリオ削除に失敗:\n" + err.message);
+          }
+        }
+      });
     });
     div.appendChild(btnDelete);
   }
@@ -354,82 +375,24 @@ async function toggleHideFromHistoryFlag(scenario, hideFlag) {
 
 /** 「非表示にする」ボタン押下時の確認モーダル表示 */
 function showHideConfirmModal(scenario) {
-  let modal = document.getElementById("hide-from-history-modal");
-  if (!modal) {
-    // 存在しなければ新規作成
-    modal = document.createElement("div");
-    modal.id = "hide-from-history-modal";
-    modal.className = "modal";
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width:400px;">
-        <p>本当に非表示にしますか？</p>
-        <div class="c-flexbox">
-          <button id="hide-from-history-ok">OK</button>
-          <button id="hide-from-history-cancel">キャンセル</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-  modal.classList.add("active");
-
-  // 前回リスナーが残っている場合を考慮し、一旦置き換えて再度 addEventListener
-  const okBtn = modal.querySelector("#hide-from-history-ok");
-  const cancelBtn = modal.querySelector("#hide-from-history-cancel");
-  okBtn.replaceWith(okBtn.cloneNode(true));
-  cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-
-  // OK
-  modal.querySelector("#hide-from-history-ok").addEventListener("click", async () => {
-    try {
-      await toggleHideFromHistoryFlag(scenario, true);
-      showToast(`シナリオ(ID:${scenario.scenarioId})を非表示にしました。`);
-    } catch (err) {
-      console.error(err);
-      showToast("非表示フラグ切り替えに失敗:\n" + err.message);
+  multiModal.open({
+    title: "シナリオを非表示",
+    contentHtml: `<p>このシナリオを履歴から非表示にします。よろしいですか？</p>`,
+    showCloseButton: true,
+    appearanceType: "center",
+    closeOnOutsideClick: true,
+    okLabel: "OK",
+    cancelLabel: "キャンセル",
+    onOk: async () => {
+      try {
+        await toggleHideFromHistoryFlag(scenario, true);
+        showToast(`シナリオ(ID:${scenario.scenarioId})を非表示にしました。`);
+      } catch (err) {
+        console.error(err);
+        showToast("非表示フラグ切り替えに失敗:\n" + err.message);
+      }
     }
-    modal.classList.remove("active");
   });
-
-  // キャンセル
-  modal.querySelector("#hide-from-history-cancel").addEventListener("click", () => {
-    modal.classList.remove("active");
-  });
-}
-
-// 削除用モーダル
-let scenarioIdToDelete = null;
-function showDeleteScenarioModal(show) {
-  const modal = document.getElementById("delete-scenario-modal");
-  if (!modal) return;
-  if (show) modal.classList.add("active");
-  else modal.classList.remove("active");
-}
-
-/** シナリオ削除モーダルでOK */
-async function confirmDeleteScenario() {
-  if (scenarioIdToDelete == null) {
-    showDeleteScenarioModal(false);
-    return;
-  }
-  try {
-    await deleteScenarioById(scenarioIdToDelete);
-    showToast(`シナリオ(ID:${scenarioIdToDelete})を削除しました。`);
-  } catch (err) {
-    console.error(err);
-    showToast("シナリオ削除に失敗:\n" + err.message);
-  }
-
-  // cachedScenarios から該当シナリオを取り除く
-  window.cachedScenarios = window.cachedScenarios.filter(
-    (s) => s.scenarioId !== scenarioIdToDelete
-  );
-
-  // DOMから該当行を削除
-  removeScenarioFromDOM(scenarioIdToDelete);
-
-  scenarioIdToDelete = null;
-  showDeleteScenarioModal(false);
 }
 
 /** メニュー内のボタン等のイベント設定 */
@@ -495,13 +458,6 @@ function setupMenuButtons() {
     window.location.href = "scenarioWizard.html";
   });
 
-  // シナリオ削除モーダル OK/CANCEL
-  document.getElementById("delete-scenario-ok").addEventListener("click", confirmDeleteScenario);
-  document.getElementById("delete-scenario-cancel").addEventListener("click", () => {
-    scenarioIdToDelete = null;
-    showDeleteScenarioModal(false);
-  });
-
   // 「本棚」ボタン(全シナリオ一覧へ飛ぶもの)
   document.getElementById("show-bookshelf-btn").addEventListener("click", () => {
     window.location.href = "bookshelf.html";
@@ -552,4 +508,3 @@ function initAccordion() {
     }
   });
 }
-
