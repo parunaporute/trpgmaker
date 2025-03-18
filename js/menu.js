@@ -76,22 +76,31 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 「もっと詳しい説明はこちら」クリックで説明モーダルを表示
+  // 「もっと詳しい説明はこちら」リンク
   const openApiInstructionsLink = document.getElementById("open-api-instructions");
-  const apiInstructionsModal = document.getElementById("api-instructions-modal");
-  const closeApiInstructionsButton = document.getElementById("close-api-instructions-button");
-
-  if (openApiInstructionsLink && apiInstructionsModal && closeApiInstructionsButton) {
+  if (openApiInstructionsLink) {
     openApiInstructionsLink.addEventListener("click", (e) => {
-      e.preventDefault(); // aタグの遷移を止める
-      apiInstructionsModal.classList.add("active");
-    });
-
-    closeApiInstructionsButton.addEventListener("click", () => {
-      apiInstructionsModal.classList.remove("active");
+      e.preventDefault();
+      // multiModal でAPIキー取得説明を表示
+      multiModal.open({
+        title: "APIキーの取得方法",
+        contentHtml: `
+          <p>OpenAIの公式サイトからAPIキーを取得する簡単な手順です。</p>
+          <ol style="text-align:left; margin-bottom:20px; line-height:1.8;">
+            <li><a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" style="color: #fff;">
+              こちらの「API Keys」設定ページ</a>へ移動します。</li>
+            <li>[Create new secret key]をクリックし、新しいキーを作成します。</li>
+            <li>表示されたキーをコピーし、このアプリの「APIキーを入力」に貼り付けてください。</li>
+          </ol>
+        `,
+        showCloseButton: true,
+        appearanceType: "center",
+        closeOnOutsideClick: true,
+        cancelLabel: "閉じる"
+      });
     });
   }
-  
+
   try {
     await initIndexedDB();
     initAvatar();
@@ -100,7 +109,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   } catch (e) {
     console.error("DB初期化エラー:", e);
   }
-
 });
 
 /** initMenuPage: ページ読み込み時に呼び出されるメイン初期化 */
@@ -399,10 +407,6 @@ function showHideConfirmModal(scenario) {
 function setupMenuButtons() {
   // 「APIキー設定」または「キー設定済」のボタン
   const setApiKeyButton = document.getElementById("set-api-key-button");
-  const apiKeyModal = document.getElementById("api-key-modal");
-  const apiKeyInput = document.getElementById("api-key-input");
-  const apiKeyOkButton = document.getElementById("api-key-ok-button");
-  const apiKeyClearButton = document.getElementById("api-key-clear-button");
 
   if (!window.apiKey) {
     setApiKeyButton.textContent = "APIキー設定";
@@ -411,35 +415,113 @@ function setupMenuButtons() {
   }
 
   setApiKeyButton.addEventListener("click", () => {
-    apiKeyModal.classList.add("active");
-    apiKeyInput.value = window.apiKey;
-  });
-
-  apiKeyOkButton.addEventListener("click", () => {
-    const key = apiKeyInput.value.trim();
-    if (key) {
-      localStorage.setItem("apiKey", key);
-      window.apiKey = key;
-      setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
-    }
-    apiKeyModal.classList.remove("active");
-  });
-
-  apiKeyClearButton.addEventListener("click", () => {
-    if (confirm("APIキーをクリアすると操作ができなくなります。よろしいですか？")) {
-      localStorage.removeItem("apiKey");
-      window.apiKey = "";
-      setApiKeyButton.textContent = "APIキー設定";
-      apiKeyModal.classList.remove("active");
-    }
+    // multiModalで "APIキー設定" を開く
+    let tempApiKey = window.apiKey || "";
+    multiModal.open({
+      title: "APIキー設定",
+      contentHtml: `
+        <div style="margin-bottom:10px;">
+          <input type="text" id="temp-api-key-input" 
+                 placeholder="APIキーを入力" 
+                 style="width:100%; padding:8px;" 
+                 value="${DOMPurify.sanitize(tempApiKey)}"
+          />
+        </div>
+        <div style="padding:15px; margin-bottom:15px; background-color:#57575766;">
+          <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" style="color: #fff;">
+            こちら(OpenAIのページに飛びます)
+          </a> から取得できます。<br>
+          <a id="open-instructions-link" href="#" style="color: #fff; position: relative;">もっと詳しい説明はこちら</a>
+        </div>
+      `,
+      appearanceType: "center",
+      showCloseButton: true,
+      closeOnOutsideClick: true,
+      // 追加ボタン: 「クリア」
+      additionalButtons: [
+        {
+          label: "クリア",
+          onClick: () => {
+            // "APIキークリア" の確認
+            multiModal.open({
+              title: "APIキーのクリア",
+              contentHtml: "<p>APIキーをクリアすると操作ができなくなります。よろしいですか？</p>",
+              showCloseButton: true,
+              appearanceType: "center",
+              closeOnOutsideClick: true,
+              okLabel: "OK",
+              cancelLabel: "キャンセル",
+              onOk: () => {
+                localStorage.removeItem("apiKey");
+                window.apiKey = "";
+                setApiKeyButton.textContent = "APIキー設定";
+                showToast("APIキーをクリアしました。");
+              }
+            });
+          }
+        }
+      ],
+      cancelLabel: "閉じる",
+      okLabel: "OK",
+      // ★ 修正ポイント: onOpen でモーダル生成後にリンクへイベント付与
+      onOpen: () => {
+        setTimeout(() => {
+          const link = document.getElementById("open-instructions-link");
+          if (link) {
+            link.addEventListener("click", (e) => {
+              console.log("クリック！");
+              e.preventDefault();
+              // APIキー取得方法モーダルを更に別モーダルで開く
+              multiModal.open({
+                title: "APIキーの取得方法",
+                contentHtml: `
+                  <p>OpenAIの公式サイトからAPIキーを取得する簡単な手順です。</p>
+                  <ol style="text-align:left; margin-bottom:20px; line-height:1.8;">
+                    <li><a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" style="color: #fff;">
+                      こちらの「API Keys」設定ページ</a>へ移動します。</li>
+                    <li>[Create new secret key]をクリックし、新しいキーを作成します。</li>
+                    <li>表示されたキーをコピーし、このアプリの「APIキーを入力」に貼り付けてください。</li>
+                  </ol>
+                `,
+                showCloseButton: true,
+                appearanceType: "center",
+                closeOnOutsideClick: true,
+                cancelLabel: "閉じる"
+              });
+            });
+          }
+        }, 0);
+      },
+      onOk: () => {
+        const inputEl = document.getElementById("temp-api-key-input");
+        if (!inputEl) return;
+        const val = inputEl.value.trim();
+        if (val) {
+          localStorage.setItem("apiKey", val);
+          window.apiKey = val;
+          setApiKeyButton.innerHTML = `<span class="iconmoon icon-key"></span>`;
+          showToast("APIキーを設定しました。");
+        }
+      },
+      onCancel: () => { /* 何もしない */ }
+    });
   });
 
   document.getElementById("clear-character-btn").addEventListener("click", async () => {
-    if (confirm("エレメント情報をクリアします。よろしいですか？")) {
-      window.characterData = [];
-      await saveCharacterDataToIndexedDB(window.characterData);
-      showToast("エレメント情報をクリアしました。");
-    }
+    multiModal.open({
+      title: "全エレメントをクリア",
+      contentHtml: "<p>エレメント情報をクリアします。よろしいですか？</p>",
+      showCloseButton: true,
+      appearanceType: "center",
+      closeOnOutsideClick: true,
+      okLabel: "OK",
+      cancelLabel: "キャンセル",
+      onOk: async () => {
+        window.characterData = [];
+        await saveCharacterDataToIndexedDB(window.characterData);
+        showToast("エレメント情報をクリアしました。");
+      }
+    });
   });
 
   document.getElementById("show-warehouse-btn").addEventListener("click", () => {

@@ -35,6 +35,14 @@ class ModalInstance {
     }
     // 管理用リストに追加
     addToGlobalModalList(this);
+    
+    // ★ ここで onOpen があれば呼ぶ
+    //    (少し遅延させることで、DOM反映直後に確実に実行)
+    if (typeof this.options.onOpen === "function") {
+      setTimeout(() => {
+        this.options.onOpen();
+      }, 0);
+    }
   }
 
   createDOM() {
@@ -58,7 +66,7 @@ class ModalInstance {
       color: "#fff",
       padding: "20px",
       borderRadius: "5px",
-      maxWidth: "90%",
+      width: "calc(100% - 20px)",
       boxSizing: "border-box"
     });
 
