@@ -114,43 +114,45 @@
   // すべてのHTMLを contentHtml としてまとめる
   function buildWarehouseModalHtml() {
     return `
-<div class="warehouse-header-bar">
-  <div class="warehouse-left">
-    <button id="toggle-warehouse-selection-mode-btn" style="margin:0;">選択モード</button>
-    <button id="delete-selected-warehouse-btn" style="margin:0; display:none;">選択したカードをゴミ箱へ</button>
-    <button id="add-to-party-btn" style="margin:0; display:none;">パーティに入れる</button>
+<div style="display:flex;flex-direction:column;max-height:89vh">
+  <div class="warehouse-header-bar">
+    <div class="warehouse-left">
+      <button id="toggle-warehouse-selection-mode-btn" style="margin:0;">選択モード</button>
+      <button id="delete-selected-warehouse-btn" style="margin:0; display:none;">選択したカードをゴミ箱へ</button>
+      <button id="add-to-party-btn" style="margin:0; display:none;">パーティに入れる</button>
 
-    <!-- ゴミ箱用 選択モード -->
-    <button id="trash-selection-mode-btn" style="display:none;">選択モード</button>
-    <button id="trash-restore-selected-btn" style="display:none;">選択したカードを元に戻す</button>
-    <button id="trash-delete-selected-btn" style="display:none;background-color:#f44336;">選択したカードを完全削除</button>
-  </div>
-  <div class="warehouse-center">
-    <div class="warehouse-tabs">
-      <div class="warehouse-tab" data-tab="キャラクター">キャラクター</div>
-      <div class="warehouse-tab" data-tab="アイテム">アイテム</div>
-      <div class="warehouse-tab" data-tab="モンスター">モンスター</div>
-      <div class="warehouse-tab" data-tab="ゴミ箱">ゴミ箱</div>
+      <!-- ゴミ箱用 選択モード -->
+      <button id="trash-selection-mode-btn" style="display:none;">選択モード</button>
+      <button id="trash-restore-selected-btn" style="display:none;">選択したカードを元に戻す</button>
+      <button id="trash-delete-selected-btn" style="display:none;background-color:#f44336;">選択したカードを完全削除</button>
+    </div>
+    <div class="warehouse-center">
+      <div class="warehouse-tabs">
+        <div class="warehouse-tab" data-tab="キャラクター">キャラクター</div>
+        <div class="warehouse-tab" data-tab="アイテム">アイテム</div>
+        <div class="warehouse-tab" data-tab="モンスター">モンスター</div>
+        <div class="warehouse-tab" data-tab="ゴミ箱">ゴミ箱</div>
+      </div>
+    </div>
+    <div class="warehouse-right">
+      <select id="warehouse-sort-dropdown">
+        <option value="id">取得順</option>
+        <option value="name">名前順</option>
+        <option value="state">状態順</option>
+      </select>
+      <button id="warehouse-sort-direction-btn" style="width:30px; margin:0;">↓</button>
     </div>
   </div>
-  <div class="warehouse-right">
-    <select id="warehouse-sort-dropdown">
-      <option value="id">取得順</option>
-      <option value="name">名前順</option>
-      <option value="state">状態順</option>
-    </select>
-    <button id="warehouse-sort-direction-btn" style="width:30px; margin:0;">↓</button>
+
+  <!-- ゴミ箱タブ専用: すべて戻す/すべて削除 -->
+  <div class="c-flexbox" id="trash-all-actions" style="display:none;margin-bottom:0">
+    <button id="trash-restore-all-btn">すべて戻す</button>
+    <button id="trash-delete-all-btn" style="background-color:#f44336;">すべて完全削除</button>
   </div>
-</div>
 
-<!-- ゴミ箱タブ専用: すべて戻す/すべて削除 -->
-<div class="c-flexbox" id="trash-all-actions" style="display:none;margin-bottom:0">
-  <button id="trash-restore-all-btn">すべて戻す</button>
-  <button id="trash-delete-all-btn" style="background-color:#f44336;">すべて完全削除</button>
-</div>
-
-<div id="warehouse-card-scroll-container" style="overflow-y:auto; width:100%; margin-top:0px;max-height:80vh">
-  <div id="warehouse-card-container" style="display:flex; flex-wrap:wrap; gap:20px; opacity:0; transition:opacity 0.3s ease;"></div>
+  <div id="warehouse-card-scroll-container" style="overflow-y:auto; width:100%; margin-top:0px;">
+    <div id="warehouse-card-container" style="display:flex; flex-wrap:wrap; gap:20px; opacity:0; transition:opacity 0.3s ease;"></div>
+  </div>
 </div>
 `;
   }
