@@ -12,151 +12,68 @@
  * を保存する方式。
  ************************************************************/
 
-let saveLoadModal = null; // 生成したモーダルの参照
 
-/**
- * セーブ／ロードモーダルを動的に生成する
- */
-function createSaveLoadModal() {
-  // すでに生成済みならスキップ
-  if (saveLoadModal) return;
-
-  // ラッパdiv
-  saveLoadModal = document.createElement("div");
-  saveLoadModal.id = "save-load-modal";
-  saveLoadModal.classList.add("modal");
-
-  // モーダルコンテンツ
-  const modalContent = document.createElement("div");
-  modalContent.classList.add("modal-content", "save-load-modal-content");
-  modalContent.style.maxWidth = "500px";
-
-  // slot-container
-  const slotContainer = document.createElement("div");
-  slotContainer.id = "slot-container";
-
-  // slot-items-container
-  const slotItemsContainer = document.createElement("div");
-  slotItemsContainer.id = "slot-items-container";
-  slotContainer.appendChild(slotItemsContainer);
-
-  // スロット追加ボタン (+)
-  const addSlotBtn = document.createElement("button");
-  addSlotBtn.id = "add-slot-button";
-  addSlotBtn.textContent = "＋";
-  slotContainer.appendChild(addSlotBtn);
-
-  // ボタン群 (セーブ／ロード)
-  const flexBox1 = document.createElement("div");
-  flexBox1.classList.add("c-flexbox");
-  flexBox1.style.marginBottom = "20px";
-
-  const doSaveBtn = document.createElement("button");
-  doSaveBtn.id = "do-save-button";
-  doSaveBtn.style.display = "none"; // デフォルト非表示
-  doSaveBtn.textContent = "保存";
-
-  const doLoadBtn = document.createElement("button");
-  doLoadBtn.id = "do-load-button";
-  doLoadBtn.textContent = "始める";
-
-  flexBox1.appendChild(doSaveBtn);
-  flexBox1.appendChild(doLoadBtn);
-
-  // 全クリアボタン
-  const flexBox2 = document.createElement("div");
-  flexBox2.classList.add("c-flexbox");
-  flexBox2.style.marginTop = "15px";
-
-  const clearAllSlotsBtn = document.createElement("button");
-  clearAllSlotsBtn.id = "clear-all-slots-button";
-  clearAllSlotsBtn.style.backgroundColor = "#b71c1c";
-  clearAllSlotsBtn.style.borderColor = "#b71c1c";
-  clearAllSlotsBtn.textContent = "全クリア";
-
-  flexBox2.appendChild(clearAllSlotsBtn);
-
-  // 閉じるボタン
-  const closeModalBtn = document.createElement("button");
-  closeModalBtn.id = "save-load-close-button";
-  closeModalBtn.classList.add("btn-close-modal");
-  closeModalBtn.textContent = "閉じる";
-
-  // 各要素をmodalContentへ配置
-  modalContent.appendChild(slotContainer);
-  modalContent.appendChild(flexBox1);
-  modalContent.appendChild(flexBox2);
-  modalContent.appendChild(closeModalBtn);
-
-  // モーダル全体に組み立て
-  saveLoadModal.appendChild(modalContent);
-
-  // body へ追加
-  document.body.appendChild(saveLoadModal);
-}
-
-/* DOM構築後にイベント紐づけ */
+// ▼ 画面上にある "続き" ボタンへイベントを付与
 document.addEventListener("DOMContentLoaded", () => {
-  // 1) 先にモーダルDOMを生成
-  createSaveLoadModal();
-
-  // 2) 生成済み要素を取得してイベントを紐づける
-  const addSlotBtn = document.getElementById("add-slot-button");
-  if (addSlotBtn) {
-    addSlotBtn.addEventListener("click", onAddSlot);
-  }
-
-  const doSaveBtn = document.getElementById("do-save-button");
-  if (doSaveBtn) {
-    doSaveBtn.addEventListener("click", onClickSave);
-  }
-
-  const doLoadBtn = document.getElementById("do-load-button");
-  if (doLoadBtn) {
-    doLoadBtn.addEventListener("click", onClickLoad);
-  }
-
-  const closeModalBtn = document.getElementById("save-load-close-button");
-  if (closeModalBtn) {
-    closeModalBtn.addEventListener("click", closeSaveLoadModal);
-  }
-
-  // セーブロードボタン（画面上の「続き」ボタン）
   const saveLoadButton = document.getElementById("save-load-button");
   if (saveLoadButton) {
     saveLoadButton.addEventListener("click", openSaveLoadModal);
   }
-
-  // ▼ 全クリアボタン
-  const clearAllSlotsBtn = document.getElementById("clear-all-slots-button");
-  if (clearAllSlotsBtn) {
-    clearAllSlotsBtn.addEventListener("click", onClearAllSlots);
-  }
 });
 
-
 /**
- * モーダルを開き、スロット一覧を表示
+ * セーブ／ロード用モーダルを multiModal で開く。
  */
 window.openSaveLoadModal = async function () {
-  const modal = document.getElementById("save-load-modal");
-  if (!modal) return;
+  multiModal.open({
+    title: "セーブ/ロード",
+    contentHtml: `
+      <div id="slot-container">
+        <div id="slot-items-container"></div>
+        <button id="add-slot-button">＋</button>
+      </div>
+      <div class="c-flexbox" style="margin-bottom:20px;">
+        <button id="do-save-button" style="display:none;">保存</button>
+        <button id="do-load-button">始める</button>
+      </div>
+      <div class="c-flexbox" style="margin-top:15px;">
+        <button id="clear-all-slots-button" style="background-color:#b71c1c; border-color:#b71c1c;">全クリア</button>
+      </div>
+    `,
+    showCloseButton: true,
+    appearanceType: "center",
+    closeOnOutsideClick: true,
+    cancelLabel: "閉じる",
+    // モーダルが開いた後でDOM要素が存在するようになる → onOpenでイベントを付与
+    onOpen: async () => {
+      // もしスロット未作成なら5つ作る
+      await ensureInitialSlots();
 
-  modal.classList.add("active");
-  // もしスロット未作成なら5つ作る
-  await ensureInitialSlots();
-  // スロット一覧表示
-  await renderSlotList();
-};
+      // イベント紐付け
+      const addSlotBtn = document.getElementById("add-slot-button");
+      if (addSlotBtn) {
+        addSlotBtn.addEventListener("click", onAddSlot);
+      }
 
-/**
- * モーダルを閉じる
- */
-window.closeSaveLoadModal = function () {
-  const modal = document.getElementById("save-load-modal");
-  if (modal) {
-    modal.classList.remove("active");
-  }
+      const doSaveBtn = document.getElementById("do-save-button");
+      if (doSaveBtn) {
+        doSaveBtn.addEventListener("click", onClickSave);
+      }
+
+      const doLoadBtn = document.getElementById("do-load-button");
+      if (doLoadBtn) {
+        doLoadBtn.addEventListener("click", onClickLoad);
+      }
+
+      const clearAllSlotsBtn = document.getElementById("clear-all-slots-button");
+      if (clearAllSlotsBtn) {
+        clearAllSlotsBtn.addEventListener("click", onClearAllSlots);
+      }
+
+      // 初期表示
+      await renderSlotList();
+    }
+  });
 };
 
 /**
@@ -209,21 +126,39 @@ window.renderSlotList = async function () {
     rowContainer.appendChild(deleteButton);
     container.appendChild(rowContainer);
   }
+
+  // セーブボタンの表示/非表示を切り替え
+  const doSaveBtn = document.getElementById("do-save-button");
+  if (doSaveBtn) {
+    // 現在のシナリオがあればセーブ可能
+    if (window.currentScenarioId) {
+      doSaveBtn.style.display = "";
+    } else {
+      doSaveBtn.style.display = "none";
+    }
+  }
 };
 
 /**
  * 個別スロットを削除
  */
 window.onDeleteSlot = async function (slotIndex) {
-  // 確認
-  if (!confirm(`スロット${slotIndex}を削除します。よろしいですか？`)) {
-    return;
-  }
-  // 削除
-  await deleteUniversalSlot(slotIndex);
-
-  // 再描画
-  await renderSlotList();
+  // 確認ダイアログを multiModal で
+  multiModal.open({
+    title: "スロット削除",
+    contentHtml: `<p>スロット${slotIndex}を削除します。よろしいですか？</p>`,
+    showCloseButton: true,
+    appearanceType: "center",
+    closeOnOutsideClick: true,
+    okLabel: "OK",
+    cancelLabel: "キャンセル",
+    onOk: async () => {
+      // 削除
+      await deleteUniversalSlot(slotIndex);
+      // 再描画
+      await renderSlotList();
+    }
+  });
 };
 
 /**
@@ -251,35 +186,60 @@ window.onAddSlot = async function () {
 /**
  * 「セーブ」ボタン
  *   - 選択したスロットに現在シナリオの内容を詰める
- *   - 空でない場合は「上書きしても良いか」確認ダイアログ
+ *   - 空でない場合は「上書きしても良いか」ダイアログ
  */
 window.onClickSave = async function () {
   // 選択スロット
   const selected = document.querySelector('input[name="slotRadio"]:checked');
   if (!selected) {
-    alert("スロットを選択してください。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>スロットを選択してください。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
   const slotIndex = parseInt(selected.value, 10);
 
-  // スロットを取得 (すでに空きかどうか確認する)
+  // スロットを取得 (すでに何かあるか確認)
   const existingSlot = await getUniversalSave(slotIndex);
   if (existingSlot && existingSlot.data) {
-    // 既に何か入っている (空ではない)
-    if (!confirm(`スロット${slotIndex}は既に使われています。\n上書きしてもよろしいですか？`)) {
-      return; // キャンセル
-    }
+    // 既に何か入っている → 上書き確認
+    multiModal.open({
+      title: "上書き確認",
+      contentHtml: `<p>スロット${slotIndex}は既に使われています。<br>上書きしてもよろしいですか？</p>`,
+      showCloseButton: true,
+      appearanceType: "center",
+      closeOnOutsideClick: true,
+      okLabel: "OK",
+      cancelLabel: "キャンセル",
+      onOk: async () => {
+        await doSaveToSlot(slotIndex);
+      }
+    });
+  } else {
+    await doSaveToSlot(slotIndex);
   }
+};
 
+async function doSaveToSlot(slotIndex) {
   // 現在のシナリオID
   if (!window.currentScenarioId) {
-    alert("現在のシナリオIDが不明です。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>現在のシナリオIDが不明です。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
   // シナリオ本体
   const scenarioObj = await getScenarioById(window.currentScenarioId);
   if (!scenarioObj) {
-    alert("シナリオがDBに存在しません。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>シナリオがDBに存在しません。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
   // シーン一覧
@@ -301,31 +261,47 @@ window.onClickSave = async function () {
   };
   await putUniversalSave(rec);
 
-  alert(`スロット${slotIndex}にセーブしました。`);
+  multiModal.open({
+    title: "保存完了",
+    contentHtml: `<p>スロット${slotIndex}にセーブしました。</p>`,
+    cancelLabel: "OK"
+  });
   renderSlotList();
-};
+}
 
 /**
  * 「ロード」ボタン
  *   - 選択スロットの scenarioId が現在と同じなら即ロード
- *   - 違う場合は scenario.html?slotIndex=...&action=load へ飛んでロードする
+ *   - 違う場合は scenario.html?slotIndex=...&action=load へ飛ぶ
  */
 window.onClickLoad = async function () {
   const selected = document.querySelector('input[name="slotRadio"]:checked');
   if (!selected) {
-    alert("スロットを選択してください。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>スロットを選択してください。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
   const slotIndex = parseInt(selected.value, 10);
   const slot = await getUniversalSave(slotIndex);
   if (!slot || !slot.data) {
-    alert("そのスロットは空です。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>そのスロットは空です。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
 
   const targetScenarioId = slot.data.scenarioId;
   if (!targetScenarioId) {
-    alert("スロットにシナリオ情報がありません。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>スロットにシナリオ情報がありません。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
 
@@ -333,7 +309,11 @@ window.onClickLoad = async function () {
   if (targetScenarioId === window.currentScenarioId) {
     // 同じなら今の画面でロード処理
     await doLoadScenarioFromSlot(slot.data);
-    alert(`現在のシナリオをスロット${slotIndex}で上書きしました。`);
+    multiModal.open({
+      title: "ロード完了",
+      contentHtml: `<p>現在のシナリオをスロット${slotIndex}で上書きしました。</p>`,
+      cancelLabel: "OK"
+    });
   } else {
     // 違うシナリオID → scenario.html?slotIndex=..&action=load へ飛ぶ
     const url = `scenario.html?slotIndex=${slotIndex}&action=load`;
@@ -341,28 +321,35 @@ window.onClickLoad = async function () {
   }
 };
 
-/* ======================================
-   ▼ 全クリアボタンの処理
-====================================== */
+/**
+ * 全クリアボタン
+ */
 window.onClearAllSlots = async function () {
-  // 確認ダイアログ
-  if (!confirm("全スロットをクリアし、空き状態に戻します。\nよろしいですか？")) {
-    return; // キャンセル
-  }
-
-  // 全削除
-  const all = await listAllSlots();
-  for (const s of all) {
-    // slotIndexが確定 => DBのレコード削除
-    await deleteUniversalSlot(s.slotIndex);
-  }
-
-  // 初期スロット5つを作成
-  await ensureInitialSlots();
-
-  // 再描画
-  await renderSlotList();
-  alert("全スロットをクリアし、初期状態に戻しました。");
+  multiModal.open({
+    title: "全スロットをクリア",
+    contentHtml: "<p>全スロットをクリアし、空き状態に戻します。よろしいですか？</p>",
+    showCloseButton: true,
+    appearanceType: "center",
+    closeOnOutsideClick: true,
+    okLabel: "OK",
+    cancelLabel: "キャンセル",
+    onOk: async () => {
+      // 全削除
+      const all = await listAllSlots();
+      for (const s of all) {
+        await deleteUniversalSlot(s.slotIndex);
+      }
+      // 初期スロット5つを作成
+      await ensureInitialSlots();
+      // 再描画
+      await renderSlotList();
+      multiModal.open({
+        title: "完了",
+        contentHtml: "<p>全スロットをクリアし、初期状態に戻しました。</p>",
+        cancelLabel: "OK"
+      });
+    }
+  });
 };
 
 /**
@@ -376,7 +363,11 @@ window.doLoadScenarioFromSlot = async function (slotData) {
   // DB上のシナリオを取得
   let scenarioObj = await getScenarioById(sId);
   if (!scenarioObj) {
-    alert("該当シナリオがDBに見つかりません。ロードできません。");
+    multiModal.open({
+      title: "エラー",
+      contentHtml: "<p>該当シナリオがDBに見つかりません。ロードできません。</p>",
+      cancelLabel: "閉じる"
+    });
     return;
   }
 
@@ -398,11 +389,12 @@ window.doLoadScenarioFromSlot = async function (slotData) {
 
   // メモリ更新
   await loadScenarioData(sId);
-};
+}
 
 /* ======================================
    ▼ スロット管理用 IndexedDB 関数
 ====================================== */
+
 window.ensureInitialSlots = async function () {
   const all = await listAllSlots();
   if (all.length > 0) {
