@@ -84,7 +84,7 @@ class ModalInstance {
       this.modalContainer.style.left = "50%";
       this.modalContainer.style.transform = "translate(-50%, -50%)";
     } else if (type === "top") {
-      this.modalContainer.style.top = "10%";
+      this.modalContainer.style.top = "0";
       this.modalContainer.style.left = "50%";
       this.modalContainer.style.transform = "translate(-50%, 0)";
     }
