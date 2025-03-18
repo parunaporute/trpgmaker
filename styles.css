@@ -1358,7 +1358,7 @@ button.important {
   justify-content: left;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
   .mobile-col {
     flex-direction: column;
     margin-bottom: 20px;
@@ -1492,6 +1492,7 @@ button.important {
   justify-content: center;
   flex-direction: column;
   align-items: center;
+  flex:0.5;
 }
 
 #avatar-form-container {
@@ -1500,6 +1501,7 @@ button.important {
   flex-direction: column;
   justify-content: left;
   align-items: flex-start;
+  flex:1;
 }
 
 .accordion-header:hover {

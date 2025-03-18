@@ -67,7 +67,9 @@ class ModalInstance {
       padding: "20px",
       borderRadius: "5px",
       width: "calc(100% - 20px)",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      overflow: "auto",
+      maxHeight: "100vh"
     });
 
     // バックドロップにコンテナをネスト → body へ追加

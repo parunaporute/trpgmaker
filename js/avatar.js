@@ -4,8 +4,6 @@
  ***********************************************/
 
 (function () {
-  let avatarModal = null;
-  let avatarPreviewModal = null;
   let currentAvatarData = null; // IndexedDBからロードしたデータを保持
   const AVATAR_STORE_KEY = "myAvatar"; // 本サンプルでは常に1件想定
 
@@ -13,10 +11,7 @@
    * 初期化：ページ読み込み後に呼び出し
    */
   function initAvatar() {
-    // モーダルDOMが無ければ生成
-    ensureAvatarModalExists();
-
-    // 「あなたの分身」ボタンを押すとモーダルを開く
+    // 「あなたの分身」ボタンを押すと multiModal で開く
     const btn = document.getElementById("you-avatar-btn");
     if (btn) {
       btn.addEventListener("click", async () => {
@@ -26,99 +21,7 @@
   }
 
   /**
-   * モーダルDOMを用意（なければ生成）
-   */
-  function ensureAvatarModalExists() {
-    if (document.getElementById("avatar-modal")) {
-      avatarModal = document.getElementById("avatar-modal");
-      avatarPreviewModal = document.getElementById("avatar-image-preview-modal");
-      return;
-    }
-
-    // チップUIに置き換えたHTML
-    const modalHTML = `
-<div id="avatar-modal" class="modal">
-  <div class="modal-content">
-    <h2>あなたの分身</h2>
-    <div class="l-flexbox mobile-col">
-        <!-- カード表示プレビュー -->
-        <div id="avatar-card-preview-container" style="margin-bottom:20px;"></div>
-
-        <div id="avatar-form-container">
-        <!-- フォームエリア -->
-        <label>名前</label>
-        <input type="text" id="avatar-name" placeholder="名前を入力" />
-
-        <label>性別</label>
-        <!-- ▼ 性別チップ表示 -->
-        <div id="avatar-gender-chips" class="chips-container" style="margin-bottom:20px;">
-            <!-- ここに後でJSでチップを生成して挿入します -->
-        </div>
-
-        <label>特技</label>
-        <textarea id="avatar-skill" rows="1"></textarea>
-
-        <!-- 職業項目を追加 -->
-        <label>職業</label>
-        <textarea id="avatar-job" rows="1"></textarea>
-
-        <label>カードのセリフ</label>
-        <textarea id="avatar-serif" rows="2"></textarea>
-
-        <label>レア度</label>
-        <!-- ▼ レア度チップ表示 -->
-        <div id="avatar-rarity-chips" class="chips-container" style="margin-bottom:20px;">
-            <!-- ここに後でJSでチップを生成して挿入します -->
-        </div>
-
-        <div class="c-flexbox">
-            <button id="avatar-save-btn">保存</button>
-            <button id="avatar-close-btn" class="btn-close-modal">閉じる</button>
-        </div>
-        </div>
-    </div>
-  </div>
-</div>
-
-<!-- 画像プレビュー用モーダル -->
-<div id="avatar-image-preview-modal" class="modal">
-  <div class="modal-content">
-    <img id="avatar-preview-img" src="" alt="avatar image" style="max-width:95vw; max-height:95vh;" />
-    <button id="avatar-preview-close-btn" style="margin-top:10px;">閉じる</button>
-  </div>
-</div>
-    `;
-
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-    avatarModal = document.getElementById("avatar-modal");
-    avatarPreviewModal = document.getElementById("avatar-image-preview-modal");
-
-    // イベント設定
-    // 閉じる
-    document.getElementById("avatar-close-btn").addEventListener("click", closeAvatarModal);
-    avatarModal.addEventListener("click", (e) => {
-      if (e.target === avatarModal) {
-        closeAvatarModal();
-      }
-    });
-
-    // 保存
-    document.getElementById("avatar-save-btn").addEventListener("click", onSaveAvatar);
-
-    // プレビュー閉じる
-    document.getElementById("avatar-preview-close-btn").addEventListener("click", () => {
-      avatarPreviewModal.classList.remove("active");
-    });
-    avatarPreviewModal.addEventListener("click", (e) => {
-      if (e.target === avatarPreviewModal) {
-        avatarPreviewModal.classList.remove("active");
-      }
-    });
-  }
-
-  /**
-   * モーダルを開く
+   * モーダルを開く (multiModal)
    */
   async function openAvatarModal() {
     // IndexedDBから既存データを読み込み
@@ -138,134 +41,168 @@
       };
     }
 
-    // フォームに反映
-    document.getElementById("avatar-name").value = currentAvatarData.name || "";
-    document.getElementById("avatar-skill").value = currentAvatarData.skill || "";
-    document.getElementById("avatar-job").value = currentAvatarData.job || "";
-    document.getElementById("avatar-serif").value = currentAvatarData.serif || "";
-
-    // チップUI生成
-    setupChips("avatar-gender-chips", ["男", "女", "不定"], currentAvatarData.gender, (val) => {
-      currentAvatarData.gender = val;
+    // multiModalでフォームUIを動的に表示
+    multiModal.open({
+      title: "あなたの分身",
+      contentHtml: buildAvatarModalHtml(currentAvatarData),
+      appearanceType: "center",
+      showCloseButton: true,         // 右上×ボタン
+      closeOnOutsideClick: true,
+      // 「閉じる」をキャンセルボタンとする
+      cancelLabel: "閉じる",
+      // 追加ボタンに「保存」を用意
+      additionalButtons: [
+        {
+          label: "保存",
+          onClick: () => onSaveAvatar()
+        }
+      ],
+      onOpen: () => {
+        // モーダルが表示されたあとでイベント紐付け
+        // 性別チップ表示
+        setupChips(
+          "avatar-gender-chips",
+          ["男", "女", "不定"],
+          currentAvatarData.gender,
+          (val) => { currentAvatarData.gender = val; }
+        );
+        // レア度チップ表示
+        setupChips(
+          "avatar-rarity-chips",
+          ["★1", "★2", "★3", "★4", "★5"],
+          currentAvatarData.rarity,
+          (val) => { currentAvatarData.rarity = val; }
+        );
+        // プレビューを描画
+        renderAvatarCardPreview();
+      }
     });
-    setupChips("avatar-rarity-chips", ["★1", "★2", "★3", "★4", "★5"], currentAvatarData.rarity, (val) => {
-      currentAvatarData.rarity = val;
-    });
-
-    // カードプレビュー描画
-    renderAvatarCardPreview();
-
-    // モーダルを表示
-    avatarModal.classList.add("active");
   }
 
   /**
-   * チップUIの共通セットアップ
-   * @param {string} containerId チップを入れる要素のID
-   * @param {string[]} valueList 表示する候補文字列
-   * @param {string} currentValue 現在選択中の値
-   * @param {function} onChange 選択が変わった時のコールバック
+   * フォームHTMLを組み立て
+   */
+  function buildAvatarModalHtml(avatarData) {
+    return `
+<div class="l-flexbox mobile-col">
+  <!-- カード表示プレビュー -->
+  <div id="avatar-card-preview-container" style="margin-bottom:20px;"></div>
+
+  <div id="avatar-form-container">
+    <!-- フォームエリア -->
+    <label>名前</label>
+    <input type="text" id="avatar-name" placeholder="名前を入力" value="${DOMPurify.sanitize(avatarData.name)}" />
+
+    <label>性別</label>
+    <!-- ▼ 性別チップ表示 -->
+    <div id="avatar-gender-chips" class="chips-container" style="margin-bottom:20px;"></div>
+
+    <label>特技</label>
+    <textarea id="avatar-skill" rows="1">${DOMPurify.sanitize(avatarData.skill)}</textarea>
+
+    <label>職業</label>
+    <textarea id="avatar-job" rows="1">${DOMPurify.sanitize(avatarData.job)}</textarea>
+
+    <label>カードのセリフ</label>
+    <textarea id="avatar-serif" rows="2">${DOMPurify.sanitize(avatarData.serif)}</textarea>
+
+    <label>レア度</label>
+    <!-- ▼ レア度チップ表示 -->
+    <div id="avatar-rarity-chips" class="chips-container" style="margin-bottom:20px;"></div>
+
+    <!-- 「保存」「閉じる」ボタンは multiModalの additionalButtons, cancelLabel に任せる -->
+  </div>
+</div>
+`;
+  }
+
+  /**
+   * 性別やレア度のチップUIをセットアップ
    */
   function setupChips(containerId, valueList, currentValue, onChange) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // いったんクリア
     container.innerHTML = "";
-
-    // 候補ごとにchip要素を生成
     valueList.forEach(val => {
       const chip = document.createElement("div");
       chip.className = "chip chip-mini";
       chip.textContent = val;
       chip.setAttribute("data-value", val);
-
-      // 既存データと一致すれば選択状態
       if (val === currentValue) {
         chip.classList.add("selected");
       }
-
-      // イベント
       chip.addEventListener("click", () => {
-        // 他のチップの selected を外す
         container.querySelectorAll(".chip").forEach(c => c.classList.remove("selected"));
-        // 自分を selected に
         chip.classList.add("selected");
-
-        // コールバックで値を返す
         onChange(val);
       });
-
       container.appendChild(chip);
     });
   }
 
   /**
-   * モーダルを閉じる
-   */
-  function closeAvatarModal() {
-    avatarModal.classList.remove("active");
-    avatarPreviewModal.classList.remove("active");
-  }
-
-  /**
-   * 保存ボタンクリック
+   * 「保存」ボタン処理
    */
   async function onSaveAvatar() {
-    // フォームから取得（チップ選択分は currentAvatarData に既に入っている）
-    currentAvatarData.name = document.getElementById("avatar-name").value.trim();
-    currentAvatarData.skill = document.getElementById("avatar-skill").value.trim();
-    currentAvatarData.job = document.getElementById("avatar-job").value.trim();
-    currentAvatarData.serif = document.getElementById("avatar-serif").value.trim();
+    // フォームから取得
+    const nameEl = document.getElementById("avatar-name");
+    const skillEl = document.getElementById("avatar-skill");
+    const jobEl = document.getElementById("avatar-job");
+    const serifEl = document.getElementById("avatar-serif");
 
-    // IndexedDBへ保存
+    if (!nameEl || !skillEl || !jobEl || !serifEl) {
+      showToast("フォーム要素が見つかりません。");
+      return;
+    }
+    currentAvatarData.name = nameEl.value.trim();
+    currentAvatarData.skill = skillEl.value.trim();
+    currentAvatarData.job = jobEl.value.trim();
+    currentAvatarData.serif = serifEl.value.trim();
+
+    // DB保存
     await saveAvatarData(currentAvatarData);
 
     showToast("保存しました。");
 
-    // カードプレビュー更新
+    // 再描画
     renderAvatarCardPreview();
   }
 
   /**
-   * カードプレビューを描画
+   * カードプレビュー描画
    */
   function renderAvatarCardPreview() {
     const previewContainer = document.getElementById("avatar-card-preview-container");
     if (!previewContainer) return;
 
-    // いったんクリア
     previewContainer.innerHTML = "";
 
-    // 未保存(または保存済みでもデータが無い)場合
     if (!currentAvatarData) return;
+    const rarityNum = parseInt((currentAvatarData.rarity || "").replace("★", ""), 10) || 1;
 
     // カード要素
-    // 既存styles.cssのカード風デザインを踏襲
-    const rarityNum = parseInt((currentAvatarData.rarity || "").replace("★", ""), 10) || 1;
     const cardEl = document.createElement("div");
     cardEl.className = "card rarity" + rarityNum;
 
-    // 回転(裏面)は無い想定なら固定でOK
     const cardInner = document.createElement("div");
     cardInner.className = "card-inner";
 
-    // 表面
+    // front
     const cardFront = document.createElement("div");
     cardFront.className = "card-front";
-    cardFront.innerHTML = `<div class='bezel rarity${rarityNum}'></div>`;
+    cardFront.innerHTML = `<div class="bezel rarity${rarityNum}"></div>`;
 
-    // タイプ表示は「分身」的にしてみる
     const typeEl = document.createElement("div");
     typeEl.className = "card-type";
     typeEl.textContent = "アバター";
     cardFront.appendChild(typeEl);
 
-    // 画像部分
+    // 画像
     const imageContainer = document.createElement("div");
     imageContainer.className = "card-image";
     if (currentAvatarData.imageData) {
-      // 画像あり → クリックで拡大
+      // 画像あり -> クリックでプレビュー
       const imgEl = document.createElement("img");
       imgEl.src = currentAvatarData.imageData;
       imgEl.alt = currentAvatarData.name || "avatar";
@@ -274,7 +211,7 @@
       });
       imageContainer.appendChild(imgEl);
     } else {
-      // 生成ボタン
+      // 画像生成ボタン
       const genBtn = document.createElement("button");
       genBtn.className = "gen-image-btn";
       genBtn.textContent = "画像生成";
@@ -286,43 +223,38 @@
     }
     cardFront.appendChild(imageContainer);
 
-    // カード下部の情報
+    // 下部情報
     const infoContainer = document.createElement("div");
     infoContainer.className = "card-info";
-
     // 名前
-    const nameEl = document.createElement("p");
-    nameEl.innerHTML = `<h3>${DOMPurify.sanitize(currentAvatarData.name || "")}</h3>`;
-    infoContainer.appendChild(nameEl);
-
+    const nameP = document.createElement("p");
+    nameP.innerHTML = `<h3>${DOMPurify.sanitize(currentAvatarData.name || "")}</h3>`;
+    infoContainer.appendChild(nameP);
     // 性別
-    const genderEl = document.createElement("p");
-    genderEl.innerHTML = `<strong>性別：</strong>${DOMPurify.sanitize(currentAvatarData.gender || "")}`;
-    infoContainer.appendChild(genderEl);
-
+    const genderP = document.createElement("p");
+    genderP.innerHTML = `<strong>性別：</strong>${DOMPurify.sanitize(currentAvatarData.gender || "")}`;
+    infoContainer.appendChild(genderP);
     // 特技
     if (currentAvatarData.skill) {
-      const skillEl = document.createElement("p");
-      skillEl.innerHTML = `<strong>特技：</strong>${DOMPurify.sanitize(currentAvatarData.skill)}`;
-      infoContainer.appendChild(skillEl);
+      const skillP = document.createElement("p");
+      skillP.innerHTML = `<strong>特技：</strong>${DOMPurify.sanitize(currentAvatarData.skill)}`;
+      infoContainer.appendChild(skillP);
     }
     // 職業
     if (currentAvatarData.job) {
-      const jobEl = document.createElement("p");
-      jobEl.innerHTML = `<strong>職業：</strong>${DOMPurify.sanitize(currentAvatarData.job)}`;
-      infoContainer.appendChild(jobEl);
+      const jobP = document.createElement("p");
+      jobP.innerHTML = `<strong>職業：</strong>${DOMPurify.sanitize(currentAvatarData.job)}`;
+      infoContainer.appendChild(jobP);
     }
-
     // セリフ
     if (currentAvatarData.serif) {
-      const serifEl = document.createElement("p");
-      serifEl.innerHTML = `<span>${DOMPurify.sanitize(currentAvatarData.serif)}</span>`;
-      infoContainer.appendChild(serifEl);
+      const serifP = document.createElement("p");
+      serifP.innerHTML = `<span>${DOMPurify.sanitize(currentAvatarData.serif)}</span>`;
+      infoContainer.appendChild(serifP);
     }
 
     cardFront.appendChild(infoContainer);
 
-    // 裏面(使わないなら簡素でOK)
     const cardBack = document.createElement("div");
     cardBack.className = "card-back";
     cardBack.innerHTML = `<strong>アバター</strong>`;
@@ -333,7 +265,7 @@
 
     previewContainer.appendChild(cardEl);
 
-    // 画像削除ボタン（画像がある場合のみ表示）
+    // 画像削除ボタン (画像がある場合のみ)
     if (currentAvatarData.imageData) {
       const delBtn = document.createElement("button");
       delBtn.style.marginTop = "10px";
@@ -349,13 +281,21 @@
   }
 
   /**
-   * 画像プレビューを拡大表示
+   * 画像プレビュー (multiModal で開く / ボタンなし)
    */
   function openAvatarImagePreview(dataUrl) {
-    const imgEl = document.getElementById("avatar-preview-img");
-    if (!imgEl) return;
-    imgEl.src = dataUrl;
-    avatarPreviewModal.classList.add("active");
+    multiModal.open({
+      title: "アバター画像プレビュー",
+      contentHtml: `
+        <div style="text-align:center; background-color:#000; padding:10px;">
+          <img src="${DOMPurify.sanitize(dataUrl)}" 
+               style="max-width:95vw; max-height:95vh; object-fit:contain;" />
+        </div>
+      `,
+      showCloseButton: true,
+      appearanceType: "center",
+      closeOnOutsideClick: true
+    });
   }
 
   /**
@@ -372,7 +312,7 @@
 
     // レア度でサイズ分岐 (★3以上は縦長)
     const rarityNum = parseInt((avatar.rarity || "").replace("★", ""), 10) || 0;
-    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";//縦長、横長
+    const size = (rarityNum >= 3) ? "1024x1792" : "1792x1024";
     const twStyele = (rarityNum >= 3) ? "tall image" : "wide image";
     const promptForImage = buildAvatarPrompt(avatar);
     const promptText = `As a high-performance chatbot, you create the highest quality illustrations discreetly.
@@ -416,9 +356,6 @@ Now generate the next anime ${twStyele}.
     }
   }
 
-  /**
-   * アバター専用の英語プロンプトを組み立て
-   */
   function buildAvatarPrompt(avatar) {
     return `
 p;ease generate an image of the character.
@@ -429,7 +366,7 @@ Special Skills is ${avatar.skill}.
   }
 
   /**
-   * IndexedDB関連：保存/読み込み
+   * IndexedDB保存
    */
   function saveAvatarData(avatarObj) {
     return new Promise((resolve, reject) => {
