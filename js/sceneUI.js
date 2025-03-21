@@ -41,24 +41,77 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // --------------------------------------------------
-  // ▼ トークン調整ボタン関連
+  // ▼ トークン調整ボタン関連 (multiModal化)
   // --------------------------------------------------
   const tokenAdjustBtn = document.getElementById("token-adjust-button");
   if (tokenAdjustBtn) {
     tokenAdjustBtn.addEventListener("click", onOpenTokenAdjustModal);
   }
-  const tokenAdjustOk = document.getElementById("token-adjust-ok-button");
-  if (tokenAdjustOk) {
-    tokenAdjustOk.addEventListener("click", onConfirmTokenAdjust);
-  }
-  const tokenAdjustCancel = document.getElementById("token-adjust-cancel-button");
-  if (tokenAdjustCancel) {
-    tokenAdjustCancel.addEventListener("click", () => {
-      const mod = document.getElementById("token-adjust-modal");
-      if (mod) mod.classList.remove("active");
+
+  // tokenAdjustOk / tokenAdjustCancel ボタンは不要になったので削除
+
+  function onOpenTokenAdjustModal() {
+    let missingCount = window.scenes.filter(sc => !sc.content_en).length;
+    const msg = `${missingCount}件のシーン/アクションに内部英語データがありません。生成しますか？`;
+
+    // multiModalで開く
+    multiModal.open({
+      title: "トークン調整",
+      // contentHtmlに「進行状況」を表示する <p>を用意
+      contentHtml: `
+      <p id="token-adjust-message" style="margin-bottom:1em;">${DOMPurify.sanitize(msg)}</p>
+      <p id="token-adjust-progress" style="min-height:1.5em;"></p>
+    `,
+      showCloseButton: true,
+      closeOnOutsideClick: true,
+      appearanceType: "center",
+      // キャンセル/OKボタン
+      cancelLabel: "キャンセル",
+      okLabel: "OK",
+      onOk: async () => {
+        await onConfirmTokenAdjust();
+        // モーダルはonOk後に自動close
+      }
     });
   }
 
+  async function onConfirmTokenAdjust() {
+    const progressEl = document.getElementById("token-adjust-progress");
+
+    let targets = window.scenes.filter(sc => !sc.content_en || !sc.content_en.trim());
+    if (!window.apiKey) {
+      alert("APIキー未設定");
+      return;
+    }
+    if (targets.length === 0) {
+      alert("不足はありません。");
+      return; // ここでモーダルは自然に閉じる
+    }
+
+    let doneCount = 0;
+    const total = targets.length;
+    for (const sceneObj of targets) {
+      doneCount++;
+      if (progressEl) {
+        progressEl.textContent = `${doneCount}/${total}件処理中...`;
+      }
+      const tr = await generateEnglishTranslation(sceneObj.content);
+      sceneObj.content_en = tr;
+
+      // DB更新
+      const allEntries = await getSceneEntriesByScenarioId(sceneObj.scenarioId);
+      const sceneRec = allEntries.find(e => e.type === "scene" && e.sceneId === sceneObj.sceneId);
+      if (sceneRec) {
+        sceneRec.content_en = tr;
+        await updateSceneEntry(sceneRec);
+      }
+    }
+    if (progressEl) {
+      progressEl.textContent = `${total}/${total}件完了`;
+    }
+    alert("英語データ生成が完了しました。");
+  }
+  
   // --------------------------------------------------
   // ▼ セーブ/ロードモーダルのセーブボタン
   // --------------------------------------------------
@@ -69,20 +122,24 @@ window.addEventListener("DOMContentLoaded", () => {
   // --------------------------------------------------
   // ▼ ネタバレボタン
   // --------------------------------------------------
-  const spoilerModal = document.getElementById("spoiler-modal");
-  const spoilerButton = document.getElementById("spoiler-button");
-  const closeSpoilerModalBtn = document.getElementById("close-spoiler-modal");
-  if (spoilerButton) {
-    spoilerButton.addEventListener("click", () => {
-      spoilerModal.classList.add("active");
+// --------------------------------------------------
+// ▼ ネタバレボタン (multiModal化)
+// --------------------------------------------------
+const spoilerButton = document.getElementById("spoiler-button");
+if (spoilerButton) {
+  spoilerButton.addEventListener("click", () => {
+    multiModal.open({
+      title: "ネタバレ注意",
+      contentHtml: `<p id="clear-condition-text" style="white-space:pre-wrap;"></p>`,
+      showCloseButton: true,
+      closeOnOutsideClick: true,
+      appearanceType: "center",
+      // 下部に閉じるボタンを出したければ:
+      cancelLabel: "閉じる"
+      // → これで右下に「閉じる」ボタンが表示される
     });
-  }
-  if (closeSpoilerModalBtn) {
-    closeSpoilerModalBtn.addEventListener("click", () => {
-      spoilerModal.classList.remove("active");
-    });
-  }
-
+  });
+}
   // --------------------------------------------------
   // ▼ 探索型シナリオ用: 「カードを取得する」ボタン
   // --------------------------------------------------
