@@ -111,7 +111,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     alert("英語データ生成が完了しました。");
   }
-  
+
   // --------------------------------------------------
   // ▼ セーブ/ロードモーダルのセーブボタン
   // --------------------------------------------------
@@ -120,68 +120,56 @@ window.addEventListener("DOMContentLoaded", () => {
     doSaveButton.style.display = "block";
   }
   // --------------------------------------------------
-  // ▼ ネタバレボタン
+  // ▼ ネタバレボタン (multiModal化)
   // --------------------------------------------------
-// --------------------------------------------------
-// ▼ ネタバレボタン (multiModal化)
-// --------------------------------------------------
-const spoilerButton = document.getElementById("spoiler-button");
-if (spoilerButton) {
-  spoilerButton.addEventListener("click", () => {
-    multiModal.open({
-      title: "ネタバレ注意",
-      contentHtml: `<p id="clear-condition-text" style="white-space:pre-wrap;"></p>`,
-      showCloseButton: true,
-      closeOnOutsideClick: true,
-      appearanceType: "center",
-      // 下部に閉じるボタンを出したければ:
-      cancelLabel: "閉じる"
-      // → これで右下に「閉じる」ボタンが表示される
+  const spoilerButton = document.getElementById("spoiler-button");
+  if (spoilerButton) {
+    spoilerButton.addEventListener("click", () => {
+      multiModal.open({
+        title: "ネタバレ注意",
+        contentHtml: `<p id="clear-condition-text" style="white-space:pre-wrap;"></p>`,
+        showCloseButton: true,
+        closeOnOutsideClick: true,
+        appearanceType: "center",
+        // 下部に閉じるボタンを出したければ:
+        cancelLabel: "閉じる"
+        // → これで右下に「閉じる」ボタンが表示される
+      });
     });
-  });
-}
-  // --------------------------------------------------
-  // ▼ 探索型シナリオ用: 「カードを取得する」ボタン
-  // --------------------------------------------------
+  }
+
+  // 「カードを取得する」ボタン (multiModal化)
   const getCardButton = document.getElementById("get-card-button");
   if (getCardButton) {
     getCardButton.addEventListener("click", async () => {
-      // 直近のシーンを要約しカード化 (sceneManager.jsのgetLastSceneSummary等を想定)
+      // ここで summary などを取得
       const summary = await getLastSceneSummary();
       if (!summary) {
         alert("最新シーンがありません");
         return;
       }
 
-      // モーダルを開きプレビュー表示
-      const previewModal = document.getElementById("card-preview-modal");
-      const previewContainer = document.getElementById("preview-card-container");
-      if (!previewModal || !previewContainer) return;
-
-      previewContainer.innerHTML = "";
-      const p = document.createElement("p");
-      p.textContent = summary;
-      p.style.whiteSpace = "pre-wrap";
-      previewContainer.appendChild(p);
-
-      previewModal.classList.add("active");
-
-      // 「倉庫に追加」ボタン(仮)
-      const addBtn = document.getElementById("add-to-gachabox-button");
-      if (addBtn) {
-        addBtn.onclick = async () => {
-          previewModal.classList.remove("active");
-          // ここでカード実際の登録処理等
+      // multiModal でモーダルを開く
+      multiModal.open({
+        title: "カードプレビュー",
+        // contentHtmlにプレビュー内容を組み立て
+        contentHtml: `
+        <div id="preview-card-container">
+          <p style="white-space:pre-wrap;">${DOMPurify.sanitize(summary)}</p>
+        </div>
+      `,
+        showCloseButton: true,    // 右上×で閉じる
+        closeOnOutsideClick: true,
+        appearanceType: "center",
+        // ボタン
+        cancelLabel: "キャンセル",
+        okLabel: "倉庫に追加",
+        onOk: async () => {
+          // 「倉庫に追加」処理
           alert("ガチャ箱に追加しました。（仮）");
-        };
-      }
-      // 「キャンセル」
-      const cancelBtn = document.getElementById("cancel-card-preview-button");
-      if (cancelBtn) {
-        cancelBtn.onclick = () => {
-          previewModal.classList.remove("active");
-        };
-      }
+        }
+        // onCancel も必要なら書く
+      });
     });
   }
 

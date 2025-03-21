@@ -65,8 +65,8 @@ async function loadAllScenesForScenario(scenarioId) {
   const imageRecords = allEntries.filter(e => e.type === "image");
 
   // entryId 昇順
-  sceneRecords.sort((a,b) => a.entryId - b.entryId);
-  imageRecords.sort((a,b) => a.entryId - b.entryId);
+  sceneRecords.sort((a, b) => a.entryId - b.entryId);
+  imageRecords.sort((a, b) => a.entryId - b.entryId);
 
   // シーンごとに images を紐づけ
   for (const sRec of sceneRecords) {
@@ -399,7 +399,7 @@ async function generateJapaneseTranslation(englishText) {
 async function checkSectionClearViaChatGPT(latestAction, latestScene) {
   const wd = window.currentScenario?.wizardData;
   if (!wd || !wd.sections) return;
-  const sorted = wd.sections.slice().sort((a,b) => a.number - b.number);
+  const sorted = wd.sections.slice().sort((a, b) => a.number - b.number);
   const firstUncleared = sorted.find(s => !s.cleared);
   if (!firstUncleared) return;
 
@@ -575,6 +575,47 @@ ${sceneText}
   } catch (e) {
     console.error("generateImagePromptFromScene失敗:", e);
     return "";
+  }
+}
+
+/** 最新シーンを要約しカード化に向けた情報を抽出 */
+async function getLastSceneSummary() {
+
+  const lastSceneEntry = [...window.scenes].slice(-1)[0] || null;
+  if (!lastSceneEntry) return "シーンがありません。";
+
+  const text = lastSceneEntry.content;
+  const systemPrompt = `
+あなたは優秀なカード作成用プロンプト生成者。
+以下フォーマットで【名前】【タイプ】【外見】を作ってください。`;
+  const userPrompt = `
+シーン文:
+${text}
+ここからエレメントにできそうな対象1つを抽出し、【名前】【タイプ】【外見】を生成してください。
+`;
+
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": 'Bearer ' + window.apiKey
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    return data.choices[0].message.content || "";
+  } catch (e) {
+    console.error("要約失敗:", e);
+    return "(要約失敗)";
   }
 }
 
