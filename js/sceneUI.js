@@ -195,18 +195,45 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --------------------------------------------------
-  // ▼ 全セクション閲覧ボタン
-  // --------------------------------------------------
+  // ▼ 全セクション閲覧ボタン (multiModal化)
   const viewAllSectionsBtn = document.getElementById("view-all-sections-button");
   if (viewAllSectionsBtn) {
     viewAllSectionsBtn.addEventListener("click", showAllSectionsModal);
   }
-  const closeAllSecBtn = document.getElementById("close-all-sections-modal");
-  if (closeAllSecBtn) {
-    closeAllSecBtn.addEventListener("click", () => {
-      const allSecModal = document.getElementById("all-sections-modal");
-      if (allSecModal) allSecModal.classList.remove("active");
+  function showAllSectionsModal() {
+    // ここで scenario.wizardData.sections などから一覧を作る
+    multiModal.open({
+      title: "全セクション一覧",
+      contentHtml: `
+        <div id="all-sections-container" style="max-height:60vh; overflow:auto;"></div>
+      `,
+      showCloseButton: true,
+      appearanceType: "center",
+      closeOnOutsideClick: true,
+      cancelLabel: "閉じる",
+      onOpen: () => {
+        renderAllSections();
+      }
+    });
+  }
+
+  function renderAllSections() {
+    const container = document.getElementById("all-sections-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    // 例えば
+    const wd = window.currentScenario?.wizardData;
+    if (!wd || !wd.sections) {
+      container.textContent = "セクション情報がありません。";
+      return;
+    }
+    const sorted = [...wd.sections].sort((a, b) => a.number - b.number);
+    sorted.forEach(sec => {
+      const p = document.createElement("p");
+      const clearedText = sec.cleared ? "【済】" : "【未】";
+      p.textContent = `${sec.number} : ${clearedText} ${decompressCondition(sec.conditionZipped)}`;
+      container.appendChild(p);
     });
   }
 
