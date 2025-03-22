@@ -691,13 +691,6 @@ function createPartyCardElement(c) {
   return cardEl;
 }
 
-window.closePartyModal = function () {
-  const modal = document.getElementById("party-modal");
-  if (modal) {
-    modal.classList.remove("active");
-  }
-};
-
 /** 全セクション閲覧 */
 window.showAllSectionsModal = function () {
   const modal = document.getElementById("all-sections-modal");
@@ -789,17 +782,3 @@ function buildCardDescription(card) {
   return result;
 }
 
-/* =========================================================
-   ▼ ここが今回の修正点：パーティモーダルの「閉じる」処理を追加
-========================================================= */
-window.addEventListener("load", () => {
-  const closePartyModalBtn = document.getElementById("close-party-modal");
-  if (closePartyModalBtn) {
-    closePartyModalBtn.addEventListener("click", () => {
-      const modal = document.getElementById("party-modal");
-      if (modal) {
-        modal.classList.remove("active");
-      }
-    });
-  }
-});
