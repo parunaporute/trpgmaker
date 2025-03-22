@@ -2262,3 +2262,19 @@ button.important {
 #info-modal {
   z-index: 9998;
 }
+
+#loading-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  /* 大きな値を設定 */
+  z-index: 999999;
+  display: none; /* 初期非表示 */
+}
+
+#loading-modal.active {
+  display: flex; /* or block */
+  justify-content: center;
+  align-items: center;
+}

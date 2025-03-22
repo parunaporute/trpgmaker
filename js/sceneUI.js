@@ -276,21 +276,46 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --------------------------------------------------
-  // ▼ 情報モーダル (アイテム/登場人物)
-  // --------------------------------------------------
-  const infoCloseBtn = document.getElementById("info-close-button");
-  if (infoCloseBtn) {
-    infoCloseBtn.addEventListener("click", () => {
-      const infoModal = document.getElementById("info-modal");
-      if (infoModal) infoModal.classList.remove("active");
+  // ▼ 情報ボタン (multiModal化)
+  const infoButton = document.getElementById("info-button");
+  if (infoButton) {
+    infoButton.addEventListener("click", openEntitiesModal);
+  }
+
+  // 既存の info-close-button, info-modal は削除し、HTMLから <div id="info-modal"> も削除
+
+  function openEntitiesModal() {
+    // 「情報モーダル」を multiModal で開く
+    multiModal.open({
+      title: "情報",
+      contentHtml: `
+      <div style="margin-bottom:10px;">
+        <button id="entity-update-button">シナリオから取得</button>
+      </div>
+      <div id="entity-candidate-list" style="margin-bottom:20px; padding:5px;"></div>
+      <div id="entity-list-container" style="margin-bottom:20px; padding:5px;"></div>
+    `,
+      showCloseButton: true,       // 右上×で閉じる
+      closeOnOutsideClick: true,   // モーダル外クリックでも閉じる
+      cancelLabel: "閉じる",       // 下部に「閉じる」ボタン
+      appearanceType: "center",
+      // モーダルが開いた後にDOMが生成されるので onOpen でイベントなど付与
+      onOpen: () => {
+        renderEntitiesList();
+        // 「シナリオから取得」ボタン
+        const entityUpdateBtn = document.getElementById("entity-update-button");
+        if (entityUpdateBtn) {
+          entityUpdateBtn.addEventListener("click", onUpdateEntitiesFromAllScenes);
+        }
+
+        // 必要なら、候補一覧や既存一覧の描画
+        // 例: 
+        //   document.getElementById("entity-candidate-list").textContent = "候補なし";
+        //   document.getElementById("entity-list-container").textContent = "エンティティ一覧";
+      }
     });
   }
 
-  const entityUpdateBtn = document.getElementById("entity-update-button");
-  if (entityUpdateBtn) {
-    entityUpdateBtn.addEventListener("click", onUpdateEntitiesFromAllScenes); // sceneExtras.js
-  }
 
   // --------------------------------------------------
   // ▼ カスタム画像生成モーダル
