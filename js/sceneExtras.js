@@ -7,6 +7,7 @@
 /* =============================
    エンディング関連
 ============================= */
+
 window.showEndingModal = async function (type) {
   const scenarioId = window.currentScenario?.scenarioId;
   if (!scenarioId) {
@@ -24,42 +25,58 @@ window.showEndingModal = async function (type) {
   }
 };
 
-window.onClickRegenerateEnding = async function () {
-  const titleEl = document.getElementById("ending-modal-title");
-  const scenarioId = window.currentScenario?.scenarioId;
-  if (!titleEl || !scenarioId) return;
+// 2) multiModal版 openEndingModal
+window.openEndingModal = function (type, story) {
+  // typeが "clear" なら「クリアエンディング」、それ以外は「エンディング」
+  const titleText = (type === "clear") ? "クリアエンディング" : "エンディング";
 
-  let type = "bad";
-  if (titleEl.textContent.includes("クリア")) {
-    type = "clear";
-  }
-  // 一旦削除
+  // multiModal でモーダルを表示
+  multiModal.open({
+    title: titleText,
+    contentHtml: `
+      <pre id="ending-modal-story" style="white-space:pre-wrap;">${DOMPurify.sanitize(story)}</pre>
+    `,
+    showCloseButton: true,        // 右上×で閉じる
+    closeOnOutsideClick: true,
+    appearanceType: "center",
+    // ボタン2つ: 「再生成」「閉じる」
+    additionalButtons: [
+      {
+        label: "再生成",
+        onClick: () => {
+          // 再生成: type判定に工夫が必要
+          onClickRegenerateEndingMulti(type);
+        }
+      }
+    ],
+    cancelLabel: "閉じる"  // 下部に「閉じる」ボタン
+  });
+};
+
+// 3) onClickRegenerateEnding() を少し改造:
+//    旧版では #ending-modal-title のテキストから typeを判定
+//    → multiModal下ではHTML要素が消えているので
+//    → openEndingModal側で引数を渡す or global変数を使う
+
+window.onClickRegenerateEndingMulti = async function(type) {
+  const scenarioId = window.currentScenario?.scenarioId;
+  if (!scenarioId) return;
+  // 旧コード:  #ending-modal-title.textContent.includes("クリア") → type="clear"
+  // ここは既に type を引数で受け取るようにした
+
+  // 1) 既存Ending削除
   await deleteEnding(scenarioId, type);
 
-  // 再生成
+  // 2) 再生成
   const newStory = await generateEndingStory(type);
   if (!newStory) return;
   await saveEnding(scenarioId, type, newStory);
 
-  const storyEl = document.getElementById("ending-modal-story");
-  if (storyEl) {
-    storyEl.textContent = newStory;
-  }
+  // 3) multiModalを開き直す or 部分更新
+  //    例: 開き直し
+  openEndingModal(type, newStory);
 };
 
-window.openEndingModal = function (type, story) {
-  const modal = document.getElementById("ending-modal");
-  const titleEl = document.getElementById("ending-modal-title");
-  const storyEl = document.getElementById("ending-modal-story");
-
-  if (type === "clear") {
-    titleEl.textContent = "クリアエンディング";
-  } else {
-    titleEl.textContent = "エンディング";
-  }
-  storyEl.textContent = story;
-  modal.classList.add("active");
-};
 
 async function generateEndingStory(type) {
   if (!window.apiKey) {
