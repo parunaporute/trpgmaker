@@ -58,7 +58,7 @@ window.openEndingModal = function (type, story) {
 //    → multiModal下ではHTML要素が消えているので
 //    → openEndingModal側で引数を渡す or global変数を使う
 
-window.onClickRegenerateEndingMulti = async function(type) {
+window.onClickRegenerateEndingMulti = async function (type) {
   const scenarioId = window.currentScenario?.scenarioId;
   if (!scenarioId) return;
   // 旧コード:  #ending-modal-title.textContent.includes("クリア") → type="clear"
@@ -571,13 +571,23 @@ No text in the image, Anime style, best quality
    パーティ表示 & 全セクション一覧
 ============================= */
 window.showPartyModal = function () {
-  const modal = document.getElementById("party-modal");
-  if (!modal) return;
-  modal.classList.add("active");
-  renderPartyCardsInModal();
+  multiModal.open({
+    title: "パーティ情報",
+    contentHtml: `
+      <div id="party-modal-card-container" style="margin-top:10px;"></div>
+    `,
+    appearanceType: "center",
+    showCloseButton: true,       // 右上×
+    closeOnOutsideClick: true,
+    cancelLabel: "閉じる",       // 下部「閉じる」
+    onOpen: () => {
+      // モーダルDOMが生成されたあと => カードを表示
+      renderPartyCardsInModalMulti();
+    }
+  });
 };
 
-function renderPartyCardsInModal() {
+function renderPartyCardsInModalMulti() {
   const container = document.getElementById("party-modal-card-container");
   if (!container) return;
   container.innerHTML = "";
@@ -591,11 +601,10 @@ function renderPartyCardsInModal() {
   const wizardPartyCards = scenario.wizardData.party;
   const dbCards = window.characterData || [];
 
+  // 例: merged
   const merged = wizardPartyCards.map(wCard => {
     const dbMatch = dbCards.find(dbC => dbC.id === wCard.id);
-    if (!dbMatch) {
-      return wCard;
-    }
+    if (!dbMatch) return wCard;
     return {
       ...dbMatch,
       ...wCard,
@@ -604,10 +613,11 @@ function renderPartyCardsInModal() {
   });
 
   merged.forEach(card => {
-    const cardEl = createPartyCardElement(card);
+    const cardEl = createPartyCardElement(card); // 元のまま
     container.appendChild(cardEl);
   });
 }
+
 
 function createPartyCardElement(c) {
   const cardEl = document.createElement("div");
