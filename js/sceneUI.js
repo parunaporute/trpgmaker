@@ -316,28 +316,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
-  // --------------------------------------------------
-  // ▼ カスタム画像生成モーダル
-  // --------------------------------------------------
-  const promptModalBtn = document.getElementById("image-prompt-modal-button");
-  if (promptModalBtn) {
-    promptModalBtn.addEventListener('click', () => {
-      openImagePromptModal();
-    });
-  }
-  const customGenBtn = document.getElementById('image-custom-generate-button');
-  if (customGenBtn) {
-    customGenBtn.addEventListener('click', () => {
-      onCustomImageGenerate();
-    });
-  }
-  const customCancelBtn = document.getElementById('image-custom-cancel-button');
-  if (customCancelBtn) {
-    customCancelBtn.addEventListener('click', () => {
-      closeImagePromptModal();
-    });
-  }
 });
 
 
