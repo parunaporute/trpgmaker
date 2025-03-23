@@ -1123,39 +1123,78 @@ window.imageViewerState = {
 
 /** ビューワを開く */
 window.openImageViewer = function (sceneObj, startIndex) {
+  // 1) state にデータ保持
   window.imageViewerState.sceneObj = sceneObj;
   window.imageViewerState.currentIndex = startIndex;
   window.imageViewerState.images = sceneObj.images || [];
   window.imageViewerState.isOpen = true;
 
-  const viewerModal = document.getElementById("image-viewer-modal");
+  // 2) multiModal.open
+  multiModal.open({
+    title: "画像ビューワー",
+    contentHtml: `
+      <div style="position:relative; background-color:#000; text-align:center; overflow:hidden;">
+        <img id="viewer-image-element" class="viewer-image" 
+             style="max-width:100%; max-height:80vh; transition:transform 0.2s;"
+        />
+        <div id="viewer-controls" class="viewer-controls hidden" 
+             style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;">
+          <div class="center-buttons" style="pointer-events:auto; display:flex; gap:20px; justify-content:center; margin-top:40px;">
+            <button id="viewer-delete-button">削除</button>
+            <button id="viewer-download-button">ダウンロード</button>
+          </div>
+        </div>
+      </div>
+    `,
+    appearanceType: "center",
+    closeOnOutsideClick: false, // 外クリックで閉じるかは好みで
+    showCloseButton: false,     // 右上×は不要ならfalse
+    okLabel: "OK",              // 「OK」ボタンで閉じる
+    // 追加ボタンは再度削除/ダウンロードしてもよいが、ここでは viewer-controls 内にあるため省略
+    onOpen: () => {
+      // モーダルが描画されたので、ここで画像表示/スワイプイベント登録
+      initViewerModalContent();
+    }
+  });
+};
+
+function initViewerModalContent() {
   const imgEl = document.getElementById("viewer-image-element");
+  const controlsEl = document.getElementById("viewer-controls");
+  const delBtn = document.getElementById("viewer-delete-button");
+  const dlBtn = document.getElementById("viewer-download-button");
 
-  // ポートレートorランドスケープを判定しサイズ調整
-  const orientationPortrait = (window.innerHeight >= window.innerWidth);
-  if (orientationPortrait) {
-    imgEl.style.width = "100%";
-    imgEl.style.height = "auto";
-  } else {
-    imgEl.style.width = "auto";
-    imgEl.style.height = "100%";
-  }
-  showImageInViewer();
+  if (!imgEl || !delBtn || !dlBtn) return;
 
-  const controls = document.getElementById("viewer-controls");
-  if (controls) controls.classList.add("hidden");
-  viewerModal.classList.add("active");
-
+  // スワイプ等のイベント付与
   addViewerTouchEvents(imgEl);
 
-  // 削除/ダウンロード/閉じる
-  const delBtn = document.getElementById("viewer-delete-button");
-  if (delBtn) delBtn.onclick = onClickViewerDelete;
-  const dlBtn = document.getElementById("viewer-download-button");
-  if (dlBtn) dlBtn.onclick = onClickViewerDownload;
-  const closeBtn = document.getElementById("viewer-close-button");
-  if (closeBtn) closeBtn.onclick = closeImageViewer;
-};
+  // 「削除」ボタン
+  delBtn.onclick = () => {
+    onClickViewerDelete();
+  };
+
+  // 「ダウンロード」ボタン
+  dlBtn.onclick = () => {
+    onClickViewerDownload();
+  };
+
+  // 初期表示
+  showImageInViewer();
+}
+
+function showImageInViewer() {
+  const { images, currentIndex } = window.imageViewerState;
+  const imgEl = document.getElementById("viewer-image-element");
+  if (!imgEl) return;
+
+  if (!images[currentIndex]) {
+    imgEl.src = "";
+    return;
+  }
+  imgEl.src = images[currentIndex].dataUrl;
+  imgEl.style.transform = "translateX(0px)"; // 初期位置
+}
 
 function showImageInViewer() {
   const { images, currentIndex } = window.imageViewerState;
@@ -1224,7 +1263,7 @@ function finishSwipeOrTap(isCancel) {
 
   // スワイプ量判定
   const dx = s.currentX - s.startX;
-  const threshold = window.innerWidth * 0.3;
+  const threshold = window.innerWidth * 0.01;
   if (Math.abs(dx) < threshold) {
     resetImagePosition(imgEl);
   } else {
