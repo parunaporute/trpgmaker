@@ -1,6 +1,13 @@
 @echo off
 chcp 65001 >nul
 
+REM 引数があればそのファイル、なければinclude.txt
+if "%~1"=="" (
+    set "LIST_FILE=include.txt"
+) else (
+    set "LIST_FILE=%~1"
+)
+
 REM 出力ファイル名
 set OUTPUT_FILE=merged.txt
 
@@ -22,13 +29,13 @@ echo 以上を実施し、編集しないファイルを除き完全なコード
 
 echo 選択されたファイルの結合処理中...
 
-REM include.txt に書かれた各行を読み込み、ファイル名→本文→区切り線 の順に追記する
-for /f "usebackq delims=" %%f in ("include.txt") do (
+REM 各行を読み込み、ファイル名→本文→区切り線 の順に追記する
+for /f "usebackq delims=" %%f in ("%LIST_FILE%") do (
   if exist "%%~f" (
     echo %%~nxf >> %OUTPUT_FILE%
     type "%%~f" >> %OUTPUT_FILE%
     echo --- >> %OUTPUT_FILE%
-    ) else (
+  ) else (
     echo [警告] 指定されたファイルが見つかりません: %%f
     echo [警告] 指定されたファイルが見つかりません: %%f >> %OUTPUT_FILE%
     echo --- >> %OUTPUT_FILE%
