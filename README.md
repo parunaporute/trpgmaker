@@ -20,24 +20,38 @@ node htmlGen/render.js
 
 htmlGen ディレクトリに含まれるバッチスクリプトおよび関連ファイルの概要です。
 
-## includeAllGen.bat
-プロジェクト内のファイル構造をスキャンし、その情報を `include.txt` に出力するバッチスクリプトです。
-
-## include.txt
-`mergeInclude.bat` が参照するファイルリストを定義するテキストファイルです。スクリプトが統合対象とするファイルのパスをここに記載します。
-
-## mergeInclude.bat
-AI 向けスクリプトを生成し、`include.txt` に記載されているファイルのみを統合して `merged.txt` に出力するバッチスクリプトです。引数にファイルを指定すると、`include.txt` の代わりに利用します。
+## includeGen.js
+引数を指定されない場合はプロジェクト内のファイル構造をスキャンし、jsとCSSとHTMLのパスを `include.txt` に出力するバッチスクリプトです。
+引数を指定さた場合はHTML内の構造をスキャンし、jsとCSSと当該HTMLのパスを `include.txt` に出力するバッチスクリプトです。
 
 ### 使い方
 
-```bat
-./merginclude.bat
+```
+node ./includeGen.js
+```
+
+```
+node ./includeGen.js ../index.html
 ```
 
 
-## merged.bat
-AI で使用可能なスクリプトを生成し、すべてのファイルを統合した結果を `merged.txt` に出力するバッチスクリプトです。
+## include.txt
+`mergeGen.js` が参照するファイルリストを定義するテキストファイルです。スクリプトが統合対象とするファイルのパスをここに記載します。
+
+
+## mergeGen.js
+引数を指定されない場合は、AI 向けスクリプトを生成し、`include.txt` に記載されているファイルのみを統合して `merged.txt` に出力するバッチスクリプトです。
+引数を指定された場合は、AI 向けスクリプトを生成し、引数に指定されたファイルに記載されているファイルを統合して `merged.txt` に出力するバッチスクリプトです。
+
+### 使い方
+
+```
+node ./mergeGen.js
+```
+
+```
+node ./mergeGen.js ./トップのセットinclude.txt
+```
 
 ## XXXXのinclude.txt
-`mergeInclude.bat`の引数に用いるファイルです。
+`mergeGen.js`の引数に用いるファイルです。
