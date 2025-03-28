@@ -26,32 +26,32 @@ htmlGen ディレクトリに含まれるバッチスクリプトおよび関連
 
 ### 使い方
 
-```
+```bash
 node ./includeGen.js
 ```
 
-```
+```bash
 node ./includeGen.js ../index.html
 ```
 
 
 ## include.txt
-`mergeGen.js` が参照するファイルリストを定義するテキストファイルです。スクリプトが統合対象とするファイルのパスをここに記載します。
+`mergedGen.js` が参照するファイルリストを定義するテキストファイルです。スクリプトが統合対象とするファイルのパスをここに記載します。
 
 
-## mergeGen.js
+## mergedGen.js
 引数を指定されない場合は、AI 向けスクリプトを生成し、`include.txt` に記載されているファイルのみを統合して `merged.txt` に出力するバッチスクリプトです。
 引数を指定された場合は、AI 向けスクリプトを生成し、引数に指定されたファイルに記載されているファイルを統合して `merged.txt` に出力するバッチスクリプトです。
 
 ### 使い方
 
-```
-node ./mergeGen.js
+```bash
+node ./mergedGen.js
 ```
 
-```
-node ./mergeGen.js ./トップのセットinclude.txt
+```bash
+node ./mergedGen.js ./トップのセットinclude.txt
 ```
 
 ## XXXXのinclude.txt
-`mergeGen.js`の引数に用いるファイルです。
+`mergedGen.js`の引数に用いるファイルです。
