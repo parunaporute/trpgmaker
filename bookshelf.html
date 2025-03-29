@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <title>本棚</title>
@@ -21,7 +20,6 @@
   <script src="js/tutorialData.js"></script>
   <script src="js/tutorialManager.js"></script>
   <script src="js/universalSaveLoad.js"></script>
-
 </head>
 
 <body>
@@ -43,6 +41,7 @@
       <div class="iconmoon icon-picture"></div>背景
     </button>
   </div>
+
   <div class="container">
     <h1>本棚</h1>
     <p style="text-align:center;">本棚に収納されたシナリオが表示されます。</p>
@@ -85,7 +84,7 @@
           linear-gradient(0, #b37417, #ffbb6f);
         white-space: nowrap;
       ">
-        <div id="bookshelf-container" style="display: flex; flex-direction: row; gap: 7.5px; padding-left: 5px;"></div>
+        <div id="bookshelf-container" style="display: flex; flex-direction: row; gap: 0px; padding-left: 5px;"></div>
       </div>
 
       <!-- 2. リスト表示（本一覧） -->
@@ -104,111 +103,17 @@
             <div id="bookshelf-list-container"></div>
           </div>
         </div>
-        <div id="bookshelf-list-container"></div>
       </div>
     </div>
   </div>
 
-  <!-- ▼ ポータル用要素 -->
+  <!-- ▼ ドロップダウン配置用要素 (body直下) -->
   <div id="dropdown-portal"></div>
 
-  <!-- ▼ コピー確認用モーダル -->
-  <div id="copy-scenario-modal" class="modal">
-    <div class="modal-content">
-      <h3>シナリオコピーの確認</h3>
-      <p>このシナリオをコピーします。よろしいですか？</p>
-      <div class="c-flexbox">
-        <button id="copy-scenario-ok">OK</button>
-        <button id="copy-scenario-cancel">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ▼ 削除確認用モーダル -->
-  <div id="delete-scenario-modal" class="modal">
-    <div class="modal-content">
-      <h3>シナリオ削除の確認</h3>
-      <p>このシナリオを削除します。よろしいですか？</p>
-      <div class="c-flexbox">
-        <button id="delete-scenario-ok">OK</button>
-        <button id="delete-scenario-cancel">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ シナリオ取り込み確認用モーダル -->
-  <div id="import-scenario-modal" class="modal">
-    <div class="modal-content">
-      <h3>シナリオを取り込みますか？</h3>
-      <p>このURLからシナリオを読み込み、本棚に収納します。</p>
-      <div class="c-flexbox">
-        <button id="import-scenario-ok">OK</button>
-        <button id="import-scenario-cancel">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ 追加: ダウンロード時の確認モーダル -->
-  <div id="download-with-images-modal" class="modal">
-    <div class="modal-content">
-      <h3>ダウンロードの確認</h3>
-      <p>画像を含めるとサイズが大きくなる可能性があります。<br>
-        画像を含めたシナリオをダウンロードしますか？</p>
-      <div class="c-flexbox">
-        <button id="download-images-yes">画像付き</button>
-        <button id="download-images-no">画像なし</button>
-        <button id="download-images-cancel">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ シナリオ編集モーダル -->
-  <div id="edit-scenario-modal" class="modal">
-    <div class="modal-content edit-scenario-modal-content">
-      <h3>本編集</h3>
-
-      <!-- タイトル入力行 -->
-      <div class="edit-row">
-        <label for="edit-scenario-title">タイトル</label>
-        <input type="text" id="edit-scenario-title" />
-      </div>
-
-      <!-- 装丁色入力行 -->
-      <div class="edit-row">
-        <div class="edit-row">
-          <label for="edit-scenario-covercolor1">装丁色1</label>
-          <input type="color" id="edit-scenario-covercolor1" />
-        </div>
-        <div class="edit-row">
-          <label for="edit-scenario-covercolor2">装丁色2</label>
-          <input type="color" id="edit-scenario-covercolor2" />
-        </div>
-      </div>
-
-      <!-- 画像のON/OFFチップ -->
-      <div class="edit-row">
-        <label>装丁画像</label>
-      </div>
-      <div class="edit-row">
-        <div class="chips-container" id="cover-image-choice">
-          <div class="chip chip-mini" data-value="on">あり</div>
-          <div class="chip chip-mini" data-value="off">なし</div>
-        </div>
-      </div>
-
-      <!-- 左右の間隔入力欄 -->
-      <div class="edit-row">
-        <label for="edit-scenario-coverspacing">左右の間隔(px)</label>
-        <input type="number" id="edit-scenario-coverspacing" />
-      </div>
-
-      <!-- ボタン -->
-      <div class="modal-buttons">
-        <button id="edit-scenario-ok">OK</button>
-        <button id="edit-scenario-cancel">キャンセル</button>
-      </div>
-    </div>
-  </div>
+  <!--
+    ★ 不要モーダル群は削除しました (delete-scenario-modal等)
+    すべて multiModal へ置き換え
+  -->
 
   <!-- ▼ スクリプト読み込み -->
   <!-- JSZip（ZIP圧縮ライブラリ） -->
@@ -217,5 +122,4 @@
   <script src="js/indexedDB.js"></script>
   <script src="js/bookshelfPage.js"></script>
 </body>
-
 </html>
