@@ -52,7 +52,7 @@ function collectBatchLike() {
 
   // include.txt に書き出し
   fs.writeFileSync(includeFile, output, 'utf8');
-  console.log('バッチファイルのようにリストを収集しました。');
+  console.log('../を探索し収集しました。');
 }
 
 // --------------------------------------------------------------------------
@@ -123,7 +123,7 @@ function collectWithNodeHtmlParser(htmlFile) {
 
   // include.txt へ出力
   fs.writeFileSync(includeFile, output, 'utf8');
-  console.log('node-html-parser でリストを収集しました。');
+  console.log('node-html-parser で収集しました。');
 }
 
 // --------------------------------------------------------------------------
